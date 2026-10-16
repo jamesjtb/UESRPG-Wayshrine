@@ -53,8 +53,11 @@ This is the planned scope for the project's full release. Additional features ma
 #### System Module Scope
 
 ##### Rules Compendium
+
 Presented in order of appearance in the Rules Compendium, not in planned order of release.
+
 **Chapter 1**
+
 - [ ] basic gameplay
     - [ ] tests
         - [ ] standard tests
@@ -80,19 +83,27 @@ Presented in order of appearance in the Rules Compendium, not in planned order o
         - [ ] burning luck
     - [ ] long & short rests
     - [ ] import character advancement results from Character Forge
+
 **Chapter 2**
+
 - [ ] import character creation results from Character Forge
+
 **Chapter 3**
+
 - [ ] skill item sheet
 - [ ] provide official skills as compendium items
+
 **Chapter 4**
+
 - [ ] talents
     - [ ] talent item sheet
     - [ ] provide official talents as compendium items
 - [ ] traits
     - [ ] trait item sheet
     - [ ] provide official traits as compendium items
+
 **Chapter 5**
+
 - [ ] combat workflows
     - [ ] initiative
     - [ ] attacking and defending (incl. hit location resolution)
@@ -106,7 +117,9 @@ Presented in order of appearance in the Rules Compendium, not in planned order o
 - [ ] diseases
     - [ ] disease item sheet
     - [ ] provide official diseases as compendium items (curses will be covered alongside elite advances)
+
 **Chapter 6**
+
 - [ ] spellcasting
     - [ ] spell item sheet
     - [ ] conventional spell compendium items
@@ -122,7 +135,9 @@ Presented in order of appearance in the Rules Compendium, not in planned order o
 - [ ] enchanting
     - [ ] enchantment item sheets applied to equipment item sheets
     - [ ] import created enchantments from the enchanting tool
+
 **Chapter 7**
+
 - [ ] Item Sheets
     - [ ] good - defined in the "Goods & Services" section
     - [ ] soul gem - dedicated sheet type or just another good with extra values?
@@ -132,6 +147,8 @@ Presented in order of appearance in the Rules Compendium, not in planned order o
     - [ ] armor
     - [ ] shield
     - [ ] assign prices to previously implemented item sheets where necessary (potions, enchantments, etc)
+
 **Chapter 8**
+
 TBA - likely after 1.0 as a separate update.
 

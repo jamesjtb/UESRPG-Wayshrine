@@ -4,6 +4,49 @@ UESRPG Wayshrine is a monorepo that is intended to house all digital tools avail
 
 **UESRPG Wayshrine is a Work-in-Progress.**
 
+## Development
+
+### Requirements
+
+- Node.js 24 LTS (also specified in `.node-version`).
+- pnpm 12.14.0, pinned in the root `package.json`.
+
+From the repository root:
+
+```sh
+pnpm install
+pnpm typecheck
+pnpm format:check
+pnpm start:wck dev
+```
+
+Run `pnpm format` to apply formatting.
+
+### Workspaces
+
+| Path           | Package                   | Responsibility                                                                                                                                                |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vtt/foundry`  | `@wayshrine/foundry`      | Foundry system skeleton. The target Foundry version, manifest, typings, and bundling are deferred; this is not yet a loadable system.                         |
+| `bridge`       | `@wayshrine/bridge`       | Platform-independent shared TypeScript contracts. Initially type-only, with no runtime code, server, or separate build. Domain contracts are not yet defined. |
+| `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application, initially a placeholder shell. No backend or game workflows are implemented.                                                |
+
+Both applications depend on Bridge through `workspace:*`. Consume its future
+contracts with `import type`. Bridge must remain independent of React, Foundry,
+and both application workspaces so that Creation Kit can work without a VTT and
+other VTT integrations remain possible.
+
+### Creation Kit deployment
+
+```sh
+pnpm --filter @wayshrine/creation-kit build
+pnpm --filter @wayshrine/creation-kit preview
+```
+
+The build produces `creation-kit/dist/`, which can be served by any static host
+without a dedicated application server. Relative asset paths support hosting in
+a subdirectory. The preview command is for checking the build locally, not for
+production hosting.
+
 ## Project Goals
 
 ### Project Longevity
@@ -14,7 +57,7 @@ To ensure the longevity of this project, it must pass the "Bus Test". Passing th
 
 Digital tools that provide workflows like character creation/advancement, crafting tools, etc should not require the purchase of Foundry for UESRPG players to gain access. The decoupled digital tools provided by this project should have an option for free and easy rehosting. Furthermore each digital tool should provide multiple exports of the results of their workflows that can be used at any physical table or VTT.
 
-Currently planned formats: PDF documents for editable form-filled .pdfs, images for uneditable, aesthetically pleasing character/item cards, and Foundry VTT with the door left open for other  VTT exports.
+Currently planned formats: PDF documents for editable form-filled .pdfs, images for uneditable, aesthetically pleasing character/item cards, and Foundry VTT with the door left open for other VTT exports.
 
 ## Services
 
@@ -23,6 +66,7 @@ Currently planned formats: PDF documents for editable form-filled .pdfs, images 
 Provide guided game prep workflows and some gameplay workflows for both GMs and Players.
 
 #### Planned Tools
+
 These are the planned tools for the project's full release. Additional features may be implemented post-release.
 
 - [ ] Character Forge - Covers character creation and advancement
@@ -30,7 +74,7 @@ These are the planned tools for the project's full release. Additional features 
 - [ ] Unconventional Spell Creator[^1] - Covers the creation of unconventional spells
 - [ ] Enchantment Creator[^1] - Covers constant, strike, and cast enchantments
 - [ ] Alchemist Workflows[^1] - Covers potion and poison creation (including toxins)
-- [ ] Loot Generator[^1] - Covers procedural generation of artifacts, equipment, enchanted items, spell scrolls and tomes, and potions and poisons. Achieved by automating workflows established by other tools to create items that follow the official rules of the game, and can be opened in the relevant tool for editing where possible. 
+- [ ] Loot Generator[^1] - Covers procedural generation of artifacts, equipment, enchanted items, spell scrolls and tomes, and potions and poisons. Achieved by automating workflows established by other tools to create items that follow the official rules of the game, and can be opened in the relevant tool for editing where possible.
 
 [^1]: Name TBD
 
@@ -41,8 +85,9 @@ Wayshrine bridge is responsible for facilitating communication between the Waysh
 #### Phases
 
 Wayshrine Bridge will be deployed in two stages:
+
 - [ ] shared types - this is the invisible compatibility layer between the VTT and WCK. Users will need to manually import the results from WCK into the VTT, likely by way of copy+paste to start.
-- [ ] true integration - the current goal is to fully integrate Foundry and WCK so that WCK tools can be rendered from within the foundry system. This is subject to change and is likely the final priority to tackle before 1.0. That attempt will determine how close we can get to "true integration" in reality, so temper expectations.
+- [ ] true integration - the current goal is to fully integrate Foundry and WCK so that WCK tools can be rendered from within the foundry system. This is subject to change and is likely the final priority to tackle before 1.0. The first attempt at this will shed light on how realistic "true integration" between WCK and foundry truly is, so temper expectations.
 
 ### Foundry System Module
 
@@ -59,30 +104,30 @@ Presented in order of appearance in the Rules Compendium, not in planned order o
 **Chapter 1**
 
 - [ ] basic gameplay
-    - [ ] tests
-        - [ ] standard tests
-        - [ ] simple tests
-        - [ ] opposed tests
-        - [ ] extended tests
-        - [ ] characteristic tests
-        - [ ] skill tests
-    - [ ] tests and other die rolls triggered by automated workflows prompt the relevant player before the roll is made
+  - [ ] tests
+    - [ ] standard tests
+    - [ ] simple tests
+    - [ ] opposed tests
+    - [ ] extended tests
+    - [ ] characteristic tests
+    - [ ] skill tests
+  - [ ] tests and other die rolls triggered by automated workflows prompt the relevant player before the roll is made
 - [ ] player character sheet
-    - [ ] Sheet layout, including sections for:
-        - [ ] characteristics
-        - [ ] attributes
-        - [ ] skills
-        - [ ] talents
-        - [ ] traits
-        - [ ] magic
-        - [ ] items & encumbrance
-        - [ ] active effects
-    - [ ] stamina point abilities with automatic SP expenditure
-    - [ ] luck
-        - [ ] luck point abilities
-        - [ ] burning luck
-    - [ ] long & short rests
-    - [ ] import character advancement results from Character Forge
+  - [ ] Sheet layout, including sections for:
+    - [ ] characteristics
+    - [ ] attributes
+    - [ ] skills
+    - [ ] talents
+    - [ ] traits
+    - [ ] magic
+    - [ ] items & encumbrance
+    - [ ] active effects
+  - [ ] stamina point abilities with automatic SP expenditure
+  - [ ] luck
+    - [ ] luck point abilities
+    - [ ] burning luck
+  - [ ] long & short rests
+  - [ ] import character advancement results from Character Forge
 
 **Chapter 2**
 
@@ -96,59 +141,58 @@ Presented in order of appearance in the Rules Compendium, not in planned order o
 **Chapter 4**
 
 - [ ] talents
-    - [ ] talent item sheet
-    - [ ] provide official talents as compendium items
+  - [ ] talent item sheet
+  - [ ] provide official talents as compendium items
 - [ ] traits
-    - [ ] trait item sheet
-    - [ ] provide official traits as compendium items
+  - [ ] trait item sheet
+  - [ ] provide official traits as compendium items
 
 **Chapter 5**
 
 - [ ] combat workflows
-    - [ ] initiative
-    - [ ] attacking and defending (incl. hit location resolution)
-    - [ ] action economy automation
-    - [ ] death
-    - [ ] apply the relevant penalties/bonuses to attacks based on the size of the target of the attack
+  - [ ] initiative
+  - [ ] attacking and defending (incl. hit location resolution)
+  - [ ] action economy automation
+  - [ ] death
+  - [ ] apply the relevant penalties/bonuses to attacks based on the size of the target of the attack
 - [ ] rollable tables in the compendium
-    - [ ] hit locations
-    - [ ] fear tables
-    - [ ] diseases
+  - [ ] hit locations
+  - [ ] fear tables
+  - [ ] diseases
 - [ ] diseases
-    - [ ] disease item sheet
-    - [ ] provide official diseases as compendium items (curses will be covered alongside elite advances)
+  - [ ] disease item sheet
+  - [ ] provide official diseases as compendium items (curses will be covered alongside elite advances)
 
 **Chapter 6**
 
 - [ ] spellcasting
-    - [ ] spell item sheet
-    - [ ] conventional spell compendium items
-    - [ ] import created unconventional spells from the spellcrafting tool
-    - [ ] ritual item sheet
-    - [ ] spellcasting workflow
-    - [ ] MP cost deduction, including restraint
-    - [ ] automatically apply spell damage and effects (including required rolls)
+  - [ ] spell item sheet
+  - [ ] conventional spell compendium items
+  - [ ] import created unconventional spells from the spellcrafting tool
+  - [ ] ritual item sheet
+  - [ ] spellcasting workflow
+  - [ ] MP cost deduction, including restraint
+  - [ ] automatically apply spell damage and effects (including required rolls)
 - [ ] alchemy
-    - [ ] potion/poison/toxin item sheets
-    - [ ] import crafted potion/poison/toxin from alchemy
+  - [ ] potion/poison/toxin item sheets
+  - [ ] import crafted potion/poison/toxin from alchemy
 - [ ] include rollable mishap tables in compendium
 - [ ] enchanting
-    - [ ] enchantment item sheets applied to equipment item sheets
-    - [ ] import created enchantments from the enchanting tool
+  - [ ] enchantment item sheets applied to equipment item sheets
+  - [ ] import created enchantments from the enchanting tool
 
 **Chapter 7**
 
 - [ ] Item Sheets
-    - [ ] good - defined in the "Goods & Services" section
-    - [ ] soul gem - dedicated sheet type or just another good with extra values?
-    - [ ] spell tome - ""
-    - [ ] alchemical ingredient - ""
-    - [ ] weapon
-    - [ ] armor
-    - [ ] shield
-    - [ ] assign prices to previously implemented item sheets where necessary (potions, enchantments, etc)
+  - [ ] good - defined in the "Goods & Services" section
+  - [ ] soul gem - dedicated sheet type or just another good with extra values?
+  - [ ] spell tome - ""
+  - [ ] alchemical ingredient - ""
+  - [ ] weapon
+  - [ ] armor
+  - [ ] shield
+  - [ ] assign prices to previously implemented item sheets where necessary (potions, enchantments, etc)
 
 **Chapter 8**
 
-TBA - likely after 1.0 as a separate update.
-
+TBA - likely after 1.0

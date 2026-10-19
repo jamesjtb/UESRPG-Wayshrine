@@ -11,6 +11,31 @@ import { App } from "./App";
 import { navigationItems } from "../layouts/CreationKitLayout/navigation";
 
 describe("Creation Kit navigation", () => {
+  it("places the brand in the sidebar and tool steps in the workspace header", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, "", "/#/character-forge");
+    render(<App />);
+    const header = screen.getByRole("banner");
+    const brand = screen.getByText("Wayshrine Creation Kit");
+    expect(brand.closest("#creation-kit-navigation")).not.toBeNull();
+    expect(within(header).queryByText("Wayshrine Creation Kit")).toBeNull();
+    expect(
+      within(header).getByRole("button", { name: "Select Race" }),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByRole("main")).queryByRole("button", {
+        name: "Select Race",
+      }),
+    ).toBeNull();
+    expect(
+      within(screen.getByRole("main")).getByRole("button", { name: "Next" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("link", { name: "Home" }));
+    expect(
+      within(header).queryByRole("button", { name: "Select Race" }),
+    ).toBeNull();
+  });
+
   it("opens Home from a direct hash URL and supports keyboard activation", async () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", "/#/");
@@ -31,7 +56,7 @@ describe("Creation Kit navigation", () => {
     }
   });
 
-  it("shows Home and all six disabled tools without additional labels", async () => {
+  it("shows Home, Character Forge, and five disabled tools without additional labels", async () => {
     const user = userEvent.setup();
     render(<App />);
     const navigation = within(
@@ -43,6 +68,9 @@ describe("Creation Kit navigation", () => {
         .getByRole("link", { name: "Home" })
         .getAttribute("aria-current"),
     ).toBe("page");
+    expect(
+      navigation.getByRole("link", { name: "Character Forge" }),
+    ).toBeTruthy();
     for (const item of navigationItems.filter((item) => !item.available)) {
       const button = navigation.getByRole("button", { name: item.label });
       expect(button).toHaveProperty("disabled", true);
@@ -62,8 +90,10 @@ describe("Creation Kit navigation", () => {
     await user.click(
       screen.getByRole("button", { name: "Collapse navigation" }),
     );
-    const tool = screen.getByRole("button", { name: "Character Forge" });
-    expect(tool).toHaveProperty("disabled", true);
+    const tool = screen.getByRole("link", { name: "Character Forge" });
+    expect(screen.getByLabelText("Wayshrine Creation Kit").textContent).toBe(
+      "W",
+    );
     expect(tool.textContent).toBe("");
     await user.hover(tool.parentElement!);
     expect((await screen.findByRole("tooltip")).textContent).toBe(
@@ -71,9 +101,10 @@ describe("Creation Kit navigation", () => {
     );
     await user.click(screen.getByRole("button", { name: "Expand navigation" }));
     expect(tool.textContent).toBe("Character Forge");
+    expect(screen.getByText("Wayshrine Creation Kit")).toBeTruthy();
   });
 
-  it.each(["/missing", "/character-forge"])(
+  it.each(["/missing"])(
     "handles direct links to unsupported route %s",
     async (path) => {
       const user = userEvent.setup();
@@ -105,7 +136,7 @@ describe("Creation Kit navigation", () => {
     },
   );
 
-  it.each(["/", "/missing"])(
+  it.each(["/", "/missing", "/character-forge"])(
     "closes mobile navigation when returning Home from %s",
     async (path) => {
       vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
@@ -120,6 +151,11 @@ describe("Creation Kit navigation", () => {
       }));
       window.history.replaceState(null, "", `/#${path}`);
       render(<App />);
+      expect(
+        screen
+          .getByText("Wayshrine Creation Kit")
+          .closest("#creation-kit-navigation"),
+      ).not.toBeNull();
       fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
       expect(
         screen
@@ -128,7 +164,7 @@ describe("Creation Kit navigation", () => {
       ).toBe("true");
       fireEvent.click(
         screen.getByRole("link", {
-          name: path === "/" ? "Home" : "Return home",
+          name: path === "/missing" ? "Return home" : "Home",
         }),
       );
       expect(

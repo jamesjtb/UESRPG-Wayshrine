@@ -14,7 +14,7 @@ export const navigationItems = [
     label: "Character Forge",
     path: "/character-forge",
     icon: IconUser,
-    available: false,
+    available: true,
   },
   {
     label: "NPC Profile Editor",

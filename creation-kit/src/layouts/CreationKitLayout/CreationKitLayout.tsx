@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   AppShell,
+  Box,
   Burger,
   Group,
   Text,
@@ -11,9 +12,10 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
 } from "@tabler/icons-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { CreationKitNavigation } from "./CreationKitNavigation";
+import { ToolHeaderContext } from "./ToolHeader";
 
 interface CreationKitLayoutProps {
   children: ReactNode;
@@ -24,6 +26,8 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
     useDisclosure();
   const [collapsed, { toggle: toggleCollapsed }] = useDisclosure();
   const desktop = useMediaQuery("(min-width: 48em)");
+  const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null);
+  const compact = collapsed && desktop;
   const location = useLocation();
   const collapseLabel = collapsed ? "Expand navigation" : "Collapse navigation";
 
@@ -33,7 +37,8 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
 
   return (
     <AppShell
-      header={{ height: 64 }}
+      layout="alt"
+      header={{ height: 56 }}
       navbar={{
         width: collapsed ? 80 : 300,
         breakpoint: "sm",
@@ -52,7 +57,10 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
             aria-expanded={mobileOpened}
             aria-controls="creation-kit-navigation"
           />
-          <Text fw={700}>Wayshrine Creation Kit</Text>
+          <Box
+            ref={setHeaderTarget}
+            style={{ flex: 1, minWidth: 0, overflowX: "auto" }}
+          />
         </Group>
       </AppShell.Header>
       <AppShell.Navbar
@@ -60,15 +68,15 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
         id="creation-kit-navigation"
         style={{ overflowY: "auto" }}
       >
-        <Group
-          justify={collapsed ? "center" : "space-between"}
-          mb="sm"
-          visibleFrom="sm"
-        >
-          {!collapsed && (
-            <Text size="sm" fw={600}>
-              Navigation
-            </Text>
+        <Group justify={compact ? "center" : "space-between"} mb="sm">
+          {compact ? (
+            <Tooltip label="Wayshrine Creation Kit" position="right">
+              <Text fw={700} aria-label="Wayshrine Creation Kit">
+                W
+              </Text>
+            </Tooltip>
+          ) : (
+            <Text fw={700}>Wayshrine Creation Kit</Text>
           )}
           <Tooltip label={collapseLabel} position="right">
             <ActionIcon
@@ -76,6 +84,7 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
               onClick={toggleCollapsed}
               aria-label={collapseLabel}
               aria-expanded={!collapsed}
+              visibleFrom="sm"
             >
               {collapsed ? (
                 <IconLayoutSidebarLeftExpand size={20} />
@@ -85,12 +94,13 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
             </ActionIcon>
           </Tooltip>
         </Group>
-        <CreationKitNavigation
-          collapsed={collapsed && desktop}
-          onNavigate={closeMobile}
-        />
+        <CreationKitNavigation collapsed={compact} onNavigate={closeMobile} />
       </AppShell.Navbar>
-      <AppShell.Main>{children}</AppShell.Main>
+      <AppShell.Main>
+        <ToolHeaderContext.Provider value={headerTarget}>
+          {children}
+        </ToolHeaderContext.Provider>
+      </AppShell.Main>
     </AppShell>
   );
 }

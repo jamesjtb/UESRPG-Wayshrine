@@ -8,7 +8,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { navigationItems } from "./navigation";
+import { navigationItems } from "../layouts/CreationKitLayout/navigation";
 
 describe("Creation Kit navigation", () => {
   it("opens Home from a direct hash URL and supports keyboard activation", async () => {

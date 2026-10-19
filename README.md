@@ -48,6 +48,28 @@ contracts with `import type`. Bridge must remain independent of React, Foundry,
 and both application workspaces so that Creation Kit can work without a VTT and
 other VTT integrations remain possible.
 
+### Creation Kit source layout
+
+Creation Kit uses a hybrid, feature-grouped React layout under `creation-kit/src/`:
+
+- `app/`: application composition, providers, routing, and application tests.
+- `layouts/`: persistent page framing and navigation, grouped by layout.
+- `pages/`: general route-level screens such as Home and Not Found.
+- `test/`: shared test setup and helpers.
+
+Add the following folders when code needs them, rather than creating empty placeholders:
+
+- `features/<tool>/`: each tool's pages, components, hooks, and model logic.
+- `components/`: UI shared across tools.
+- `hooks/`: React behavior shared across tools.
+- `lib/`: shared non-React functionality and browser integrations.
+- `assets/` and `styles/`: application assets and shared styles.
+
+Keep code with the feature that owns it; move it into shared folders only when
+there is a genuine shared use. Keep pages thin and colocate tests and styles with
+the code they exercise. Use Mantine directly instead of wrapping every control.
+Keep types with their owning module; cross-application contracts belong in Bridge.
+
 ### Creation Kit deployment
 
 ```sh

@@ -21,6 +21,19 @@ pnpm start:wck dev
 ```
 
 Run `pnpm format` to apply formatting.
+Run `pnpm --filter @wayshrine/creation-kit test` for Creation Kit navigation and routing tests.
+
+### Mantine type compatibility
+
+`patches/@mantine__core@9.7.3.patch` aligns Mantine's shared input and close-button
+declarations with React's optional HTML properties under `exactOptionalPropertyTypes`.
+pnpm applies this declaration-only patch on install; no runtime code is changed.
+When upgrading Mantine, check whether the patch is still needed by running
+`pnpm typecheck` without it.
+
+Creation Kit also includes `ES2025.Collection` types because Mantine Hooks references
+`ReadonlySetLike`. The JavaScript target remains ES2022; this adds type declarations,
+not runtime polyfills. Strict checking remains enabled, including dependency declarations.
 
 ### Workspaces
 
@@ -46,6 +59,11 @@ The build produces `creation-kit/dist/`, which can be served by any static host
 without a dedicated application server. Relative asset paths support hosting in
 a subdirectory. The preview command is for checking the build locally, not for
 production hosting.
+
+Creation Kit uses hash routes (for example, `/#/`) so direct links work on static
+hosts without URL rewrite rules. The responsive left navigation supports an
+icon-only desktop mode and a mobile menu. Home is currently the only available
+page; all six planned tools remain disabled until their workflows are implemented.
 
 ## Project Goals
 

@@ -37,14 +37,15 @@ not runtime polyfills. Strict checking remains enabled, including dependency dec
 
 ### Workspaces
 
-| Path           | Package                   | Responsibility                                                                                                                                                |
-| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vtt/foundry`  | `@wayshrine/foundry`      | Foundry system skeleton. The target Foundry version, manifest, typings, and bundling are deferred; this is not yet a loadable system.                         |
-| `bridge`       | `@wayshrine/bridge`       | Platform-independent shared TypeScript contracts. Initially type-only, with no runtime code, server, or separate build. Domain contracts are not yet defined. |
-| `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application, initially a placeholder shell. No backend or game workflows are implemented.                                                |
+| Path           | Package                   | Responsibility                                                                                                                        |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `vtt/foundry`  | `@wayshrine/foundry`      | Foundry system skeleton. The target Foundry version, manifest, typings, and bundling are deferred; this is not yet a loadable system. |
+| `bridge`       | `@wayshrine/bridge`       | Platform-independent Zod schemas and inferred TypeScript types for UESRPG 3ev4. No server or separate build.                          |
+| `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application, initially a placeholder shell. No backend or game workflows are implemented.                        |
 
-Both applications depend on Bridge through `workspace:*`. Consume its future
-contracts with `import type`. Bridge must remain independent of React, Foundry,
+Both applications depend on Bridge through `workspace:*`. Import schemas from
+`@wayshrine/bridge` at runtime and use `import type` for inferred types.
+Bridge must remain independent of React, Foundry,
 and both application workspaces so that Creation Kit can work without a VTT and
 other VTT integrations remain possible.
 

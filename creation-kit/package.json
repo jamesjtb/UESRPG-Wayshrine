@@ -16,7 +16,7 @@
     "@mantine/hooks": "9.7.3",
     "@mantine/nprogress": "9.7.3",
     "@tabler/icons-react": "3.49.0",
-    "@wayshrine/bridge": "workspace:*",
+    "@wayshrine/core": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router-dom": "7.18.4"

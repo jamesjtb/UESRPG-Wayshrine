@@ -7,6 +7,6 @@
     "typecheck": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@wayshrine/bridge": "workspace:*"
+    "@wayshrine/core": "workspace:*"
   }
 }

@@ -1,6 +1,6 @@
 packages:
   - vtt/foundry
-  - bridge
+  - core
   - creation-kit
 patchedDependencies:
   "@mantine/core@9.7.3": patches/@mantine__core@9.7.3.patch

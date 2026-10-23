@@ -40,12 +40,12 @@ not runtime polyfills. Strict checking remains enabled, including dependency dec
 | Path           | Package                   | Responsibility                                                                                                                        |
 | -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `vtt/foundry`  | `@wayshrine/foundry`      | Foundry system skeleton. The target Foundry version, manifest, typings, and bundling are deferred; this is not yet a loadable system. |
-| `bridge`       | `@wayshrine/bridge`       | Platform-independent Zod schemas and inferred TypeScript types for UESRPG 3ev4. No server or separate build.                          |
+| `core`         | `@wayshrine/core`         | Platform-independent Zod schemas and inferred TypeScript types for UESRPG 3ev4. No server or separate build.                          |
 | `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application, initially a placeholder shell. No backend or game workflows are implemented.                        |
 
-Both applications depend on Bridge through `workspace:*`. Import schemas from
-`@wayshrine/bridge` at runtime and use `import type` for inferred types.
-Bridge must remain independent of React, Foundry,
+Both applications depend on Core through `workspace:*`. Import schemas from
+`@wayshrine/core` at runtime and use `import type` for inferred types.
+Core must remain independent of React, Foundry,
 and both application workspaces so that Creation Kit can work without a VTT and
 other VTT integrations remain possible.
 
@@ -69,7 +69,7 @@ Add the following folders when code needs them, rather than creating empty place
 Keep code with the feature that owns it; move it into shared folders only when
 there is a genuine shared use. Keep pages thin and colocate tests and styles with
 the code they exercise. Use Mantine directly instead of wrapping every control.
-Keep types with their owning module; cross-application contracts belong in Bridge.
+Keep types with their owning module; cross-application contracts belong in Core.
 
 ### Creation Kit deployment
 
@@ -119,13 +119,13 @@ These are the planned tools for the project's full release. Additional features 
 
 [^1]: Name TBD
 
-### Wayshrine Bridge
+### Wayshrine Core
 
-Wayshrine bridge is responsible for facilitating communication between the Wayshrine Creation Kit and the Foundry System Module (and other potential VTTs). This includes providing shared Typescript types between the two services.
+Wayshrine Core is responsible for facilitating communication between the Wayshrine Creation Kit and the Foundry System Module (and other potential VTTs). This includes providing shared Typescript types between the two services.
 
 #### Phases
 
-Wayshrine Bridge will be deployed in two stages:
+Wayshrine Core will be deployed in two stages:
 
 - [ ] shared types - this is the invisible compatibility layer between the VTT and WCK. Users will need to manually import the results from WCK into the VTT, likely by way of copy+paste to start.
 - [ ] true integration - the current goal is to fully integrate Foundry and WCK so that WCK tools can be rendered from within the foundry system. This is subject to change and is likely the final priority to tackle before 1.0. The first attempt at this will shed light on how realistic "true integration" between WCK and foundry truly is, so temper expectations.

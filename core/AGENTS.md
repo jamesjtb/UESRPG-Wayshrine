@@ -1,8 +1,8 @@
-# Bridge
+# Core
 
 ## Schemas
 
-- Place schemas in `bridge/schema/<gameconcept>Schema.ts`.
+- Place schemas in `core/schema/<gameconcept>Schema.ts`.
 - Keep shared schemas separate from PC-specific statistics. Extend shared schemas
   in `pc`-prefixed modules for Luck, favored characteristics, and other PC statistics.
 - Keep stored statistics separate from calculated results and aggregated modifier
@@ -12,7 +12,7 @@
 
 ## Validation
 
-Run `pnpm --filter @wayshrine/bridge test` for schema validation tests.
+Run `pnpm --filter @wayshrine/core test` for schema validation tests.
 
-Bridge includes DOM type declarations because Zod's declarations reference the
+Core includes DOM type declarations because Zod's declarations reference the
 standard `URL` type; this does not add a browser runtime dependency.

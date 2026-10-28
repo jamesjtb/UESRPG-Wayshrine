@@ -1,0 +1,65 @@
+# Use datatype: Race
+altmer:
+  label: "{LOCALE.races.altmer.label}"
+  description: "{LOCALE.races.altmer.description}"
+  baselineCharacteristics:
+    str: 20
+    end: 23
+    ag: 23
+    int: 30
+    wp: 28
+    prc: 25
+    prs: 25
+  racialTraits:
+    - traitKey: diseaseResistance
+      params:
+        X: 50
+    - traitKey: powerWell
+      params:
+        X: 20
+    - traitKey: weakness
+      params:
+        type: magic
+        X: 2
+    - traitKey: mentalStrength
+  racialBonuses:
+    - bonusType: skill
+      choices:
+        - choiceGroup: a
+          choiceKey: alchemy
+        - choiceGroup: a
+          choiceKey: alteration
+        - choiceGroup: a
+          choiceKey: conjuration
+        - choiceGroup: a
+          choiceKey: destruction
+        - choiceGroup: a
+          choiceKey: enchanting
+        - choiceGroup: a
+          choiceKey: illusion
+        - choiceGroup: a
+          choiceKey: mysticism
+        - choiceGroup: a
+          choiceKey: necromancy
+        - choiceGroup: a
+          choiceKey: restoration
+argonian:
+  label: "{LOCALE.races.argonian.label}"
+  description: "{LOCALE.races.argonian.description}"
+  baselineCharacteristics:
+    str: 25
+    end: 24
+    ag: 28
+    int: 27
+    wp: 24
+    prc: 25
+    prs: 22
+  racialTraits:
+    - traitKey: diseaseResistance
+      params:
+        X: 75
+    - traitKey: immunity
+      params:
+        type: poison
+    - traitKey: amphibious
+    - traitKey: inscrutable

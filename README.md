@@ -40,11 +40,13 @@ not runtime polyfills. Strict checking remains enabled, including dependency dec
 | Path           | Package                   | Responsibility                                                                                                                        |
 | -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `vtt/foundry`  | `@wayshrine/foundry`      | Foundry system skeleton. The target Foundry version, manifest, typings, and bundling are deferred; this is not yet a loadable system. |
-| `core`         | `@wayshrine/core`         | Platform-independent Zod schemas and inferred TypeScript types for UESRPG 3ev4. No server or separate build.                          |
+| `core`         | `@wayshrine/core`         | Platform-independent TypeScript domain types for UESRPG 3ev4. No server or separate build.                                            |
 | `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application, initially a placeholder shell. No backend or game workflows are implemented.                        |
 
-Both applications depend on Core through `workspace:*`. Import schemas from
-`@wayshrine/core` at runtime and use `import type` for inferred types.
+Both applications depend on Core through `workspace:*`. Import domain types from
+`@wayshrine/core` using `import type`. Domain interfaces live in `core/interface/`,
+and enums live in `core/src/enum/`. Import enums as values when using their members.
+Runtime boundary validation can be added when needed.
 Core must remain independent of React, Foundry,
 and both application workspaces so that Creation Kit can work without a VTT and
 other VTT integrations remain possible.

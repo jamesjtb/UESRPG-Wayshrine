@@ -1,0 +1,48 @@
+# Use datatype: Trait
+amphibious:
+  label: "{LOCALE.traits.amphibious.label}"
+  description: "{LOCALE.traits.amphibious.description}"
+bestial:
+  label: "{LOCALE.traits.bestial.label}"
+  description: "{LOCALE.traits.bestial.description}"
+blind:
+  label: "{LOCALE.traits.blind.label}"
+  description: "{LOCALE.traits.blind.description}"
+bound:
+  label: "{LOCALE.traits.bound.label}"
+  description: "{LOCALE.traits.bound.description}"
+climber:
+  params:
+    - X
+  label: "{LOCALE.traits.climber.label}"
+  description: "{LOCALE.traits.climber.description}"
+crawler:
+  label: "{LOCALE.traits.crawler.label}"
+  description: "{LOCALE.traits.crawler.description}"
+darkSight:
+  label: "{LOCALE.traits.darkSight.label}"
+  description: "{LOCALE.traits.darkSight.description}"
+dawnCursed:
+  params:
+    - X
+  label: "{LOCALE.traits.dawnCursed.label}"
+  description: "{LOCALE.traits.dawnCursed.description}"
+deaf:
+  label: "{LOCALE.traits.deaf.label}"
+  description: "{LOCALE.traits.deaf.description}"
+diseaseResistance:
+  params:
+    - X
+  label: "{LOCALE.traits.diseaseResistance.label}"
+  description: "{LOCALE.traits.diseaseResistance.description}"
+immunity:
+  params:
+    - type
+  label: "{LOCALE.traits.immunity.label}"
+  description: "{LOCALE.traits.immunity.description}"
+weakness:
+  params:
+    - type
+    - X
+  label: "{LOCALE.traits.weakness.label}"
+  description: "{LOCALE.traits.weakness.description}"

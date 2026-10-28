@@ -1,18 +1,19 @@
 # Core
 
-## Schemas
+## Domain model
 
-- Place schemas in `core/schema/<gameconcept>Schema.ts`.
-- Keep shared schemas separate from PC-specific statistics. Extend shared schemas
-  in `pc`-prefixed modules for Luck, favored characteristics, and other PC statistics.
+- Place domain interfaces and type aliases in `core/interface/<domain>/<Concept>.ts`.
+- Keep related types together in the same concept module.
+- Place shared cross-domain types in `core/interface/common/`.
+- Place enums in `core/src/enum/`.
+- Place YAML content catalogs in `core/content/<domain>/`.
+- Keep shared and PC/NPC-specific types distinct, co-locating related definitions
+  in the same concept module.
 - Keep stored statistics separate from calculated results and aggregated modifier
-  inputs. Schemas validate shapes; calculation functions will enforce formulas.
-- Calculation functions, size categories, lucky/unlucky number selections, and
-  NPC-specific statistics remain deferred.
+  inputs. Use plain numbers for numeric fields; boundary schemas can validate
+  value constraints when needed, and calculation functions will enforce formulas.
+- Introduce Zod schemas at external boundaries when runtime validation is needed.
 
 ## Validation
 
-Run `pnpm --filter @wayshrine/core test` for schema validation tests.
-
-Core includes DOM type declarations because Zod's declarations reference the
-standard `URL` type; this does not add a browser runtime dependency.
+Run `pnpm --filter @wayshrine/core test` for compile-time model checks.

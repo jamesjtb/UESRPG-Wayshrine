@@ -10,10 +10,7 @@
     }
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "pnpm typecheck",
     "typecheck": "tsc --project tsconfig.json"
-  },
-  "dependencies": {
-    "zod": "4.6.7"
   }
 }

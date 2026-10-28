@@ -1,0 +1,7 @@
+# Use datatype: Trait
+mentalStrength:
+  label: "{LOCALE.traits.mentalStrength.label}"
+  description: "{LOCALE.traits.mentalStrength.description}"
+inscrutable:
+  label: "{LOCALE.traits.inscrutable.label}"
+  description: "{LOCALE.traits.inscrutable.description}"

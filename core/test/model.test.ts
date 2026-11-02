@@ -21,6 +21,7 @@ import type {
   SkillTraining,
   Trait,
   TraitCatalog,
+  TraitOrigin,
 } from "../src/index";
 import PcCharacterData from "../src/data/CharacterData";
 
@@ -46,6 +47,8 @@ type ModelChecks = [
   Assert<Equal<RacialBonus["choices"], readonly RacialBonusChoice[]>>,
   Assert<Equal<RaceCatalog, Readonly<Record<string, Race>>>>,
   Assert<Equal<TraitCatalog, Readonly<Record<string, Trait>>>>,
+  Assert<Equal<TraitOrigin, "race" | "purchased">>,
+  Assert<Equal<AppliedTrait["origin"], TraitOrigin | undefined>>,
 ];
 
 const modifier = {

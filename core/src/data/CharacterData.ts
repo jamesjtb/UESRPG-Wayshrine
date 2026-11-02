@@ -1,6 +1,6 @@
 import type Attributes from "../../interface/character/Attributes";
 import type { CharacterData } from "../../interface/character/Character";
-import type { PcCharacteristicData } from "../../interface/character/Characteristic";
+import type { PcCharacteristicData, PcCharacteristics } from "../../interface/character/Characteristic";
 import type { Race } from "../../interface/character/Race";
 import type { SkillTraining } from "../../interface/character/Skill";
 import type { AppliedTrait } from "../../interface/character/Trait";
@@ -9,7 +9,7 @@ import { Size } from "../enum/Size";
 
 export default class PcCharacterData implements CharacterData {
     attributes: Attributes;
-    characteristics: PcCharacteristicData[];
+    characteristics: PcCharacteristics;
     race?: Race;
     rituals: object[];
     skills: SkillTraining[];
@@ -34,11 +34,29 @@ export default class PcCharacterData implements CharacterData {
             xp: { value: 0 },
         };
 
-        this.characteristics = [];
+        this.characteristics = Object.fromEntries(
+            Object.values(PcCharacteristic).map((key) => [
+                key,
+                this.createDefaultCharacteristic(key),
+            ]),
+        );
+
         this.rituals = [];
         this.skills = [];
         this.spells = [];
         this.talents = [];
         this.traits = [];
+    }
+
+    private createDefaultCharacteristic(
+        characteristicKey: PcCharacteristic,
+    ): PcCharacteristicData {
+        return {
+            baseline: 0,
+            rolled: 0,
+            characteristicKey,
+            favored: false,
+            modifiers: [],
+        };
     }
 }

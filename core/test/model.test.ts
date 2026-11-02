@@ -56,9 +56,10 @@ const modifier = {
 
 const pcCharacteristic = {
   characteristicKey: PcCharacteristic.Lck,
-  base: 40,
+  baseline: 20,
+  rolled: 20,
+  favored: false,
   modifiers: [modifier],
-  score: 35,
 } satisfies PcCharacteristicData;
 
 const npcCharacteristic = {
@@ -88,8 +89,8 @@ const numericSize: Attributes["size"] = { value: 0 };
 const pcMorale: PcCharacteristicData["characteristicKey"] = NpcCharacteristic.Mrl;
 // @ts-expect-error NPCs use Morale, not PC-specific Luck.
 const npcLuck: NpcCharacteristicData["characteristicKey"] = PcCharacteristic.Lck;
-// @ts-expect-error Characteristic scores must be numeric.
-const textualScore: PcCharacteristicData["score"] = "40";
+// @ts-expect-error Characteristic baselines must be numeric.
+const textualBaseline: PcCharacteristicData["baseline"] = "40";
 // @ts-expect-error Modifier values must be numeric.
 const textualModifier: Modifier = { ...modifier, value: "5" };
 // @ts-expect-error Skill training requires a rank.

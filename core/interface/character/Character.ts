@@ -1,12 +1,12 @@
 import type Attributes from "./Attributes";
-import type { PcCharacteristicData, NpcCharacteristicData } from "./Characteristic";
+import type { PcCharacteristics, NpcCharacteristics } from "./Characteristic";
 import type { Race } from "./Race";
 import type { SkillTraining } from "./Skill";
 import type { AppliedTrait } from "./Trait";
 
 export interface CharacterData {
     attributes: Attributes;
-    characteristics: PcCharacteristicData[] | NpcCharacteristicData[];
+    characteristics: PcCharacteristics | NpcCharacteristics;
     race?: Race;
     rituals: object[];
     skills: SkillTraining[];

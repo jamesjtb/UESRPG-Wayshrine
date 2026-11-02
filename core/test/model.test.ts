@@ -83,6 +83,22 @@ const character = new PcCharacterData() satisfies CharacterData;
 const attributes: Attributes = character.attributes;
 const standardSize: Attributes["size"] = { value: Size.Standard };
 
+character.updateCharacteristic(PcCharacteristic.Str, { baseline: 30 });
+character.updateCharacteristic(PcCharacteristic.Lck, {
+  rolled: 20,
+  favored: true,
+  modifiers: [modifier],
+});
+
+character.updateCharacteristic(PcCharacteristic.Str, {
+  // @ts-expect-error Characteristic updates cannot change the characteristic's identity.
+  characteristicKey: PcCharacteristic.Lck,
+});
+// @ts-expect-error PCs cannot update NPC-specific Morale.
+character.updateCharacteristic(NpcCharacteristic.Mrl, { baseline: 30 });
+// @ts-expect-error Characteristic updates require numeric baselines.
+character.updateCharacteristic(PcCharacteristic.Str, { baseline: "30" });
+
 // @ts-expect-error Size values must be enum members, not numeric placeholders.
 const numericSize: Attributes["size"] = { value: 0 };
 // @ts-expect-error PCs use Luck, not NPC-specific Morale.

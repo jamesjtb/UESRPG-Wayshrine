@@ -1,6 +1,6 @@
 import type Attributes from "../../interface/character/Attributes";
 import type { CharacterData } from "../../interface/character/Character";
-import type { PcCharacteristicData, PcCharacteristics } from "../../interface/character/Characteristic";
+import type { CharacteristicUpdate, PcCharacteristicData, PcCharacteristics } from "../../interface/character/Characteristic";
 import type { Race } from "../../interface/character/Race";
 import type { SkillTraining } from "../../interface/character/Skill";
 import type { AppliedTrait } from "../../interface/character/Trait";
@@ -39,13 +39,20 @@ export default class PcCharacterData implements CharacterData {
                 key,
                 this.createDefaultCharacteristic(key),
             ]),
-        );
+        ) as PcCharacteristics;
 
         this.rituals = [];
         this.skills = [];
         this.spells = [];
         this.talents = [];
         this.traits = [];
+    }
+
+    updateCharacteristic(
+        key: PcCharacteristic,
+        changes: CharacteristicUpdate,
+    ): void {
+        Object.assign(this.characteristics[key], changes);
     }
 
     private createDefaultCharacteristic(

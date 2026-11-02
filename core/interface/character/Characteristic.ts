@@ -12,6 +12,8 @@ export interface PcCharacteristicData {
     modifiers: Modifier[];
 }
 
+export type CharacteristicUpdate = Partial<Omit<PcCharacteristicData, "characteristicKey">>;
+
 export interface NpcCharacteristicData {
     base: number;
     characteristicKey: NpcCharacteristic;

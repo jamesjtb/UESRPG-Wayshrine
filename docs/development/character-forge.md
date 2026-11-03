@@ -27,8 +27,11 @@ presents those rules rather than implementing a second rules model.
   supplied labels, loading, visible messages, and optional retry. It does not
   validate or retain answers. `steps/race/RacialSkillChoices.tsx` adapts race
   snapshot issues and loads, skill labels and wording, and selection commands.
-- `steps/race/RaceStep.tsx` owns race browsing, including its independent loading, empty,
-  and retry states. Browsing reads summaries, not all race definitions.
+- `hooks/useContentSummaries.ts` owns summary-list loading, failure acknowledgment,
+  retry, and request liveness. Catalog adapters retain caching and deduplication.
+- `steps/race/RaceStep.tsx` presents race browsing, including its independent loading,
+  empty, and retry states, picker labels, and generic error modal. Browsing reads
+  summaries, not all race definitions.
   Application initialization notices remain in the shared shell.
 
 The feature files above live in `creation-kit/src/features/character-forge/`;

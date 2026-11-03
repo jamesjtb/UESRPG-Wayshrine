@@ -1,20 +1,14 @@
 import { Button, Group, Select, Stack, Text, Title } from "@mantine/core";
-import { useEffect, useState } from "react";
 import type {
   CharacterCreationSnapshot,
   ContentCatalog,
-  ContentSummary,
 } from "@wayshrine/core";
 import { readableLabel } from "../../labels";
 import { RacialSkillChoices } from "./RacialSkillChoices";
 import { ErrorModal } from "../../../../components/ErrorModal";
 import { isBlockingContentIssue } from "../../issues";
 import { LoadingIndicator } from "../../../../components/LoadingIndicator";
-
-type RaceIndex =
-  | { status: "loading" }
-  | { status: "ready"; entries: readonly ContentSummary[] }
-  | { status: "error"; acknowledged: boolean };
+import { useContentSummaries } from "../../hooks/useContentSummaries";
 
 interface RaceStepProps {
   catalog: ContentCatalog;
@@ -31,26 +25,7 @@ export function RaceStep({
   cancelRaceSelection,
   chooseRacialBonus,
 }: RaceStepProps) {
-  const [index, setIndex] = useState<RaceIndex>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    let live = true;
-    setIndex({ status: "loading" });
-    function ready(entries: readonly ContentSummary[]) {
-      if (live) setIndex({ status: "ready", entries });
-    }
-    function failed(error: unknown) {
-      if (!live) return;
-      console.error("Race index loading failed.", error);
-      setIndex({ status: "error", acknowledged: false });
-    }
-    void Promise.resolve()
-      .then(() => catalog.list("race"))
-      .then(ready, failed);
-    return () => {
-      live = false;
-    };
-  }, [catalog, attempt]);
+  const index = useContentSummaries(catalog, "race");
 
   const raceLoad = snapshot.contentLoads.find(
     (load) => load.operation.kind === "race",
@@ -75,9 +50,9 @@ export function RaceStep({
         <Stack gap="xs">
           <ErrorModal
             opened={!index.acknowledged}
-            onClose={() => setIndex({ status: "error", acknowledged: true })}
+            onClose={index.acknowledge}
           />
-          <Button variant="default" onClick={() => setAttempt(attempt + 1)}>
+          <Button variant="default" onClick={index.retry}>
             Retry races
           </Button>
         </Stack>

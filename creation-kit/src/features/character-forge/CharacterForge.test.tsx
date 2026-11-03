@@ -250,6 +250,19 @@ describe("Character Forge race editing", () => {
     expect(nextButton()).toHaveProperty("disabled", true);
   });
 
+  it("shows an empty race list without a picker or definition reads", async () => {
+    const catalog = fixtureCatalog();
+    vi.spyOn(catalog, "list").mockResolvedValue([]);
+    const get = vi.spyOn(catalog, "get");
+    renderForge(catalog);
+    await screen.findByText("No races available.");
+    expect(screen.queryByRole("combobox", { name: "Race" })).toBeNull();
+    expect(screen.queryByRole("status", { name: "Loading races" })).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(get).not.toHaveBeenCalled();
+    expect(nextButton()).toHaveProperty("disabled", true);
+  });
+
   it("shows race-index loading and retryable failures without preloading definitions", async () => {
     const catalog = fixtureCatalog();
     const pending = deferred<readonly ContentSummary[]>();

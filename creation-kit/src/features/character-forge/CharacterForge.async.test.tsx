@@ -106,42 +106,56 @@ describe("Character Forge asynchronous selections", () => {
     },
   );
 
-  it.each([
-    { count: "under", changed: "Alchemy", skill: "Alchemy" },
-    { count: "over", changed: "Alteration", skill: "Alteration" },
-  ])(
-    "keeps a newer $count-count answer editable after an older successful read",
-    async ({ count, changed, skill }) => {
-      const catalog = fixtureCatalog();
-      const reads = controlledReads(catalog);
-      const old = reads.hold("skill", "alchemy");
-      const user = userEvent.setup();
-      renderForge(catalog);
-      await selectRace("Altmer");
-      await user.click(
-        await screen.findByRole("checkbox", { name: "Alchemy" }),
-      );
-      await user.click(screen.getByRole("checkbox", { name: changed }));
-      expectNavigationBlocked();
-      await act(async () => old.resolve());
-      expect(screen.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(
-        "checked",
-        count === "over",
-      );
-      expect(
-        screen.getByRole("checkbox", { name: "Alteration" }),
-      ).toHaveProperty("checked", count === "over");
-      expect(sheet().getByText("No skills.")).toBeTruthy();
-      expect(
-        screen.queryByRole("status", { name: "Loading skills" }),
-      ).toBeNull();
-      expect(screen.queryByRole("dialog")).toBeNull();
-      expect(console.error).not.toHaveBeenCalled();
-      await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
-      await sheet().findByText(`${skill} (Novice)`);
-      expectNavigationBlocked();
-    },
-  );
+  it("keeps a newer under-count answer editable after an older successful read", async () => {
+    const catalog = fixtureCatalog();
+    const reads = controlledReads(catalog);
+    const old = reads.hold("skill", "alchemy");
+    const user = userEvent.setup();
+    renderForge(catalog);
+    await selectRace("Altmer");
+    await user.click(await screen.findByRole("checkbox", { name: "Alchemy" }));
+    await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
+    expectNavigationBlocked();
+    await act(async () => old.resolve());
+    expect(screen.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(
+      "checked",
+      false,
+    );
+    expect(screen.getByRole("checkbox", { name: "Alteration" })).toHaveProperty(
+      "checked",
+      false,
+    );
+    expect(sheet().getByText("No skills.")).toBeTruthy();
+    expect(screen.queryByRole("status", { name: "Loading skills" })).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(console.error).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
+    await sheet().findByText("Alchemy (Novice)");
+    expectNavigationBlocked();
+  });
+
+  it("blocks excess selections during loading without superseding the pending answer", async () => {
+    const catalog = fixtureCatalog();
+    const reads = controlledReads(catalog);
+    const pending = reads.hold("skill", "alchemy");
+    const user = userEvent.setup();
+    renderForge(catalog);
+    await selectRace("Altmer");
+    await user.click(await screen.findByRole("checkbox", { name: "Alchemy" }));
+    const selected = screen.getByRole("checkbox", { name: "Alchemy" });
+    const unselected = screen.getByRole("checkbox", { name: "Alteration" });
+    expect(selected).toHaveProperty("disabled", false);
+    expect(unselected).toHaveProperty("disabled", true);
+    await user.click(unselected);
+    expect(unselected).toHaveProperty("checked", false);
+    expect(reads.get).not.toHaveBeenCalledWith("skill", "alteration");
+    await act(async () => pending.resolve());
+    await sheet().findByText("Alchemy (Novice)");
+    expect(selected).toHaveProperty("checked", true);
+    expect(unselected).toHaveProperty("disabled", true);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(console.error).not.toHaveBeenCalled();
+  });
 
   it.each(["success", "failure"])(
     "keeps independent resolved grants editable while another group has a %s",

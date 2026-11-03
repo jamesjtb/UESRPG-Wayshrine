@@ -205,6 +205,10 @@ describe("Character Forge race editing", () => {
     await user.click(nextButton());
     expect(finish).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
+    expect(screen.getByRole("checkbox", { name: "Alteration" })).toHaveProperty(
+      "disabled",
+      true,
+    );
     await user.click(screen.getByRole("checkbox", { name: "Alteration" }));
     expect(screen.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(
       "checked",
@@ -212,14 +216,20 @@ describe("Character Forge race editing", () => {
     );
     expect(screen.getByRole("checkbox", { name: "Alteration" })).toHaveProperty(
       "checked",
-      true,
+      false,
     );
-    expect(preview().queryByText("Alchemy (Novice)")).toBeNull();
+    expect(preview().getByText("Alchemy (Novice)")).toBeTruthy();
     expect(nextButton()).toHaveProperty("disabled", true);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByText(/Choose exactly/)).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
     await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
+    expect(preview().queryByText("Alchemy (Novice)")).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Alteration" })).toHaveProperty(
+      "disabled",
+      false,
+    );
+    await user.click(screen.getByRole("checkbox", { name: "Alteration" }));
     expect(await preview().findByText("Alteration (Novice)")).toBeTruthy();
     await selectRace("Argonian");
     await waitFor(() => expect(screen.queryByRole("checkbox")).toBeNull());
@@ -238,14 +248,13 @@ describe("Character Forge race editing", () => {
     await user.click(pair.getByRole("checkbox", { name: "Alchemy" }));
     expect(preview().queryByText("Alchemy (Novice)")).toBeNull();
     await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
+    expect(overlap.getByRole("checkbox")).toHaveProperty("disabled", false);
     await user.click(overlap.getByRole("checkbox", { name: "Alchemy" }));
     await preview().findByText("Alteration (Novice)");
     expect(preview().getAllByText("Alchemy (Novice)")).toHaveLength(1);
     expect(preview().getByText("Alteration (Novice)")).toBeTruthy();
     await user.click(none.getByRole("checkbox", { name: "Alchemy" }));
-    expect(none.getByRole("checkbox")).toHaveProperty("checked", true);
-    expect(nextButton()).toHaveProperty("disabled", true);
-    await user.click(none.getByRole("checkbox", { name: "Alchemy" }));
+    expect(none.getByRole("checkbox")).toHaveProperty("disabled", true);
     expect(none.getByRole("checkbox")).toHaveProperty("checked", false);
     expect(nextButton()).toHaveProperty("disabled", true);
   });

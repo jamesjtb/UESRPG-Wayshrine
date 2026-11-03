@@ -31,6 +31,9 @@ presents those rules rather than implementing a second rules model.
   supplied labels, loading, visible messages, and optional retry. It does not
   validate or retain answers. `steps/race/RacialSkillChoices.tsx` adapts race
   snapshot issues and loads, skill labels and wording, and selection commands.
+  At or above the supplied choice limit, only unselected checkboxes are disabled;
+  selected answers remain removable unless the whole field is disabled. This
+  presentation guard does not replace Core validation or disable group retries.
 - `hooks/useContentSummaries.ts` owns summary-list loading, failure acknowledgment,
   retry, and request liveness. Catalog adapters retain caching and deduplication.
 - `steps/race/RaceStep.tsx` presents race browsing, including its independent loading,

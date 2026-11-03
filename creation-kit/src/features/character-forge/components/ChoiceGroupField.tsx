@@ -25,6 +25,8 @@ export function ChoiceGroupField({
   onRetry,
   retryLabel,
 }: Props) {
+  const limitReached = group.selections.length >= group.choose;
+
   return (
     <Stack gap="xs">
       <Checkbox.Group
@@ -37,7 +39,9 @@ export function ChoiceGroupField({
             <Checkbox
               key={key}
               value={key}
-              disabled={disabled}
+              disabled={
+                disabled || (limitReached && !group.selections.includes(key))
+              }
               label={optionLabels[key]}
             />
           ))}

@@ -1,0 +1,35 @@
+.panes {
+  flex: 1;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.footer {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+@media (min-width: $mantine-breakpoint-md) {
+  .panes,
+  .pane,
+  .editorBody {
+    min-height: 0;
+  }
+
+  .panes {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .editorBody {
+    flex: 1;
+    overflow: auto;
+  }
+
+  .sheet {
+    overflow: auto;
+  }
+}

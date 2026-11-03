@@ -23,8 +23,20 @@ describe("Creation Kit navigation", () => {
     expect(brand.closest("#creation-kit-navigation")).not.toBeNull();
     expect(within(header).queryByText("Wayshrine Creation Kit")).toBeNull();
     expect(
-      within(header).getByRole("button", { name: "Select Race" }),
+      await within(header).findByRole("button", { name: "Select Race" }),
     ).toBeTruthy();
+    const breadcrumbs = within(
+      within(header).getByRole("navigation", {
+        name: "Character creation steps",
+      }),
+    );
+    expect(breadcrumbs.getAllByRole("button")).toHaveLength(1);
+    const currentStep = breadcrumbs.getByRole("button", {
+      name: "Select Race",
+    });
+    expect(currentStep.getAttribute("aria-current")).toBe("step");
+    await user.click(currentStep);
+    expect(currentStep.getAttribute("aria-current")).toBe("step");
     expect(
       within(screen.getByRole("main")).queryByRole("button", {
         name: "Select Race",

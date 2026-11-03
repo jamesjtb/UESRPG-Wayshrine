@@ -5,11 +5,11 @@ import type {
   ContentCatalog,
   ContentSummary,
 } from "@wayshrine/core";
-import { readableLabel } from "./labels";
+import { readableLabel } from "../../labels";
 import { RacialSkillChoices } from "./RacialSkillChoices";
-import { ErrorModal } from "../../components/ErrorModal";
-import { isBlockingContentIssue } from "./issues";
-import { LoadingIndicator } from "../../components/LoadingIndicator";
+import { ErrorModal } from "../../../../components/ErrorModal";
+import { isBlockingContentIssue } from "../../issues";
+import { LoadingIndicator } from "../../../../components/LoadingIndicator";
 
 type RaceIndex =
   | { status: "loading" }

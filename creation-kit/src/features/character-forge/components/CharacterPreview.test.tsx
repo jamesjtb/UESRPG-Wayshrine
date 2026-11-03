@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { CharacterCreator, SkillRank } from "@wayshrine/core";
 import { describe, expect, it } from "vitest";
 import { CharacterPreview } from "./CharacterPreview";
-import { fixtureCatalog } from "./testCatalog";
+import { fixtureCatalog } from "../testCatalog";
 
 describe("CharacterPreview", () => {
   it("shows independent empty sections without Core's default zero characteristics", () => {

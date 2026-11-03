@@ -1,7 +1,7 @@
 import { List, Stack, Text, Title } from "@mantine/core";
 import type { CharacterCreator } from "@wayshrine/core";
 import { SkillRank } from "@wayshrine/core";
-import { plainDescription, readableLabel } from "./labels";
+import { plainDescription, readableLabel } from "../labels";
 
 type Preview = ReturnType<CharacterCreator["getCharacterPreview"]>;
 

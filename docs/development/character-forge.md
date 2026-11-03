@@ -13,10 +13,17 @@ presents those rules rather than implementing a second rules model.
 - `useCharacterCreator.ts` creates a fresh Core `CharacterCreator` in its effect
   and disposes it during cleanup. React StrictMode effect replay creates a new
   creator rather than reusing the disposed instance.
-- `CharacterForge.tsx` owns the editor and draft-preview panes. Core snapshots
-  supply control values, choice groups, issues, and navigation availability;
-  `getCharacterPreview()` supplies the displayed effects.
-- `RaceStep.tsx` owns race browsing, including its independent loading, empty,
+- `CharacterForge.tsx` composes one creator session above the selected editor,
+  workspace, and preview. Core snapshots supply registered breadcrumb steps,
+  the current step, control values, choice groups, issues, and navigation
+  availability; `getCharacterPreview()` supplies the displayed effects.
+- `components/ForgeWorkspace.tsx` owns the persistent two-pane frame with editor,
+  navigation, and preview slots. Replacing the editor does not replace the frame,
+  preview, or creator session. Its styles own independent desktop scrolling,
+  bottom-anchored navigation, and mobile stacking.
+- `components/StepNavigation.tsx` presents Core's Back/Next availability and
+  delegates callbacks without owning validation or progression state.
+- `steps/race/RaceStep.tsx` owns race browsing, including its independent loading, empty,
   and retry states. Browsing reads summaries, not all race definitions.
   Application initialization notices remain in the shared shell.
 

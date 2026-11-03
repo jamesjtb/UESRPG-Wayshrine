@@ -1,8 +1,8 @@
 import { Button, Checkbox, Stack, Text } from "@mantine/core";
 import type { CharacterCreationSnapshot, ChoiceState } from "@wayshrine/core";
-import { readableLabel } from "./labels";
-import { choiceIssueMessage, isBlockingContentIssue } from "./issues";
-import { LoadingIndicator } from "../../components/LoadingIndicator";
+import { readableLabel } from "../../labels";
+import { choiceIssueMessage, isBlockingContentIssue } from "../../issues";
+import { LoadingIndicator } from "../../../../components/LoadingIndicator";
 
 interface Props {
   snapshot: CharacterCreationSnapshot;

@@ -1,11 +1,13 @@
-import { Button, Group, Paper, SimpleGrid, Stack, Title } from "@mantine/core";
+import { Stack, Title } from "@mantine/core";
 import { useContentCatalog } from "../../app/ContentCatalogProvider";
 import type { ContentCatalog } from "@wayshrine/core";
 import { ToolBreadcrumbs } from "../../layouts/CreationKitLayout/ToolBreadcrumbs";
 import { ToolHeader } from "../../layouts/CreationKitLayout/ToolHeader";
 import { useCharacterCreator } from "./useCharacterCreator";
-import { RaceStep } from "./RaceStep";
-import { CharacterPreview } from "./CharacterPreview";
+import { RaceStep } from "./steps/race/RaceStep";
+import { CharacterPreview } from "./components/CharacterPreview";
+import { ForgeWorkspace } from "./components/ForgeWorkspace";
+import { StepNavigation } from "./components/StepNavigation";
 import { ErrorModal } from "../../components/ErrorModal";
 import classes from "./CharacterForge.module.css";
 import { readableLabel } from "./labels";
@@ -15,14 +17,6 @@ export function CharacterForge() {
   return (
     <Stack className={classes.forge}>
       <Title order={1}>Character Forge</Title>
-      <ToolHeader>
-        <ToolBreadcrumbs
-          steps={["Select Race"]}
-          active={0}
-          onStepClick={() => {}}
-          label="Character creation steps"
-        />
-      </ToolHeader>
       {content.status === "ready" && <ForgeSession catalog={content.catalog} />}
     </Stack>
   );
@@ -43,55 +37,48 @@ function ForgeSession({ catalog }: { catalog: ContentCatalog }) {
     view.snapshot.answers.raceKey ?? "Selected race",
     view.preview.race?.label,
   );
+  const steps = view.snapshot.steps.map((step) => {
+    if (step.id === "race") return "Select Race";
+    return readableLabel(step.id);
+  });
+  const active = view.snapshot.steps.findIndex(
+    (step) => step.id === view.snapshot.currentStep,
+  );
   return (
-    <SimpleGrid cols={{ base: 1, md: 2 }} className={classes.panes}>
-      <Paper
-        component="section"
-        aria-label="Character editor"
-        withBorder
-        p="md"
-        className={classes.pane}
-      >
-        <ErrorModal opened={view.errorOpened} onClose={dismissError} />
-        <Stack className={classes.editorBody}>
-          <RaceStep
-            catalog={catalog}
-            snapshot={view.snapshot}
-            chooseRace={chooseRace}
-            cancelRaceSelection={cancelRaceSelection}
-            chooseRacialBonus={chooseRacialBonus}
+    <>
+      <ToolHeader>
+        <ToolBreadcrumbs
+          steps={steps}
+          active={active}
+          onStepClick={() => {}}
+          label="Character creation steps"
+        />
+      </ToolHeader>
+      <ForgeWorkspace
+        editor={
+          <>
+            <ErrorModal opened={view.errorOpened} onClose={dismissError} />
+            <RaceStep
+              catalog={catalog}
+              snapshot={view.snapshot}
+              chooseRace={chooseRace}
+              cancelRaceSelection={cancelRaceSelection}
+              chooseRacialBonus={chooseRacialBonus}
+            />
+          </>
+        }
+        navigation={
+          <StepNavigation
+            canGoPrevious={view.snapshot.canGoPrevious}
+            canGoNext={view.snapshot.canGoNext}
+            onPrevious={previous}
+            onNext={next}
           />
-        </Stack>
-        <Stack component="footer" className={classes.footer} pt="md">
-          <Group
-            component="nav"
-            aria-label="Character creation navigation"
-            justify="space-between"
-          >
-            <Button
-              variant="default"
-              disabled={!view.snapshot.canGoPrevious}
-              onClick={previous}
-              title="This is the first step."
-            >
-              Back
-            </Button>
-            <Button disabled={!view.snapshot.canGoNext} onClick={next}>
-              Next
-            </Button>
-          </Group>
-        </Stack>
-      </Paper>
-      <Paper
-        component="section"
-        aria-label="Character sheet"
-        tabIndex={0}
-        withBorder
-        p="md"
-        className={`${classes.pane} ${classes.sheet}`}
-      >
-        <CharacterPreview preview={view.preview} raceLabel={raceLabel} />
-      </Paper>
-    </SimpleGrid>
+        }
+        preview={
+          <CharacterPreview preview={view.preview} raceLabel={raceLabel} />
+        }
+      />
+    </>
   );
 }

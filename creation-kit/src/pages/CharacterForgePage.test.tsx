@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "../app/App";
+import { loadTestCatalog } from "../test/content";
 
 const steps = [
   "Select Race",
@@ -15,7 +16,7 @@ const steps = [
 
 function renderForge() {
   window.history.replaceState(null, "", "/#/character-forge");
-  render(<App />);
+  render(<App loadCatalog={loadTestCatalog} />);
 }
 
 function expectActiveStep(label: string) {
@@ -27,7 +28,7 @@ function expectActiveStep(label: string) {
 describe("Character Forge", () => {
   it("opens from the sidebar", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App loadCatalog={loadTestCatalog} />);
     await user.click(screen.getByRole("link", { name: "Character Forge" }));
     expect(window.location.hash).toBe("#/character-forge");
     expect(

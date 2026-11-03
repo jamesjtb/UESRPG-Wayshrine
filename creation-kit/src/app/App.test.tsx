@@ -8,13 +8,14 @@ import {
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { loadTestCatalog } from "../test/content";
 import { navigationItems } from "../layouts/CreationKitLayout/navigation";
 
 describe("Creation Kit navigation", () => {
   it("places the brand in the sidebar and tool steps in the workspace header", async () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", "/#/character-forge");
-    render(<App />);
+    render(<App loadCatalog={loadTestCatalog} />);
     const header = screen.getByRole("banner");
     const brand = screen.getByText("Wayshrine Creation Kit");
     expect(brand.closest("#creation-kit-navigation")).not.toBeNull();
@@ -39,7 +40,7 @@ describe("Creation Kit navigation", () => {
   it("opens Home from a direct hash URL and supports keyboard activation", async () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", "/#/");
-    render(<App />);
+    render(<App loadCatalog={loadTestCatalog} />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toContain(
       "Welcome",
     );
@@ -58,7 +59,7 @@ describe("Creation Kit navigation", () => {
 
   it("shows Home, Character Forge, and five disabled tools without additional labels", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App loadCatalog={loadTestCatalog} />);
     const navigation = within(
       screen.getByRole("navigation", { name: "Creation Kit" }),
     );
@@ -86,7 +87,7 @@ describe("Creation Kit navigation", () => {
 
   it("collapses to labeled icons and can expand again", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App loadCatalog={loadTestCatalog} />);
     await user.click(
       screen.getByRole("button", { name: "Collapse navigation" }),
     );
@@ -109,7 +110,7 @@ describe("Creation Kit navigation", () => {
     async (path) => {
       const user = userEvent.setup();
       window.history.replaceState(null, "", `/#${path}`);
-      render(<App />);
+      render(<App loadCatalog={loadTestCatalog} />);
       expect(
         screen.getByRole("heading", { name: "Page not found" }),
       ).toBeTruthy();
@@ -150,7 +151,7 @@ describe("Creation Kit navigation", () => {
         dispatchEvent: vi.fn(),
       }));
       window.history.replaceState(null, "", `/#${path}`);
-      render(<App />);
+      render(<App loadCatalog={loadTestCatalog} />);
       expect(
         screen
           .getByText("Wayshrine Creation Kit")

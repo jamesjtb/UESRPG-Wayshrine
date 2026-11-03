@@ -165,10 +165,21 @@ The shared definition envelope schema validates transport metadata only. Content
 readers must explicitly call Core's `parseContentDefinition` for its payload;
 the generator already does this when loading YAML.
 
-This implements static generation only. A browser catalog adapter, application
-catalog provider, and Character Forge UI are not implemented yet. Node types and
-YAML/TS execution dependencies are isolated to build-script checks, outside Core
-runtime and Creation Kit's browser TypeScript configuration.
+The browser catalog initializes from the manifest and pins all later reads to that
+revision. It validates response metadata and uses Core to validate each requested
+definition. Only lightweight indexes remain cached; concurrent definition reads
+share a pending request, then release it on success or failure. Returned values are
+detached, and indexed files that fail to load are errors, not absent keys.
+
+`main.tsx` owns one retryable catalog loader for the application runtime and injects
+it through the app providers. Consumers share that catalog independently of their
+mount/unmount lifetimes. Loading and retryable initialization errors do not block
+Home or navigation. Content changes require a fresh runtime/catalog/creator, not
+polling or swapping an active session's revision. Character Forge's existing shell
+is unchanged; race editing and character preview integration remain future work.
+
+Node types and YAML/TS execution dependencies are isolated to build-script checks,
+outside Core runtime and Creation Kit's browser TypeScript configuration.
 
 ## Project Goals
 

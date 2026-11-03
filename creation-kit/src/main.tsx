@@ -1,6 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
+import { createContentCatalogLoader } from "./lib/content/catalog";
+
+const loadCatalog = createContentCatalogLoader();
 
 const root = document.getElementById("root");
 
@@ -10,6 +13,6 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <App loadCatalog={loadCatalog} />
   </StrictMode>,
 );

@@ -108,8 +108,8 @@ definitions. Creation Kit's build-time compiler derives `skillKey` from that key
 and rejects contradictory authored values. It validates definitions and race
 references with these shared Core validators before publishing static JSON.
 YAML parsing stays in host build scripts and tests, never in Core runtime code.
-See the root README for artifact generation and layout. Browser catalog consumption
-and version-specific Foundry pack generation are not implemented yet.
+See the root README for artifact generation, layout, and Creation Kit's browser
+catalog adapter. Version-specific Foundry pack generation is not implemented yet.
 
 ## Checks
 

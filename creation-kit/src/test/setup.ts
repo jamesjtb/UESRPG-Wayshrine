@@ -9,6 +9,9 @@ class ResizeObserverMock {
 
 vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
+// jsdom has no layout/scrolling implementation (used by Mantine Select).
+HTMLElement.prototype.scrollIntoView = vi.fn();
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn((query: string) => ({

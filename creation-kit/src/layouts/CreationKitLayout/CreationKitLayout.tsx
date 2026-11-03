@@ -16,6 +16,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { CreationKitNavigation } from "./CreationKitNavigation";
 import { ToolHeaderContext } from "./ToolHeader";
+import classes from "./CreationKitLayout.module.css";
 
 interface CreationKitLayoutProps {
   children: ReactNode;
@@ -96,7 +97,13 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
         </Group>
         <CreationKitNavigation collapsed={compact} onNavigate={closeMobile} />
       </AppShell.Navbar>
-      <AppShell.Main>
+      <AppShell.Main
+        className={
+          location.pathname === "/character-forge"
+            ? classes.forgeWorkspace
+            : undefined
+        }
+      >
         <ToolHeaderContext.Provider value={headerTarget}>
           {children}
         </ToolHeaderContext.Provider>

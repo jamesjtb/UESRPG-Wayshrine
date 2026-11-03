@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ContentCatalog } from "@wayshrine/core";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deferred, testCatalog } from "../test/content";
 import { createContentCatalogLoader } from "../lib/content/catalog";
 import { App } from "./App";
@@ -20,6 +20,9 @@ function Consumer() {
 }
 
 describe("ContentCatalogProvider", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
   it("shares host initialization under StrictMode and between consumers", async () => {
     const pending = deferred<Response>();
     const fetchContent = vi.fn<typeof fetch>().mockReturnValue(pending.promise);
@@ -109,18 +112,24 @@ describe("ContentCatalogProvider", () => {
       .mockResolvedValueOnce(Response.json(testCatalog.version));
     const load = createContentCatalogLoader({ fetch: fetchContent });
     render(<App loadCatalog={load} />);
-    expect(screen.getByRole("status").textContent).toContain("Loading content");
+    expect(
+      screen.getByRole("status", { name: "Loading content" }),
+    ).toBeTruthy();
     expect(screen.getByRole("heading", { name: /Welcome/ })).toBeTruthy();
     await waitFor(() => expect(fetchContent).toHaveBeenCalledTimes(1));
     await act(async () => pending.reject(new Error("offline")));
-    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(
+      await screen.findByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "OK" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await user.click(screen.getByRole("link", { name: "Character Forge" }));
     expect(
       screen.getByRole("heading", { name: "Character Forge" }),
     ).toBeTruthy();
     await user.click(screen.getByRole("link", { name: "Home" }));
     await user.click(screen.getByRole("button", { name: "Retry content" }));
-    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(fetchContent).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("heading", { name: /Welcome/ })).toBeTruthy();
   });

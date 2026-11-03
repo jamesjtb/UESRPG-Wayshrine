@@ -17,6 +17,8 @@ describe("Creation Kit navigation", () => {
     window.history.replaceState(null, "", "/#/character-forge");
     render(<App loadCatalog={loadTestCatalog} />);
     const header = screen.getByRole("banner");
+    const main = screen.getByRole("main");
+    expect(main.className).toContain("forgeWorkspace");
     const brand = screen.getByText("Wayshrine Creation Kit");
     expect(brand.closest("#creation-kit-navigation")).not.toBeNull();
     expect(within(header).queryByText("Wayshrine Creation Kit")).toBeNull();
@@ -29,9 +31,20 @@ describe("Creation Kit navigation", () => {
       }),
     ).toBeNull();
     expect(
-      within(screen.getByRole("main")).getByRole("button", { name: "Next" }),
+      await within(screen.getByRole("main")).findByRole("button", {
+        name: "Next",
+      }),
     ).toBeTruthy();
+    expect(within(main).getByRole("button", { name: "Next" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    expect(within(main).getByRole("button", { name: "Back" })).toHaveProperty(
+      "disabled",
+      true,
+    );
     await user.click(screen.getByRole("link", { name: "Home" }));
+    expect(main.className).not.toContain("forgeWorkspace");
     expect(
       within(header).queryByRole("button", { name: "Select Race" }),
     ).toBeNull();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import CharacterCreator from "../src/wizards/CharacterCreator";
+import { createRaceTestCreator } from "./support/CharacteristicGeneration";
 import { ContentError } from "../src/content/ContentError";
 import { SkillRank } from "../src/enum/SkillRank";
 import {
@@ -11,7 +11,7 @@ import {
 describe("CharacterCreator", () => {
   it("stores exact names synchronously without content reads and releases them on disposal", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     expect(creator.getSnapshot().answers.name).toBe("");
     expect(creator.getCharacterPreview().name).toBe("");
     for (const name of ["N", "Ne", " Nerevar ", ""]) {
@@ -44,7 +44,7 @@ describe("CharacterCreator", () => {
 
   it("preserves name edits across pending, failed, canceled and successful race changes", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     creator.setName("Before race");
     await creator.chooseRace("altmer");
     expect(creator.getCharacterPreview().name).toBe("Before race");
@@ -69,7 +69,7 @@ describe("CharacterCreator", () => {
 
   it("requires a race and does not load anything during construction", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     expect(catalog.getCalls).toEqual([]);
     expect(catalog.listCalls).toEqual([]);
     expect(creator.getSnapshot()).toMatchObject({
@@ -84,7 +84,7 @@ describe("CharacterCreator", () => {
 
   it("applies baseline, traits, and exactly one Novice skill", async () => {
     const { catalog, skills } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     expect(creator.getSnapshot().pendingChoices[0]).toMatchObject({
       id: "altmer/magic",
@@ -113,7 +113,7 @@ describe("CharacterCreator", () => {
 
   it("retains invalid selections for correction without applying their effects", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     expect(
@@ -139,7 +139,7 @@ describe("CharacterCreator", () => {
 
   it("replaces racial effects and clears race-owned answers only on race changes", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     await creator.chooseRace("altmer");
@@ -167,7 +167,7 @@ describe("CharacterCreator", () => {
         ],
       },
     ];
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     await creator.chooseRacialBonus("altmer/one", ["alchemy"]);
     expect(creator.finish().ok).toBe(false);
@@ -187,7 +187,7 @@ describe("CharacterCreator", () => {
         ],
       },
     ];
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     expect((await creator.chooseRace("altmer")).ok).toBe(false);
     expect(
       (await creator.chooseRacialBonus("altmer/duplicate", ["alchemy"])).ok,
@@ -206,7 +206,7 @@ describe("CharacterCreator", () => {
         ],
       },
     ];
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     expect(
       (await creator.chooseRacialBonus("altmer/magic", ["alchemy"])).ok,
@@ -227,7 +227,7 @@ describe("CharacterCreator", () => {
       skill: skills,
       trait: traits,
     });
-    const creator = new CharacterCreator(withOtherRace);
+    const creator = createRaceTestCreator(withOtherRace);
     await creator.chooseRace("altmer");
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     await creator.chooseRace("other");
@@ -246,7 +246,7 @@ describe("CharacterCreator", () => {
 
   it("isolates loaded inputs, snapshots, previews, and finished results", async () => {
     const { catalog, skills, altmer } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     altmer.baselineCharacteristics = {
       ...altmer.baselineCharacteristics,
@@ -293,7 +293,7 @@ describe("CharacterCreator", () => {
       skillKey: "unrelated",
       governingCharacteristics: ["ag"],
     };
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     expect(catalog.listCalls).toEqual(["skill"]);
     expect(catalog.getCalls).toEqual([
@@ -322,7 +322,7 @@ describe("CharacterCreator", () => {
 
   it("blocks finish and hides the old preview while a race change is loading", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("argonian");
     const gate = deferred();
     catalog.beforeGet = async () => gate.promise;
@@ -346,7 +346,7 @@ describe("CharacterCreator", () => {
     catalog.beforeGet = async (kind, key) => {
       if (kind === "race" && key === "altmer") await gate.promise;
     };
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     const old = creator.chooseRace("altmer");
     await creator.chooseRace("argonian");
     gate.resolve();
@@ -360,7 +360,7 @@ describe("CharacterCreator", () => {
 
   it("lets the latest bonus answer win and applies no effects while it loads", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     const gate = deferred();
     catalog.beforeGet = async (kind, key) => {
@@ -385,7 +385,7 @@ describe("CharacterCreator", () => {
 
   it("does not let an invalid edit be replaced by an older successful load", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     const gate = deferred();
     catalog.beforeGet = async () => gate.promise;
@@ -404,7 +404,7 @@ describe("CharacterCreator", () => {
 
   it("invalidates pending bonus loads when changing race", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     const gate = deferred();
     catalog.beforeGet = async (kind) => {
@@ -432,7 +432,7 @@ describe("CharacterCreator", () => {
         ],
       },
     ];
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     const gate = deferred();
     catalog.beforeGet = async (kind, key) => {
@@ -465,7 +465,7 @@ describe("CharacterCreator", () => {
 
   it("retains failed skill answers for retry without applying effects", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     catalog.beforeGet = async () => {
       throw new Error("offline");
@@ -490,7 +490,7 @@ describe("CharacterCreator", () => {
 
   it("preserves committed answers after a failed race change and supports cancel/retry", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     catalog.beforeGet = async () => {
@@ -512,7 +512,7 @@ describe("CharacterCreator", () => {
 
   it("keeps valid answers when an unknown race or choice is requested", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     const answers = creator.getSnapshot().answers;
@@ -524,7 +524,7 @@ describe("CharacterCreator", () => {
 
   it("does not apply effects when a listed skill definition is actually missing", async () => {
     const { catalog, skills } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     delete skills.alchemy;
     expect(
@@ -536,7 +536,7 @@ describe("CharacterCreator", () => {
 
   it("rejects a mid-session content revision change", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     catalog.version.revision = "new-revision";
     expect(
@@ -550,7 +550,7 @@ describe("CharacterCreator", () => {
 
   it("disposes active state and ignores pending completions", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     const gate = deferred();
     catalog.beforeGet = async () => gate.promise;
     const pending = creator.chooseRace("altmer");
@@ -575,7 +575,7 @@ describe("CharacterCreator", () => {
 
   it("stops further race reads after a canceled index request settles", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("argonian");
     const started = deferred();
     const gate = deferred();
@@ -602,7 +602,7 @@ describe("CharacterCreator", () => {
 
   it("reports skill-index loading failures as failures, not missing content", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     catalog.beforeList = async () => {
       throw new Error("offline");
     };
@@ -617,7 +617,7 @@ describe("CharacterCreator", () => {
 
   it("ignores an obsolete rejection after a newer selection succeeds", async () => {
     const { catalog } = creationCatalogs();
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     const gate = deferred();
     catalog.beforeGet = async (kind, key) => {
@@ -647,7 +647,7 @@ describe("CharacterCreator", () => {
         ],
       },
     ];
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     catalog.beforeGet = async (kind, key) => {
       if (kind === "skill" && key === "alteration") throw new Error("offline");
@@ -672,7 +672,7 @@ describe("CharacterCreator", () => {
         choiceGroups: [{ id: "none", choose: 0, options: [] }],
       },
     ];
-    const creator = new CharacterCreator(catalog);
+    const creator = createRaceTestCreator(catalog);
     await creator.chooseRace("altmer");
     expect(creator.finish().ok).toBe(true);
     expect((await creator.chooseRacialBonus("altmer/none", [])).ok).toBe(true);
@@ -682,8 +682,8 @@ describe("CharacterCreator", () => {
 
   it("shares one catalog between creators without sharing answers or lifecycle", async () => {
     const { catalog } = creationCatalogs();
-    const first = new CharacterCreator(catalog);
-    const second = new CharacterCreator(catalog);
+    const first = createRaceTestCreator(catalog);
+    const second = createRaceTestCreator(catalog);
     await first.chooseRace("altmer");
     await second.chooseRace("argonian");
     await first.chooseRacialBonus("altmer/magic", ["alchemy"]);

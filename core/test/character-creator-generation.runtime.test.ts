@@ -492,25 +492,332 @@ describe("CharacterCreator generation drafts", () => {
     expect(creator.getSnapshot().characteristicGeneration).toEqual(generation);
   });
 
-  it("does not register a generation step, block race-only finish, or project generation effects", async () => {
+  it("registers characteristics after race and retains drafts when navigating back", async () => {
     const { creator } = setup();
     await creator.chooseRace("argonian");
     expect(creator.getSnapshot().characteristicGeneration.complete).toBe(false);
     expect(creator.getSnapshot().steps.map((step) => step.id)).toEqual([
       "race",
+      "characteristics",
     ]);
-    expect(creator.getSnapshot().canFinish).toBe(true);
-    const before = creator.getCharacterPreview();
+    expect(creator.getSnapshot().canFinish).toBe(false);
+    expect(creator.finish().ok).toBe(false);
+    expect(creator.previous().ok).toBe(false);
+    expect(creator.next().ok).toBe(true);
+    expect(creator.getSnapshot()).toMatchObject({
+      currentStep: "characteristics",
+      pendingChoices: [],
+      canGoPrevious: true,
+    });
+    expect(creator.getSnapshot().issues).toEqual(
+      creator.getSnapshot().characteristicGeneration.issues,
+    );
     populate(creator);
-    expect(creator.getCharacterPreview()).toEqual(before);
+    expect(creator.getSnapshot().canFinish).toBe(true);
+    const drafts = creator.getSnapshot().characteristicGeneration.drafts;
+    expect(creator.previous().ok).toBe(true);
+    expect(creator.getSnapshot().currentStep).toBe("race");
+    expect(creator.getSnapshot().characteristicGeneration.drafts).toEqual(
+      drafts,
+    );
+    expect(creator.finish().ok).toBe(true);
     creator.setFavoredCharacteristics([]);
     expect(creator.getSnapshot().characteristicGeneration.complete).toBe(false);
     expect(creator.getSnapshot().issues).toEqual([]);
+    expect(creator.finish().ok).toBe(false);
+    expect(creator.next().ok).toBe(true);
     expect(creator.next().ok).toBe(false);
-    expect(creator.previous().ok).toBe(false);
-    const finished = creator.finish();
-    expect(finished.ok).toBe(true);
-    if (finished.ok) expect(finished.value).toEqual(before);
+  });
+
+  it.each(["rolled", "point-buy"] as const)(
+    "requires both steps for %s finish even from race",
+    async (method) => {
+      const { creator } = setup();
+      populate(creator);
+      creator.setCharacteristicGenerationMethod(method);
+      expect(creator.getSnapshot().currentStep).toBe("race");
+      expect(creator.next().ok).toBe(false);
+      expect(creator.finish().ok).toBe(false);
+      await creator.chooseRace("argonian");
+      expect(creator.getSnapshot().canFinish).toBe(true);
+      const result = creator.finish();
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error("Expected complete character");
+      expect(result.value.characteristics.str).toMatchObject({
+        baseline: 25,
+        rolled: method === "rolled" ? 10 : 20,
+        favored: true,
+      });
+      expect(result.value.characteristics.lck).toMatchObject({
+        baseline: 30,
+        rolled: 9,
+        favored: false,
+      });
+      expect(creator.next().ok).toBe(true);
+      expect(creator.next()).toMatchObject({
+        ok: false,
+        issues: [{ code: "last-step" }],
+      });
+    },
+  );
+
+  describe.each(["rolled", "point-buy"] as const)(
+    "independent %s projection",
+    (method) => {
+      it.each([
+        [false, false, false],
+        [false, false, true],
+        [false, true, false],
+        [false, true, true],
+        [true, false, false],
+        [true, false, true],
+        [true, true, false],
+        [true, true, true],
+      ])(
+        "favored=%s method=%s Luck=%s",
+        async (favoredValid, methodValid, luckValid) => {
+          const { creator } = setup();
+          await creator.chooseRace("argonian");
+          creator.setCharacteristicGenerationMethod(method);
+          if (favoredValid)
+            creator.setFavoredCharacteristics([
+              Characteristic.Str,
+              Characteristic.Int,
+            ]);
+          if (luckValid) creator.submitLuckRoll({ id: "luck", dice: [10, 10] });
+          if (methodValid && method === "rolled") {
+            creator.submitCharacteristicRolls(rolls());
+            creator.setCharacteristicAssignments(assignments());
+          }
+          if (methodValid && method === "point-buy")
+            creator.setCharacteristicAllocations(allocations());
+          const preview = creator.getCharacterPreview();
+          for (const key of Object.values(Characteristic)) {
+            expect(preview.characteristics[key].rolled).toBe(
+              methodValid ? (method === "rolled" ? 10 : allocations()[key]) : 0,
+            );
+            expect(preview.characteristics[key].favored).toBe(
+              favoredValid && (key === "str" || key === "int"),
+            );
+          }
+          expect(preview.characteristics.str.baseline).toBe(25);
+          expect(preview.characteristics.lck).toMatchObject({
+            baseline: 30,
+            rolled: luckValid ? 20 : 0,
+            favored: false,
+          });
+          expect(creator.getSnapshot().canFinish).toBe(
+            favoredValid && methodValid && luckValid,
+          );
+        },
+      );
+    },
+  );
+
+  it("removes only invalidated groups' old effects and restores corrected answers", async () => {
+    const { creator } = setup();
+    await creator.chooseRace("argonian");
+    populate(creator);
+    creator.setFavoredCharacteristics([Characteristic.Str, Characteristic.Str]);
+    expect(creator.getCharacterPreview().characteristics.str).toMatchObject({
+      rolled: 10,
+      favored: false,
+    });
+    expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(9);
+    creator.setFavoredCharacteristics([Characteristic.Str, Characteristic.Int]);
+    creator.submitLuckRoll({ id: "luck", dice: [NaN, 1] });
+    expect(creator.getCharacterPreview().characteristics.str).toMatchObject({
+      rolled: 10,
+      favored: true,
+    });
+    expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(0);
+    creator.submitLuckRoll({ id: "luck", dice: [1, 2] });
+    creator.setCharacteristicAssignments({ str: "roll-str" });
+    for (const key of Object.values(Characteristic))
+      expect(creator.getCharacterPreview().characteristics[key].rolled).toBe(0);
+    expect(creator.getCharacterPreview().characteristics.str.favored).toBe(
+      true,
+    );
+    expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(3);
+    creator.setCharacteristicAssignments(assignments());
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(10);
+    creator.submitCharacteristicRolls(rolls());
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(0);
+    creator.setCharacteristicAssignments(assignments());
+    expect(creator.getSnapshot().canFinish).toBe(true);
+  });
+
+  it("projects only the active draft and atomically removes invalid point-buy allocations", async () => {
+    const { creator } = setup();
+    await creator.chooseRace("argonian");
+    populate(creator);
+    creator.setCharacteristicAllocations({ str: 1 });
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(10);
+    creator.setCharacteristicGenerationMethod("point-buy");
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(0);
+    creator.setCharacteristicAllocations(allocations());
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(20);
+    creator.submitCharacteristicRolls([]);
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(20);
+    creator.setCharacteristicAllocations({ ...allocations(), str: 19 });
+    for (const key of Object.values(Characteristic))
+      expect(creator.getCharacterPreview().characteristics[key].rolled).toBe(0);
+    expect(creator.getCharacterPreview().characteristics.str.favored).toBe(
+      true,
+    );
+    expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(9);
+    creator.setCharacteristicAllocations(allocations());
+    creator.setCharacteristicGenerationMethod("rolled");
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(0);
+  });
+
+  it("rejects invalid individual dice atomically even with otherwise complete assignments", async () => {
+    const { creator } = setup();
+    await creator.chooseRace("argonian");
+    populate(creator);
+    const invalid = rolls();
+    invalid[6]!.dice = [Infinity, 5];
+    creator.submitCharacteristicRolls(invalid);
+    creator.setCharacteristicAssignments(assignments());
+    for (const key of Object.values(Characteristic))
+      expect(creator.getCharacterPreview().characteristics[key].rolled).toBe(0);
+    expect(creator.getCharacterPreview().characteristics.str.favored).toBe(
+      true,
+    );
+    expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(9);
+    expect(creator.finish().ok).toBe(false);
+  });
+
+  it("suppresses generation with unusable races, restores it after cancel, and recalculates new baselines", async () => {
+    const { creator, catalog } = setup();
+    populate(creator);
+    await creator.chooseRace("argonian");
+    creator.next();
+    const before = creator.getCharacterPreview();
+    const gate = deferred();
+    catalog.beforeGet = async () => gate.promise;
+    const pending = creator.chooseRace("altmer");
+    expect(creator.getSnapshot().currentStep).toBe("characteristics");
+    expect(creator.finish().ok).toBe(false);
+    expect(creator.getCharacterPreview().characteristics.str).toMatchObject({
+      baseline: 0,
+      rolled: 0,
+      favored: false,
+    });
+    expect(creator.getCharacterPreview().characteristics.lck).toMatchObject({
+      baseline: 30,
+      rolled: 0,
+    });
+    gate.reject(new Error("offline"));
+    await pending;
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(0);
+    creator.cancelRaceSelection();
+    expect(creator.getCharacterPreview()).toEqual(before);
+    expect(creator.finish().ok).toBe(true);
+    catalog.beforeGet = undefined;
+    await creator.chooseRace("altmer");
+    expect(creator.getSnapshot().currentStep).toBe("characteristics");
+    expect(creator.getCharacterPreview().characteristics.str).toMatchObject({
+      baseline: 20,
+      rolled: 10,
+      favored: true,
+    });
+    expect(creator.finish().ok).toBe(false);
+    await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
+    expect(creator.finish().ok).toBe(true);
+    await creator.chooseRacialBonus("altmer/magic", []);
+    expect(creator.finish().ok).toBe(false);
+    expect(creator.getSnapshot().currentStep).toBe("characteristics");
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(10);
+    expect(creator.previous().ok).toBe(true);
+    expect(creator.next().ok).toBe(false);
+  });
+
+  it("keeps generation and other valid bonuses when an individual racial bonus is invalid", async () => {
+    const { catalog, altmer } = creationCatalogs();
+    altmer.racialBonuses = [
+      {
+        bonusType: "skill",
+        choiceGroups: [
+          { id: "one", choose: 1, options: ["alchemy"] },
+          { id: "two", choose: 1, options: ["alteration"] },
+        ],
+      },
+    ];
+    const creator = new CharacterCreator(catalog);
+    populate(creator);
+    await creator.chooseRace("altmer");
+    await creator.chooseRacialBonus("altmer/one", ["alchemy"]);
+    await creator.chooseRacialBonus("altmer/two", ["invalid"]);
+    const preview = creator.getCharacterPreview();
+    expect(preview.skills.map((training) => training.skill.skillKey)).toEqual([
+      "alchemy",
+    ]);
+    expect(preview.characteristics.str).toMatchObject({
+      baseline: 20,
+      rolled: 10,
+      favored: true,
+    });
+    expect(preview.characteristics.lck.rolled).toBe(9);
+    expect(creator.finish().ok).toBe(false);
+  });
+
+  it("suppresses all generation effects for a race with invalid global references", async () => {
+    const { catalog, altmer } = creationCatalogs();
+    altmer.racialTraits = [{ traitKey: "missing" }];
+    const creator = new CharacterCreator(catalog);
+    populate(creator);
+    await creator.chooseRace("altmer");
+    expect(creator.getSnapshot().characteristicGeneration.complete).toBe(true);
+    expect(creator.getCharacterPreview().characteristics.str).toMatchObject({
+      baseline: 0,
+      rolled: 0,
+      favored: false,
+    });
+    expect(creator.getCharacterPreview().characteristics.lck).toMatchObject({
+      baseline: 30,
+      rolled: 0,
+    });
+    expect(creator.finish().ok).toBe(false);
+  });
+
+  it("isolates previews, finished results and step issues, with no I/O during evaluation", async () => {
+    const { creator, catalog } = setup();
+    await creator.chooseRace("argonian");
+    populate(creator);
+    const expected = creator.getCharacterPreview();
+    const preview = creator.getCharacterPreview();
+    preview.characteristics.str.rolled = 0;
+    preview.characteristics.str.favored = false;
+    const result = creator.finish();
+    if (!result.ok) throw new Error("Expected complete character");
+    result.value.characteristics.lck.rolled = 0;
+    result.value.characteristics.int.modifiers.push({
+      sourceId: "changed",
+      sourceText: "Changed",
+      value: 100,
+    });
+    expect(creator.getCharacterPreview()).toEqual(expected);
+    creator.setFavoredCharacteristics([]);
+    creator.next();
+    const snapshot = creator.getSnapshot();
+    Object.defineProperty(snapshot.issues[0], "message", { value: "changed" });
+    expect(
+      creator.getSnapshot().characteristicGeneration.issues[0]?.message,
+    ).not.toBe("changed");
+    expect(creator.getSnapshot().issues[0]?.message).not.toBe("changed");
+    creator.setFavoredCharacteristics([Characteristic.Str, Characteristic.Int]);
+    catalog.getCalls.length = 0;
+    catalog.listCalls.length = 0;
+    for (let count = 0; count < 3; count++) {
+      expect(creator.getSnapshot().canFinish).toBe(true);
+      expect(creator.getCharacterPreview()).toEqual(expected);
+      expect(creator.finish().ok).toBe(true);
+      creator.previous();
+      creator.next();
+    }
+    expect(catalog.getCalls).toEqual([]);
+    expect(catalog.listCalls).toEqual([]);
   });
 
   it("clears generation on disposal and rejects every generation command without mutation", () => {

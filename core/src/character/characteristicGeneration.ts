@@ -203,26 +203,59 @@ export function calculateCharacteristicGeneration(
   if (issues.length > 0 || !answer || !answer.method)
     return { ok: false, issues };
 
-  // Validation establishes completeness; the assertions do not supply fallback results.
-  const complete = answer;
+  return { ok: true, value: generationContributions(answer, issues) };
+}
+
+/** Internal preview projection: invalid groups contribute nothing, independently. */
+export function projectCharacteristicGeneration(
+  answer?: CharacteristicGenerationAnswer,
+): CharacteristicGenerationContributions {
+  return generationContributions(
+    answer,
+    validateCharacteristicGeneration(answer),
+  );
+}
+
+function generationContributions(
+  answer: CharacteristicGenerationAnswer | undefined,
+  issues: readonly CharacteristicGenerationIssue[],
+): CharacteristicGenerationContributions {
+  const favoredValid = !issues.some((issue) => issue.field === "favored");
+  const luckValid = !issues.some((issue) => issue.field === "luck");
+  const methodValid = !issues.some(
+    (issue) =>
+      issue.field === "method" ||
+      issue.field === "rolls" ||
+      issue.field === "assignments" ||
+      issue.field === "allocations",
+  );
   const value = {} as CharacteristicGenerationContributions;
   for (const key of characteristics) {
-    let rolled: number;
-    if (complete.method === "rolled") {
-      const roll = complete.rolls!.find(
-        (candidate) => candidate.id === complete.assignments![key],
-      )!;
-      rolled = diceTotal(roll);
-    } else {
-      rolled = complete.allocations![key]!;
-    }
-    value[key] = { rolled, favored: complete.favored!.includes(key) };
+    value[key] = {
+      rolled: methodValid ? characteristicContribution(answer!, key) : 0,
+      favored: favoredValid && answer!.favored!.includes(key),
+    };
   }
   value[PcCharacteristic.Lck] = {
-    rolled: diceTotal(complete.luck!),
+    rolled: luckValid ? diceTotal(answer!.luck!) : 0,
     favored: false,
   };
-  return { ok: true, value };
+  return value;
+}
+
+/** Only called after validating the complete active method group. */
+function characteristicContribution(
+  answer: CharacteristicGenerationAnswer,
+  key: Characteristic,
+): number {
+  if (answer.method === "rolled") {
+    const roll = answer.rolls!.find(
+      (candidate) => candidate.id === answer.assignments![key],
+    )!;
+    return diceTotal(roll);
+  }
+  if (answer.method === "point-buy") return answer.allocations![key]!;
+  return 0;
 }
 
 function diceTotal(roll: CharacteristicRoll): number {

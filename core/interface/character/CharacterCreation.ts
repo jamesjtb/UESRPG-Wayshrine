@@ -3,6 +3,8 @@ import type { ContentSummary, ContentVersion } from "../common/ContentCatalog";
 import type { WizardIssue, WizardSnapshot } from "../common/Wizard";
 import type { CharacteristicGenerationSnapshot } from "./CharacteristicGeneration";
 
+export type CharacterCreationStep = "race" | "characteristics";
+
 export type CharacterContentOperation =
   | { kind: "race"; raceKey: string }
   | { kind: "racial-bonus"; choiceId: string };
@@ -20,11 +22,11 @@ export interface CharacterCreationAnswers {
 }
 
 export interface CharacterCreationSnapshot extends WizardSnapshot<
-  "race",
+  CharacterCreationStep,
   ChoiceState<string>
 > {
   answers: CharacterCreationAnswers;
-  /** Drafts and active validation only; not yet part of wizard progression/effects. */
+  /** Generation details live here rather than in the shared pending-choice list. */
   characteristicGeneration: CharacteristicGenerationSnapshot;
   /** Includes resolved groups so previous selections can be reviewed and edited. */
   racialBonusChoices: readonly ChoiceState<string>[];

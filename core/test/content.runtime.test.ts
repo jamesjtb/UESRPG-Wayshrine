@@ -16,6 +16,7 @@ import {
 import { validateRaceContent } from "../src/content/validateRaceContent";
 import CharacterCreator from "../src/wizards/CharacterCreator";
 import { SkillRank } from "../src/enum/SkillRank";
+import { completeGeneration } from "./support/CharacteristicGeneration";
 import {
   creationCatalogs,
   deferred,
@@ -88,6 +89,7 @@ describe("authored content", () => {
         ])
       ).ok,
     ).toBe(true);
+    completeGeneration(creator);
     const result = creator.finish();
     expect(result.ok).toBe(true);
     if (result.ok) {

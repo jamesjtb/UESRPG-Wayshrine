@@ -2,6 +2,7 @@ import type {
   CharacterContentLoad,
   CharacterContentOperation,
   CharacterCreationSnapshot,
+  CharacterCreationStep,
 } from "../../interface/character/CharacterCreation";
 import type {
   CharacteristicAllocations,
@@ -28,12 +29,15 @@ import type {
   WizardResult,
 } from "../../interface/common/Wizard";
 import { ContentError } from "../content/ContentError";
-import { validateCharacteristicGeneration } from "../character/characteristicGeneration";
+import {
+  projectCharacteristicGeneration,
+  validateCharacteristicGeneration,
+} from "../character/characteristicGeneration";
 import { ContentReader } from "../content/ContentReader";
 import { raceSchema, skillSchema } from "../content/schemas";
 import { validateRaceContent } from "../content/validateRaceContent";
 import PcCharacterData from "../data/CharacterData";
-import { Characteristic } from "../enum/Characteristic";
+import { Characteristic, PcCharacteristic } from "../enum/Characteristic";
 import { SkillRank } from "../enum/SkillRank";
 import Wizard from "./Wizard";
 import { validateChoice } from "./validateChoice";
@@ -88,12 +92,22 @@ export default class CharacterCreator {
   private readonly bonusSkills = new Map<string, readonly Skill[]>();
   private readonly loads = new Map<string, CharacterContentLoad>();
   private disposed = false;
-  private readonly wizard: Wizard<"race", ChoiceState<string>, PcCharacterData>;
+  private readonly wizard: Wizard<
+    CharacterCreationStep,
+    ChoiceState<string>,
+    PcCharacterData
+  >;
 
   constructor(catalog: ContentCatalog) {
     this.content = new ContentReader(catalog);
     this.wizard = new Wizard(
-      [{ id: "race", evaluate: () => this.evaluateRace() }],
+      [
+        { id: "race", evaluate: () => this.evaluateRace() },
+        {
+          id: "characteristics",
+          evaluate: () => this.evaluateCharacteristics(),
+        },
+      ],
       () => this.getCharacterPreview(),
     );
   }
@@ -308,6 +322,12 @@ export default class CharacterCreator {
         baseline: this.race.baselineCharacteristics[key],
       });
     }
+    const contributions = projectCharacteristicGeneration(
+      this.generationAnswer(),
+    );
+    for (const key of Object.values(PcCharacteristic)) {
+      character.updateCharacteristic(key, contributions[key]);
+    }
     character.traits = character.race.racialTraits.map((trait) => ({
       ...trait,
       origin: "race",
@@ -459,6 +479,15 @@ export default class CharacterCreator {
       });
     }
     return issues;
+  }
+
+  private evaluateCharacteristics(): StepEvaluation<ChoiceState<string>> {
+    return {
+      pendingChoices: [],
+      issues: this.disposed
+        ? [{ code: "disposed", message: "This creator is closed." }]
+        : validateCharacteristicGeneration(this.generationAnswer()),
+    };
   }
 
   private evaluateRace(): StepEvaluation<ChoiceState<string>> {

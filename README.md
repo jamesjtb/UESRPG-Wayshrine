@@ -22,7 +22,7 @@ pnpm start:wck dev
 
 Run `pnpm format` to apply formatting.
 Run `pnpm --filter @wayshrine/creation-kit test` for Creation Kit navigation,
-routing, and static content compiler tests.
+routing, Character Forge, and static content pipeline tests.
 
 ### Mantine type compatibility
 

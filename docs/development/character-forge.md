@@ -62,6 +62,13 @@ Hook tests exercise transient unknown-choice results that snapshot-driven contro
 cannot submit, retained internal answers, and actual navigation handler results.
 Core tests remain responsible for the shared mechanics themselves.
 
+`scripts/content-pipeline.test.ts` compiles the authored YAML to temporary files
+under `/tmp/opencode`, then reads those files through the real browser catalog and
+creator. Its file-backed fetch seam models a static host's single URL-decoding
+pass. This checks the published artifact contract without a live development
+server or committed generated catalogs. Script checks include DOM and Vite types
+for this cross-environment test; Node types remain outside the browser config.
+
 Run `pnpm --filter @wayshrine/creation-kit test` for browser integration and content
 compiler tests, and `pnpm --filter @wayshrine/core test` for the shared rules.
 

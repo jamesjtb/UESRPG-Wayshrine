@@ -1,6 +1,7 @@
 # Character Forge engineering notes
 
-Character Forge is a race-only editor backed by Core's headless creator. See the
+Character Forge currently renders a race-only editor backed by Core's headless
+creator, which implements both race and characteristic generation. See the
 [Core contract](../../core/README.md#character-creation) for selection rules,
 content validation, answer retention, and preview semantics. The browser UI
 presents those rules rather than implementing a second rules model.
@@ -17,10 +18,11 @@ presents those rules rather than implementing a second rules model.
   The creator, liveness flag, and request identities stay private. Commands capture
   their originating session; retained callbacks and pending completions cannot
   affect a replacement session when the catalog changes or the Forge unmounts.
-- `CharacterForge.tsx` composes one creator session above the selected editor,
+- `CharacterForge.tsx` composes one creator session above the editor,
   workspace, and preview. Core snapshots supply registered breadcrumb steps,
   the current step, control values, choice groups, issues, and navigation
   availability; `getCharacterPreview()` supplies the displayed effects.
+  The editor is currently an unconditional `RaceStep`, not selected by current step.
 - `components/ForgeWorkspace.tsx` owns the persistent two-pane frame with editor,
   navigation, and preview slots. Replacing the editor does not replace the frame,
   preview, or creator session. Its styles own independent desktop scrolling,
@@ -95,7 +97,7 @@ compiler tests, and `pnpm --filter @wayshrine/core test` for the shared rules.
 
 ## Limitations and extension boundaries
 
-Future Core-registered steps replace only the selected editor in `ForgeWorkspace`.
+New step editors should replace only the editor slot in `ForgeWorkspace`.
 Keep Core navigation and rules authoritative: do not add a React wizard, duplicate
 choice validation, or calculate character rules in presentation code. The shared
 catalog outlives the Forge, and the preview remains independent of individual editors.
@@ -104,11 +106,16 @@ for new editors, adapting each step's snapshot and named commands locally. Keep
 these modules feature-local until another tool actually needs them; do not promote
 them application-wide or split the preview into speculative sections in advance.
 
-Only the race step is registered. Back and Next use Core's guards and remain
-disabled even with valid race answers; their handlers delegate to `previous()`
-and `next()`. The UI does not call `finish()` or claim character completion.
-Additional registered steps will need navigation tests through the actual UI and
-hook boundaries, not placeholder steps added solely for testing.
+Core registers `race` then `characteristics`. Back and Next delegate to Core's
+`previous()` and `next()` guards: valid race answers now enable Next, and moving to
+characteristics enables Back. However, `CharacterForge.tsx` still renders `RaceStep`
+unconditionally, and the hook does not expose generation commands. Advancing
+changes Core's current step and breadcrumbs without displaying a generation editor.
+Frontend followup must select the editor by current step, expose the public
+generation commands, and update navigation tests through the real UI/hook boundary.
+The UI does not call `finish()` or claim character completion; Core finish now
+requires both implemented steps, not just valid race answers. Neither component
+implements the remaining character-creation rules.
 
 The preview's prominent controlled “Character name” input writes every change
 through the hook to Core's synchronous `setName` command. Name is a session-wide
@@ -122,10 +129,16 @@ the name; stale hook callbacks cannot rename a replacement session.
 The preview renders Race, Characteristics, Traits,
 and Skills from Core data. It shows nonzero baselines, trait keys and parameters,
 and resolved skill ranks, not rolled characteristics or calculated final statistics.
+Luck's default baseline is 30 even before a race is selected, so the current
+baseline-only presentation can show Luck rather than the empty-characteristics
+placeholder. Consumer expectations of an all-zero default preview must change.
 There is no localization system: unresolved labels fall back to readable keys and
 placeholder descriptions are omitted.
 
-There is no characteristic generation or Foundry integration. Content is pinned
+Core implements characteristic generation; the browser has no generation editor
+or generated-score presentation yet, and there is no Foundry integration. See the
+[generation engineering notes](characteristic-generation.md) for state, projection,
+and integration boundaries. Content is pinned
 to the application catalog's revision; updates require a fresh runtime/catalog
 and creator rather than swapping content within an active session. See the
 [static content maintenance instructions](../../README.md#creation-kit-static-content)

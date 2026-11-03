@@ -820,6 +820,38 @@ describe("CharacterCreator generation drafts", () => {
     expect(catalog.listCalls).toEqual([]);
   });
 
+  it("retains name, race and racial grants across method switches and shared rerolls", async () => {
+    const { creator } = setup();
+    creator.setName("Retained name");
+    await creator.chooseRace("altmer");
+    await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
+    populate(creator);
+    const before = creator.getSnapshot();
+    const preview = creator.getCharacterPreview();
+    const commands = [
+      () => creator.setCharacteristicGenerationMethod("point-buy"),
+      () => creator.submitCharacteristicRolls(rolls()),
+      () => creator.setCharacteristicGenerationMethod("rolled"),
+      () => creator.setCharacteristicAssignments(assignments()),
+    ];
+    for (const command of commands) {
+      expect(command().ok).toBe(true);
+      expect(creator.getSnapshot().answers).toEqual(before.answers);
+      expect(creator.getSnapshot().racialBonusChoices).toEqual(
+        before.racialBonusChoices,
+      );
+      const current = creator.getCharacterPreview();
+      expect(current.name).toBe(preview.name);
+      expect(current.race).toEqual(preview.race);
+      expect(current.skills).toEqual(preview.skills);
+      expect(current.traits).toEqual(preview.traits);
+      expect(current.characteristics.str.baseline).toBe(
+        preview.characteristics.str.baseline,
+      );
+    }
+    expect(creator.finish().ok).toBe(true);
+  });
+
   it("clears generation on disposal and rejects every generation command without mutation", () => {
     const { creator } = setup();
     populate(creator);

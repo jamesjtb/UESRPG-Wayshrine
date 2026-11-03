@@ -50,10 +50,15 @@ async function selectAltmer(creator: CharacterCreator) {
 }
 ```
 
-Only selection commands do content I/O. `getSnapshot()`, `getCharacterPreview()`,
-`next()`, `previous()`, and `finish()` remain synchronous and never fetch or roll
-dice. Only the race step exists; finishing it is not a complete implementation of
-all character-creation rules. Characteristic generation is not implemented.
+Only `chooseRace()` and `chooseRacialBonus()` do content I/O. Name and generation
+commands, `getSnapshot()`, `getCharacterPreview()`, `next()`, `previous()`, and
+`finish()` are synchronous and never fetch or roll dice.
+
+The implemented steps are `race` then `characteristics`, identified by the public
+`CharacterCreationStep` type. Next requires valid current and preceding steps; Back
+retains answers. `finish()` requires both steps valid even when called from race.
+Invalidating a previous step blocks finish without changing the current step.
+Finishing these two steps is **not** full implementation of character creation.
 
 Selecting a race loads its definition and, if needed, the lightweight skill index.
 Every offered skill key must exist, including unselected options. Racial trait
@@ -74,8 +79,8 @@ issues are also detached from creator state.
   correction. An invalid racial trait reference/parameter prevents all racial
   effects until the content is corrected in a new session.
 - Selecting the same race preserves its answers without reloading. Changing race
-  clears only race-owned answers. Future downstream steps must retain their inputs,
-  revalidate them, and apply only still-valid effects.
+  clears only race-owned answers. Generation drafts and the name survive race
+  changes, retries, and cancellation.
 - The latest command for a race or bonus group wins. Independent bonus groups can
   resolve concurrently. Obsolete completions return a `superseded` issue and cannot
   overwrite current answers or errors.
@@ -90,6 +95,124 @@ issues are also detached from creator state.
   bonus answers remain usable.
 - `dispose()` releases session-owned content and answers and invalidates pending
   commands. It does not dispose the host's shared catalog.
+
+### Characteristic generation
+
+The host obtains dice results (manual entry, a dice service, or host randomness).
+Core never generates randomness, authorizes rerolls, or requires a GM permission
+gate. Supply identified rolls with their individual faces, not just totals. Each
+2d10 submission needs a nonempty string ID and exactly two integer d10 faces
+(1–10). Equal totals from distinct roll IDs are valid.
+
+Both methods require exactly two distinct favored keys from `Characteristic`:
+`str`, `end`, `ag`, `int`, `wp`, `prc`, `prs`. Luck is never favored or included in
+the shared roll pool/point budget; submit its own 2d10 roll for either method.
+
+#### Rolled flow
+
+This example records results already supplied by the host. Assignments map each
+characteristic to a **roll ID**, not a total or array position. Submit seven
+distinct rolls and assign every roll exactly once.
+
+```ts
+import { CharacterCreator } from "@wayshrine/core";
+import type { CharacteristicRoll } from "@wayshrine/core";
+
+function submitRolled(creator: CharacterCreator) {
+  const rolls: readonly CharacteristicRoll[] = [
+    { id: "r1", dice: [4, 7] },
+    { id: "r2", dice: [6, 5] },
+    { id: "r3", dice: [10, 8] },
+    { id: "r4", dice: [3, 9] },
+    { id: "r5", dice: [7, 7] },
+    { id: "r6", dice: [1, 6] },
+    { id: "r7", dice: [8, 5] },
+  ];
+  creator.setFavoredCharacteristics(["str", "int"]);
+  creator.setCharacteristicGenerationMethod("rolled");
+  creator.submitCharacteristicRolls(rolls);
+  creator.setCharacteristicAssignments({
+    str: "r3",
+    end: "r2",
+    ag: "r1",
+    int: "r5",
+    wp: "r4",
+    prc: "r7",
+    prs: "r6",
+  });
+  creator.submitLuckRoll({ id: "luck-1", dice: [6, 8] });
+  return creator.getSnapshot();
+}
+```
+
+#### Point-buy flow
+
+Allocations map characteristic keys to **integer point amounts**, not roll IDs.
+Explicitly allocate all seven keys, spending exactly 80 points with 0–20 per key.
+Both methods store their non-Luck contribution in each characteristic's `rolled`
+field; neither replaces the race's `baseline`.
+
+```ts
+import { CharacterCreator } from "@wayshrine/core";
+import type { CharacteristicRoll } from "@wayshrine/core";
+
+function submitPointBuy(creator: CharacterCreator, luck: CharacteristicRoll) {
+  creator.setFavoredCharacteristics(["end", "wp"]);
+  creator.setCharacteristicGenerationMethod("point-buy");
+  creator.setCharacteristicAllocations({
+    str: 20,
+    end: 20,
+    ag: 20,
+    int: 10,
+    wp: 10,
+    prc: 0,
+    prs: 0,
+  });
+  creator.submitLuckRoll(luck);
+  return creator.getSnapshot();
+}
+```
+
+#### Editing, validation, and previews
+
+- Generation commands may run before choosing race or while content loads. A
+  successful command validates only its submission, not the entire character.
+  Failed validation keeps the edit visible for correction; it is not rolled back.
+- `setCharacteristicAssignments()` and `setCharacteristicAllocations()` replace
+  whole maps, never merge. Partial maps are retained as incomplete drafts; `{}`
+  clears a map. Submitting a roll pool replaces it and **always clears assignments**,
+  even for reused IDs. A host reroll therefore resubmits the complete pool, then the
+  complete assignment map. Replacing Luck affects only Luck.
+- Rolled and point-buy drafts are retained separately. Favored selections and Luck
+  are common. Switching method preserves both drafts; editing an inactive draft
+  does not activate it or affect the preview.
+- Generation command issues concern only the edited field. For example, valid rolls
+  can return `ok: true` while assignments remain missing. Issues have `code` and
+  `message`, with optional `field`, `rollId`, and `characteristic` targets; hosts
+  should not parse message text.
+- `snapshot.characteristicGeneration` contains detached `drafts`, the active
+  `answer`, full active `issues`, and `complete`. The characteristics step has an
+  empty `pendingChoices`; use the dedicated section for its inputs and details.
+  Top-level wizard issues describe the current step, not every step.
+- Preview groups are independent: valid favored selections grant flags; a fully
+  valid active method grants **all seven** non-Luck contributions atomically; a
+  valid Luck roll grants only its dice total. An invalid group contributes nothing,
+  removing its previous effects without hiding other valid groups.
+- Generation effects apply only with a usable committed race. A pending/failed race
+  change or invalid global race reference suppresses those effects too. Cancel
+  restores retained answers; a successful change recalculates against the new
+  racial baselines. An invalid individual racial bonus suppresses only that bonus.
+- Luck always has `baseline: 30`. Its `rolled` field is the valid 2d10 total (2–20),
+  so baseline plus generation is 32–50, capped at 50 by the dice limits. Missing or
+  invalid Luck contributes zero, not an additional 30.
+- Public `validateCharacteristicGeneration(answer)` returns all answer issues.
+  `calculateCharacteristicGeneration(answer)` is strict: incomplete or invalid
+  answers return issues, never a partial calculation. Hosts ordinarily use creator
+  previews for independent valid-group effects. Inputs, snapshots, and results are
+  detached; mutate them only to prepare a new command submission.
+
+See [generation engineering notes](../docs/development/characteristic-generation.md)
+for module boundaries and consumer integration considerations.
 
 ## Content validation
 

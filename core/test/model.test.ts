@@ -16,12 +16,13 @@ import type {
   Race,
   RaceCatalog,
   RacialBonus,
-  RacialBonusChoice,
+  ChoiceGroup,
   Skill,
   SkillTraining,
   Trait,
   TraitCatalog,
   TraitOrigin,
+  ContentCatalog,
 } from "../src/index";
 import PcCharacterData from "../src/data/CharacterData";
 
@@ -39,12 +40,17 @@ type ModelChecks = [
   Assert<Equal<Attributes["luckyNumbers"]["value"], number[]>>,
   Assert<Equal<SkillTraining["skill"], Skill>>,
   Assert<Equal<SkillTraining["skillRank"], SkillRank>>,
+  Assert<
+    Equal<SkillTraining["governingCharacteristic"], Characteristic | undefined>
+  >,
   Assert<Equal<PcCharacteristicData["modifiers"], Modifier[]>>,
   Assert<Equal<Race["baselineCharacteristics"], BaselineCharacteristics>>,
-  Assert<Equal<BaselineCharacteristics, Readonly<Record<Characteristic, number>>>>,
+  Assert<
+    Equal<BaselineCharacteristics, Readonly<Record<Characteristic, number>>>
+  >,
   Assert<Equal<Race["racialTraits"], readonly AppliedTrait[]>>,
   Assert<Equal<Race["racialBonuses"], readonly RacialBonus[] | undefined>>,
-  Assert<Equal<RacialBonus["choices"], readonly RacialBonusChoice[]>>,
+  Assert<Equal<RacialBonus["choiceGroups"], readonly ChoiceGroup<string>[]>>,
   Assert<Equal<RaceCatalog, Readonly<Record<string, Race>>>>,
   Assert<Equal<TraitCatalog, Readonly<Record<string, Trait>>>>,
   Assert<Equal<TraitOrigin, "race" | "purchased">>,
@@ -74,8 +80,40 @@ const npcCharacteristic = {
 
 const skill = {
   skillKey: "alchemy",
-  governingCharacteristics: [],
+  governingCharacteristics: [Characteristic.Int],
 } satisfies Skill;
+
+const profession = {
+  skillKey: "profession",
+  hasCustomName: true,
+  chooseGoverningCharacteristic: true,
+} satisfies Skill;
+
+const trainedProfession = {
+  skill: profession,
+  skillRank: SkillRank.Novice,
+  customName: "Smith",
+  governingCharacteristic: Characteristic.Str,
+} satisfies SkillTraining;
+
+const enumObjectSkill: Skill = {
+  skillKey: "alchemy",
+  // @ts-expect-error Governing characteristics are keys, not enum objects.
+  governingCharacteristics: [Characteristic],
+};
+// @ts-expect-error A selectable skill cannot also impose fixed characteristics.
+const conflictingSkill: Skill = {
+  skillKey: "profession",
+  chooseGoverningCharacteristic: true,
+  governingCharacteristics: [Characteristic.Str],
+};
+
+async function catalogChecks(catalog: ContentCatalog) {
+  const race: Race | undefined = await catalog.get("race", "altmer");
+  const skill: Skill | undefined = await catalog.get("skill", "alchemy");
+  // @ts-expect-error The kind determines the returned definition.
+  const wrongKind: Trait | undefined = await catalog.get("skill", "alchemy");
+}
 
 const training = {
   skill,
@@ -105,9 +143,11 @@ character.updateCharacteristic(PcCharacteristic.Str, { baseline: "30" });
 // @ts-expect-error Size values must be enum members, not numeric placeholders.
 const numericSize: Attributes["size"] = { value: 0 };
 // @ts-expect-error PCs use Luck, not NPC-specific Morale.
-const pcMorale: PcCharacteristicData["characteristicKey"] = NpcCharacteristic.Mrl;
+const pcMorale: PcCharacteristicData["characteristicKey"] =
+  NpcCharacteristic.Mrl;
 // @ts-expect-error NPCs use Morale, not PC-specific Luck.
-const npcLuck: NpcCharacteristicData["characteristicKey"] = PcCharacteristic.Lck;
+const npcLuck: NpcCharacteristicData["characteristicKey"] =
+  PcCharacteristic.Lck;
 // @ts-expect-error Characteristic baselines must be numeric.
 const textualBaseline: PcCharacteristicData["baseline"] = "40";
 // @ts-expect-error Modifier values must be numeric.

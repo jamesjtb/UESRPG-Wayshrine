@@ -1,19 +1,14 @@
 import type { Characteristic } from "../../src/enum/Characteristic";
 import type { AppliedTrait } from "./Trait";
+import type { ChoiceGroup } from "../common/Choice";
 
 /** Starting characteristic values supplied by a race. */
 export type BaselineCharacteristics = Readonly<Record<Characteristic, number>>;
 
-/** An available choice within a racial bonus group. */
-export interface RacialBonusChoice {
-  choiceGroup: string;
-  choiceKey: string;
-}
-
-/** A racial bonus offering a selection of skills. */
+/** Each selected skill is granted at Novice rank. Group IDs are unique within a race. */
 export interface RacialBonus {
   bonusType: "skill";
-  choices: readonly RacialBonusChoice[];
+  choiceGroups: readonly ChoiceGroup<string>[];
 }
 
 /** A reusable race definition from the content catalog. */

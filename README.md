@@ -51,6 +51,35 @@ Core must remain independent of React, Foundry,
 and both application workspaces so that Creation Kit can work without a VTT and
 other VTT integrations remain possible.
 
+### Core creation workflows
+
+Core exports a headless `Wizard`, shared choice types and `validateChoice`, and
+`CharacterCreator`. Run `pnpm --filter @wayshrine/core test` for model checks and
+runtime workflow tests. Test-runner environment types are isolated from Core's
+platform-independent source checks.
+
+`CharacterCreator` takes race and skill catalogs. Call `chooseRace(raceKey)`, then
+use `getSnapshot().racialBonusChoices` to display each group's stable, source-scoped
+ID, `choose` requirement, options, and current selections. Submit selections with
+`chooseRacialBonus(choiceId, selections)`. Each selected skill grants Novice training;
+overlapping grants produce only one skill entry. The current catalog's Altmer group
+requires one skill.
+
+Snapshots include resolved groups for editing, pending choices, and validation
+issues. Invalid bonus answers remain visible for correction but grant no effects.
+Changing race clears its bonus answers and rebuilds baselines, traits, and skills;
+selecting the same race preserves its answers. `getCharacterPreview()` returns a
+detached preview. Catalogs and returned data cannot mutate the creator's stored state.
+
+The shared wizard evaluates ordered steps on every operation. Evaluators must be
+pure and tolerate an incomplete draft. `next()` checks all steps through the current
+one, `previous()` preserves answers, and `finish()` validates every registered step.
+Operations return `{ ok, value }` or `{ ok, issues }`; a rejected bonus answer is
+stored for correction, while an unknown race or choice leaves answers unchanged.
+Only the race step is implemented so far; characteristic generation remains future
+work. Future steps should retain their inputs, reevaluate validity after upstream
+edits, and apply only valid effects. Evaluation must never generate or reroll dice.
+
 ### Creation Kit source layout
 
 Creation Kit uses a hybrid, feature-grouped React layout under `creation-kit/src/`:

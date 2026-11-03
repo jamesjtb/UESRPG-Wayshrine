@@ -35,14 +35,152 @@ diseaseResistance:
     - X
   label: "{LOCALE.traits.diseaseResistance.label}"
   description: "{LOCALE.traits.diseaseResistance.description}"
+diseased:
+  params:
+    - X
+  label: "{LOCALE.traits.diseased.label}"
+  description: "{LOCALE.traits.diseased.description}"
+flyer:
+  params:
+    - X
+  label: "{LOCALE.traits.flyer.label}"
+  description: "{LOCALE.traits.flyer.description}"
+frightening:
+  params:
+    - X
+  label: "{LOCALE.traits.frightening.label}"
+  description: "{LOCALE.traits.frightening.description}"
+fromBeyond:
+  label: "{LOCALE.traits.fromBeyond.label}"
+  description: "{LOCALE.traits.fromBeyond.description}"
 immunity:
   params:
     - type
   label: "{LOCALE.traits.immunity.label}"
   description: "{LOCALE.traits.immunity.description}"
+incorporeal:
+  label: "{LOCALE.traits.incorporeal.label}"
+  description: "{LOCALE.traits.incorporeal.description}"
+naturalToughness:
+  params:
+    - X
+  label: "{LOCALE.traits.naturalToughness.label}"
+  description: "{LOCALE.traits.naturalToughness.description}"
+naturalWeapons:
+  params:
+    - type
+    - damage
+    - range
+  label: "{LOCALE.traits.naturalWeapons.label}"
+  description: "{LOCALE.traits.naturalWeapons.description}"
+powerWell:
+  params:
+    - X
+  label: "{LOCALE.traits.powerWell.label}"
+  description: "{LOCALE.traits.powerWell.description}"
+quadruped:
+  label: "{LOCALE.traits.quadruped.label}"
+  description: "{LOCALE.traits.quadruped.description}"
+regeneration:
+  params:
+    - X
+  label: "{LOCALE.traits.regeneration.label}"
+  description: "{LOCALE.traits.regeneration.description}"
+resistance:
+  params:
+    - type
+    - X
+  label: "{LOCALE.traits.resistance.label}"
+  description: "{LOCALE.traits.resistance.description}"
+resistNormalWeapons:
+  params:
+    - X
+  label: "{LOCALE.traits.resistNormalWeapons.label}"
+  description: "{LOCALE.traits.resistNormalWeapons.description}"
+runningOutOfLuck:
+  label: "{LOCALE.traits.runningOutOfLuck.label}"
+  description: "{LOCALE.traits.runningOutOfLuck.description}"
+savage:
+  label: "{LOCALE.traits.savage.label}"
+  description: "{LOCALE.traits.savage.description}"
+silverScarred:
+  params:
+    - X
+  label: "{LOCALE.traits.silverScarred.label}"
+  description: "{LOCALE.traits.silverScarred.description}"
+skeletal:
+  label: "{LOCALE.traits.skeletal.label}"
+  description: "{LOCALE.traits.skeletal.description}"
+spellAbsorption:
+  params:
+    - X
+  label: "{LOCALE.traits.spellAbsorption.label}"
+  description: "{LOCALE.traits.spellAbsorption.description}"
+strongJaws:
+  label: "{LOCALE.traits.strongJaws.label}"
+  description: "{LOCALE.traits.strongJaws.description}"
+stuntedMagicka:
+  label: "{LOCALE.traits.stuntedMagicka.label}"
+  description: "{LOCALE.traits.stuntedMagicka.description}"
+summoned:
+  label: "{LOCALE.traits.summoned.label}"
+  description: "{LOCALE.traits.summoned.description}"
+sunScarred:
+  params:
+    - X
+  label: "{LOCALE.traits.sunScarred.label}"
+  description: "{LOCALE.traits.sunScarred.description}"
+swimmer:
+  label: "{LOCALE.traits.swimmer.label}"
+  description: "{LOCALE.traits.swimmer.description}"
+telepathy:
+  params:
+    - X
+  label: "{LOCALE.traits.telepathy.label}"
+  description: "{LOCALE.traits.telepathy.description}"
+thickSkull:
+  label: "{LOCALE.traits.thickSkull.label}"
+  description: "{LOCALE.traits.thickSkull.description}"
+vicious:
+  params:
+    - X
+  label: "{LOCALE.traits.vicious.label}"
+  description: "{LOCALE.traits.vicious.description}"
+telekinesis:
+  params:
+    - X
+  label: "{LOCALE.traits.telekinesis.label}"
+  description: "{LOCALE.traits.telekinesis.description}"
+terrifying:
+  params:
+    - X
+  label: "{LOCALE.traits.terrifying.label}"
+  description: "{LOCALE.traits.terrifying.description}"
+tough:
+  params:
+    - X
+  label: "{LOCALE.traits.tough.label}"
+  description: "{LOCALE.traits.tough.description}"
+weakBones:
+  params:
+    - X
+  label: "{LOCALE.traits.weakBones.label}"
+  description: "{LOCALE.traits.weakBones.description}"
 weakness:
   params:
     - type
     - X
   label: "{LOCALE.traits.weakness.label}"
   description: "{LOCALE.traits.weakness.description}"
+undead:
+  label: "{LOCALE.traits.undead.label}"
+  description: "{LOCALE.traits.undead.description}"
+undying:
+  label: "{LOCALE.traits.undying.label}"
+  description: "{LOCALE.traits.undying.description}"
+unnaturalSenses:
+  params:
+    - type
+    - X
+  label: "{LOCALE.traits.unnaturalSenses.label}"
+  description: "{LOCALE.traits.unnaturalSenses.description}"

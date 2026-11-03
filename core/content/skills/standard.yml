@@ -1,0 +1,75 @@
+acrobatics:
+  governingCharacteristics:
+    - str
+    - ag
+alchemy:
+  governingCharacteristics:
+    - int
+athletics:
+  governingCharacteristics:
+    - str
+    - end
+combatStyle:
+  hasCustomName: true
+  governingCharacteristics:
+    - str
+    - ag
+command:
+  governingCharacteristics:
+    - str
+    - int
+    - prs
+commerce:
+  governingCharacteristics:
+    - int
+    - prs
+deceive:
+  governingCharacteristics:
+    - int
+    - prs
+enchant:
+  governingCharacteristics:
+    - int
+evade:
+  governingCharacteristics:
+    - ag
+investigate:
+  governingCharacteristics:
+    - int
+    - prc
+logic:
+  governingCharacteristics:
+    - int
+    - prc
+lore:
+  governingCharacteristics:
+    - int
+navigate:
+  governingCharacteristics:
+    - int
+    - prc
+observe:
+  governingCharacteristics:
+    - prc
+persuade:
+  governingCharacteristics:
+    - str
+    - prs
+profession:
+  chooseGoverningCharacteristic: true
+  hasCustomName: true
+ride:
+  governingCharacteristics:
+    - ag
+stealth:
+  governingCharacteristics:
+    - ag
+    - prc
+subterfuge:
+  governingCharacteristics:
+    - ag
+    - int
+survival:
+  governingCharacteristics:
+    - int
+    - prc

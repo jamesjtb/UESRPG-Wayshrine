@@ -24,25 +24,19 @@ altmer:
     - traitKey: mentalStrength
   racialBonuses:
     - bonusType: skill
-      choices:
-        - choiceGroup: a
-          choiceKey: alchemy
-        - choiceGroup: a
-          choiceKey: alteration
-        - choiceGroup: a
-          choiceKey: conjuration
-        - choiceGroup: a
-          choiceKey: destruction
-        - choiceGroup: a
-          choiceKey: enchanting
-        - choiceGroup: a
-          choiceKey: illusion
-        - choiceGroup: a
-          choiceKey: mysticism
-        - choiceGroup: a
-          choiceKey: necromancy
-        - choiceGroup: a
-          choiceKey: restoration
+      choiceGroups:
+        - id: magical-training
+          choose: 1
+          options:
+            - alchemy
+            - alteration
+            - conjuration
+            - destruction
+            - enchant
+            - illusion
+            - mysticism
+            - necromancy
+            - restoration
 argonian:
   label: "{LOCALE.races.argonian.label}"
   description: "{LOCALE.races.argonian.description}"

@@ -27,7 +27,7 @@ const altmer = {
   racialBonuses: [
     {
       bonusType: "skill",
-      choices: [{ choiceGroup: "a", choiceKey: "alchemy" }],
+      choiceGroups: [{ id: "a", choose: 1, options: ["alchemy"] }],
     },
   ],
 } satisfies Race;
@@ -45,6 +45,9 @@ const { prc, ...withoutPerception } = baselineCharacteristics;
 // @ts-expect-error Race baselines require all seven shared characteristics.
 const incompleteBaseline: BaselineCharacteristics = withoutPerception;
 // @ts-expect-error Only skill bonuses are currently supported by the content.
-const unsupportedBonus: RacialBonus = { bonusType: "talent", choices: [] };
-// @ts-expect-error Race baselines exclude PC-specific Luck.
-const pcBaseline: BaselineCharacteristics = { ...baselineCharacteristics, lck: 25 };
+const unsupportedBonus: RacialBonus = { bonusType: "talent", choiceGroups: [] };
+const pcBaseline: BaselineCharacteristics = {
+  ...baselineCharacteristics,
+  // @ts-expect-error Race baselines exclude PC-specific Luck.
+  lck: 25,
+};

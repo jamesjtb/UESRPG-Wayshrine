@@ -1,0 +1,21 @@
+alteration:
+  governingCharacteristics:
+    - wp
+conjuration:
+  governingCharacteristics:
+    - wp
+destruction:
+  governingCharacteristics:
+    - wp
+illusion:
+  governingCharacteristics:
+    - wp
+mysticism:
+  governingCharacteristics:
+    - wp
+necromancy:
+  governingCharacteristics:
+    - int
+restoration:
+  governingCharacteristics:
+    - wp

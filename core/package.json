@@ -10,7 +10,15 @@
     }
   },
   "scripts": {
-    "test": "pnpm typecheck",
-    "typecheck": "tsc --project tsconfig.json"
+    "test": "pnpm typecheck && vitest run --config vitest.config.ts",
+    "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.test.json"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "vitest": "5.0.5",
+    "yaml": "2.9.1"
+  },
+  "dependencies": {
+    "zod": "4.4.0"
   }
 }

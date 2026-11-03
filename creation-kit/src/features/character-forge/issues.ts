@@ -15,8 +15,3 @@ const blockingCodes = new Set([
 export function isBlockingContentIssue(issue: WizardIssue): boolean {
   return blockingCodes.has(issue.code);
 }
-
-export function choiceIssueMessage(issue: WizardIssue): string {
-  if (issue.code === "content-unresolved") return "Retry this skill selection.";
-  return issue.message;
-}

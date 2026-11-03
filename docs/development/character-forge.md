@@ -23,6 +23,10 @@ presents those rules rather than implementing a second rules model.
   bottom-anchored navigation, and mobile stacking.
 - `components/StepNavigation.tsx` presents Core's Back/Next availability and
   delegates callbacks without owning validation or progression state.
+- `components/ChoiceGroupField.tsx` presents controlled Core choice selections,
+  supplied labels, loading, visible messages, and optional retry. It does not
+  validate or retain answers. `steps/race/RacialSkillChoices.tsx` adapts race
+  snapshot issues and loads, skill labels and wording, and selection commands.
 - `steps/race/RaceStep.tsx` owns race browsing, including its independent loading, empty,
   and retry states. Browsing reads summaries, not all race definitions.
   Application initialization notices remain in the shared shell.

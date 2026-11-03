@@ -1,8 +1,11 @@
-import { Button, Checkbox, Stack, Text } from "@mantine/core";
-import type { CharacterCreationSnapshot, ChoiceState } from "@wayshrine/core";
+import type {
+  CharacterCreationSnapshot,
+  ChoiceState,
+  WizardIssue,
+} from "@wayshrine/core";
 import { readableLabel } from "../../labels";
-import { choiceIssueMessage, isBlockingContentIssue } from "../../issues";
-import { LoadingIndicator } from "../../../../components/LoadingIndicator";
+import { isBlockingContentIssue } from "../../issues";
+import { ChoiceGroupField } from "../../components/ChoiceGroupField";
 
 interface Props {
   snapshot: CharacterCreationSnapshot;
@@ -32,12 +35,14 @@ function SkillGroup({
     (issue) => issue.code === "content-unresolved",
   );
   const retryable = unresolved || load?.status === "failed";
-  const visibleIssues = issues.filter(
-    (issue) =>
-      issue.code !== "selection-count" &&
-      issue.code !== "content-loading" &&
-      !isBlockingContentIssue(issue),
-  );
+  const visibleIssues = issues
+    .filter(
+      (issue) =>
+        issue.code !== "selection-count" &&
+        issue.code !== "content-loading" &&
+        !isBlockingContentIssue(issue),
+    )
+    .map(skillIssueMessage);
 
   function skillLabel(key: string) {
     const option = snapshot.racialSkillOptions.find(
@@ -45,41 +50,30 @@ function SkillGroup({
     );
     return readableLabel(key, option?.label);
   }
-  return (
-    <Stack gap="xs">
-      <Checkbox.Group
-        label={<strong>Choose {group.choose}</strong>}
-        value={[...group.selections]}
-        onChange={(selections) => chooseRacialBonus(group.id, selections)}
-      >
-        <Stack gap="xs" mt="xs">
-          {group.options.map((key) => (
-            <Checkbox
-              key={key}
-              value={key}
-              disabled={disabled}
-              label={skillLabel(key)}
-            />
-          ))}
-        </Stack>
-      </Checkbox.Group>
-      {load?.status === "loading" && (
-        <LoadingIndicator label="Loading skills" />
-      )}
-      {visibleIssues.map((issue, index) => (
-        <Text size="sm" role="status" key={`${issue.code}/${index}`}>
-          {choiceIssueMessage(issue)}
-        </Text>
-      ))}
-      {retryable && (
-        <Button
-          variant="default"
-          disabled={disabled}
-          onClick={() => chooseRacialBonus(group.id, group.selections)}
-        >
-          Retry skill selection
-        </Button>
-      )}
-    </Stack>
+  const optionLabels = Object.fromEntries(
+    group.options.map((key) => [key, skillLabel(key)]),
   );
+
+  function retry() {
+    chooseRacialBonus(group.id, group.selections);
+  }
+
+  return (
+    <ChoiceGroupField
+      group={group}
+      optionLabels={optionLabels}
+      disabled={disabled}
+      loading={load?.status === "loading"}
+      loadingLabel="Loading skills"
+      visibleIssues={visibleIssues}
+      onChange={(selections) => chooseRacialBonus(group.id, selections)}
+      onRetry={retryable ? retry : undefined}
+      retryLabel="Retry skill selection"
+    />
+  );
+}
+
+function skillIssueMessage(issue: WizardIssue): string {
+  if (issue.code === "content-unresolved") return "Retry this skill selection.";
+  return issue.message;
 }

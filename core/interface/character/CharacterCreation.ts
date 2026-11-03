@@ -1,6 +1,7 @@
 import type { ChoiceAnswer, ChoiceState } from "../common/Choice";
 import type { ContentSummary, ContentVersion } from "../common/ContentCatalog";
 import type { WizardIssue, WizardSnapshot } from "../common/Wizard";
+import type { CharacteristicGenerationSnapshot } from "./CharacteristicGeneration";
 
 export type CharacterContentOperation =
   | { kind: "race"; raceKey: string }
@@ -23,6 +24,8 @@ export interface CharacterCreationSnapshot extends WizardSnapshot<
   ChoiceState<string>
 > {
   answers: CharacterCreationAnswers;
+  /** Drafts and active validation only; not yet part of wizard progression/effects. */
+  characteristicGeneration: CharacteristicGenerationSnapshot;
   /** Includes resolved groups so previous selections can be reviewed and edited. */
   racialBonusChoices: readonly ChoiceState<string>[];
   /** Only the current race's offered skills, not the complete skill index. */

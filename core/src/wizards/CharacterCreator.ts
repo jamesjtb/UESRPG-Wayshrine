@@ -3,6 +3,17 @@ import type {
   CharacterContentOperation,
   CharacterCreationSnapshot,
 } from "../../interface/character/CharacterCreation";
+import type {
+  CharacteristicAllocations,
+  CharacteristicAssignments,
+  CharacteristicGenerationAnswer,
+  CharacteristicGenerationCommandResult,
+  CharacteristicGenerationDrafts,
+  CharacteristicGenerationField,
+  CharacteristicGenerationMethod,
+  CharacteristicGenerationSnapshot,
+  CharacteristicRoll,
+} from "../../interface/character/CharacteristicGeneration";
 import type { Race } from "../../interface/character/Race";
 import type Skill from "../../interface/character/Skill";
 import type { Trait } from "../../interface/character/Trait";
@@ -17,6 +28,7 @@ import type {
   WizardResult,
 } from "../../interface/common/Wizard";
 import { ContentError } from "../content/ContentError";
+import { validateCharacteristicGeneration } from "../character/characteristicGeneration";
 import { ContentReader } from "../content/ContentReader";
 import { raceSchema, skillSchema } from "../content/schemas";
 import { validateRaceContent } from "../content/validateRaceContent";
@@ -34,10 +46,40 @@ function rejected(code: string, message: string): WizardResult {
   return { ok: false, issues: [{ code, message }] };
 }
 
+function emptyGenerationDrafts(): CharacteristicGenerationDrafts {
+  return {
+    method: undefined,
+    favored: [],
+    luck: undefined,
+    rolled: { rolls: [], assignments: {} },
+    pointBuy: { allocations: {} },
+  };
+}
+
+function copyRoll(roll: CharacteristicRoll): CharacteristicRoll {
+  return { ...roll, dice: [...roll.dice] };
+}
+
+function copyGenerationDrafts(
+  drafts: CharacteristicGenerationDrafts,
+): CharacteristicGenerationDrafts {
+  return {
+    method: drafts.method,
+    favored: [...drafts.favored],
+    luck: drafts.luck === undefined ? undefined : copyRoll(drafts.luck),
+    rolled: {
+      rolls: drafts.rolled.rolls.map(copyRoll),
+      assignments: { ...drafts.rolled.assignments },
+    },
+    pointBuy: { allocations: { ...drafts.pointBuy.allocations } },
+  };
+}
+
 /** Shared character rules. Loading commands prepare data; evaluation never does I/O. */
 export default class CharacterCreator {
   private readonly content: ContentReader;
   private name = "";
+  private generation = emptyGenerationDrafts();
   private raceKey: string | undefined;
   private race: Race | undefined;
   private skillOptions: readonly ContentSummary[] = [];
@@ -60,6 +102,58 @@ export default class CharacterCreator {
     if (this.disposed) return this.disposedResult();
     this.name = name;
     return { ok: true, value: undefined };
+  }
+
+  setFavoredCharacteristics(
+    selections: readonly Characteristic[],
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    this.generation.favored = [...selections];
+    return this.generationSubmissionResult("favored");
+  }
+
+  setCharacteristicGenerationMethod(
+    method: CharacteristicGenerationMethod,
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    this.generation.method = method;
+    return this.generationSubmissionResult("method");
+  }
+
+  /** Replacing the pool invalidates every assignment, even when roll IDs are reused. */
+  submitCharacteristicRolls(
+    rolls: readonly CharacteristicRoll[],
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    this.generation.rolled.rolls = rolls.map(copyRoll);
+    this.generation.rolled.assignments = {};
+    return this.generationSubmissionResult("rolls", "rolled");
+  }
+
+  /** Replace the entire rolled draft map; an empty map clears it. */
+  setCharacteristicAssignments(
+    assignments: CharacteristicAssignments,
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    this.generation.rolled.assignments = { ...assignments };
+    return this.generationSubmissionResult("assignments", "rolled");
+  }
+
+  /** Replace the entire point-buy draft map without changing the active method. */
+  setCharacteristicAllocations(
+    allocations: CharacteristicAllocations,
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    this.generation.pointBuy.allocations = { ...allocations };
+    return this.generationSubmissionResult("allocations", "point-buy");
+  }
+
+  submitLuckRoll(
+    roll: CharacteristicRoll,
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    this.generation.luck = copyRoll(roll);
+    return this.generationSubmissionResult("luck");
   }
 
   async chooseRace(raceKey: string): Promise<WizardResult> {
@@ -172,6 +266,7 @@ export default class CharacterCreator {
           selections: [...answer.selections],
         })),
       },
+      characteristicGeneration: this.generationSnapshot(),
       racialBonusChoices: this.racialChoices(),
       racialSkillOptions: this.skillOptions.map((option) => ({ ...option })),
       contentVersion: { ...this.content.version },
@@ -236,6 +331,7 @@ export default class CharacterCreator {
   dispose(): void {
     this.disposed = true;
     this.name = "";
+    this.generation = emptyGenerationDrafts();
     this.loads.clear();
     this.answers.clear();
     this.bonusSkills.clear();
@@ -243,6 +339,57 @@ export default class CharacterCreator {
     this.raceKey = undefined;
     this.skillOptions = [];
     this.referenceIssues = [];
+  }
+
+  private generationAnswer(
+    method = this.generation.method,
+    drafts = this.generation,
+  ): CharacteristicGenerationAnswer {
+    const common = {
+      favored: drafts.favored,
+      ...(drafts.luck === undefined ? {} : { luck: drafts.luck }),
+    };
+    switch (method) {
+      case "rolled":
+        return { ...common, method, ...drafts.rolled };
+      case "point-buy":
+        return { ...common, method, ...drafts.pointBuy };
+      default:
+        return { ...common, method };
+    }
+  }
+
+  private generationSnapshot(): CharacteristicGenerationSnapshot {
+    const answer = this.generationAnswer(
+      this.generation.method,
+      copyGenerationDrafts(this.generation),
+    );
+    const issues = validateCharacteristicGeneration(answer);
+    return {
+      drafts: copyGenerationDrafts(this.generation),
+      answer,
+      issues,
+      complete: issues.length === 0,
+    };
+  }
+
+  private generationSubmissionResult(
+    field: CharacteristicGenerationField,
+    method = this.generation.method,
+  ): CharacteristicGenerationCommandResult {
+    const issues = validateCharacteristicGeneration(
+      this.generationAnswer(method),
+    ).filter((issue) => issue.field === field);
+    return issues.length > 0
+      ? { ok: false, issues }
+      : { ok: true, value: undefined };
+  }
+
+  private generationDisposedResult(): CharacteristicGenerationCommandResult {
+    return {
+      ok: false,
+      issues: [{ code: "disposed", message: "This creator is closed." }],
+    };
   }
 
   private async resolveRaceContent(race: Race, request: CharacterContentLoad) {

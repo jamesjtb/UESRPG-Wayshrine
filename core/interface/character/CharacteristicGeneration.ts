@@ -16,6 +16,39 @@ interface CommonGenerationAnswer {
   luck?: CharacteristicRoll;
 }
 
+export type CharacteristicGenerationMethod = "rolled" | "point-buy";
+export type CharacteristicAssignments = Readonly<
+  Partial<Record<Characteristic, string>>
+>;
+export type CharacteristicAllocations = Readonly<
+  Partial<Record<Characteristic, number>>
+>;
+
+export interface CharacteristicGenerationDrafts {
+  method: CharacteristicGenerationMethod | undefined;
+  favored: readonly Characteristic[];
+  luck: CharacteristicRoll | undefined;
+  rolled: {
+    rolls: readonly CharacteristicRoll[];
+    assignments: CharacteristicAssignments;
+  };
+  pointBuy: { allocations: CharacteristicAllocations };
+}
+
+export interface CharacteristicGenerationSnapshot {
+  drafts: CharacteristicGenerationDrafts;
+  answer: CharacteristicGenerationAnswer;
+  issues: readonly CharacteristicGenerationIssue[];
+  complete: boolean;
+}
+
+export type CharacteristicGenerationField =
+  "method" | "favored" | "luck" | "rolls" | "assignments" | "allocations";
+
+export type CharacteristicGenerationCommandResult =
+  | { ok: true; value: void }
+  | { ok: false; issues: readonly CharacteristicGenerationIssue[] };
+
 /** Optional fields allow an incomplete answer to be validated without inventing values. */
 export type CharacteristicGenerationAnswer = CommonGenerationAnswer &
   (
@@ -23,16 +56,20 @@ export type CharacteristicGenerationAnswer = CommonGenerationAnswer &
     | {
         method: "rolled";
         rolls?: readonly CharacteristicRoll[];
-        assignments?: Readonly<Partial<Record<Characteristic, string>>>;
+        assignments?: CharacteristicAssignments;
       }
     | {
         method: "point-buy";
-        allocations?: Readonly<Partial<Record<Characteristic, number>>>;
+        allocations?: CharacteristicAllocations;
       }
   );
 
 export interface CharacteristicGenerationIssue extends WizardIssue {
+  field?: CharacteristicGenerationField;
+  rollId?: string;
+  characteristic?: Characteristic;
   code:
+    | "disposed"
     | "generation-method"
     | "favored-count"
     | "duplicate-favored"

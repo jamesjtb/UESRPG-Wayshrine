@@ -17,22 +17,25 @@ export function validateCharacteristicGeneration(
   if (favored.length !== 2) {
     issues.push({
       code: "favored-count",
+      field: "favored",
       message: "Choose exactly two favored characteristics.",
     });
   }
   if (new Set(favored).size !== favored.length) {
     issues.push({
       code: "duplicate-favored",
+      field: "favored",
       message: "Favored characteristics must be distinct.",
     });
   }
   if (favored.some((key) => !characteristics.includes(key))) {
     issues.push({
       code: "invalid-favored",
+      field: "favored",
       message: "Only shared, non-Luck characteristics can be favored.",
     });
   }
-  issues.push(...validateRoll(answer?.luck, "Luck"));
+  issues.push(...validateRoll(answer?.luck, "luck"));
   switch (answer?.method) {
     case "rolled":
       issues.push(...validateRolled(answer));
@@ -43,6 +46,7 @@ export function validateCharacteristicGeneration(
     default:
       issues.push({
         code: "generation-method",
+        field: "method",
         message: "Choose rolled or point-buy generation.",
       });
   }
@@ -51,12 +55,18 @@ export function validateCharacteristicGeneration(
 
 function validateRoll(
   roll: CharacteristicRoll | undefined,
-  label: string,
+  field: "luck" | "rolls",
 ): CharacteristicGenerationIssue[] {
   const issues: CharacteristicGenerationIssue[] = [];
+  const label = field === "luck" ? "Luck" : "Characteristic roll";
+  const target = {
+    field,
+    ...(typeof roll?.id === "string" ? { rollId: roll.id } : {}),
+  };
   if (typeof roll?.id !== "string" || roll.id.trim() === "") {
     issues.push({
       code: "roll-identity",
+      ...target,
       message: `${label} requires a non-empty roll ID.`,
     });
   }
@@ -68,6 +78,7 @@ function validateRoll(
   ) {
     issues.push({
       code: "invalid-dice",
+      ...target,
       message: `${label} requires exactly two integer d10 faces (1–10).`,
     });
   }
@@ -88,16 +99,20 @@ function validateRolled(
   if (rolls.length !== characteristics.length) {
     issues.push({
       code: "roll-count",
+      field: "rolls",
       message: "Submit seven separate 2d10 rolls.",
     });
   }
   for (const roll of rolls) {
-    issues.push(...validateRoll(roll, "Characteristic roll"));
+    issues.push(...validateRoll(roll, "rolls"));
   }
   const rollIds = rolls.map((roll) => roll.id);
-  if (new Set(rollIds).size !== rollIds.length) {
+  for (const id of new Set(rollIds)) {
+    if (rollIds.filter((candidate) => candidate === id).length < 2) continue;
     issues.push({
       code: "roll-identity",
+      field: "rolls",
+      rollId: id,
       message: "Characteristic roll IDs must be distinct.",
     });
   }
@@ -110,8 +125,25 @@ function validateRolled(
   ) {
     issues.push({
       code: "invalid-assignment",
+      field: "assignments",
       message: "Assign each roll once to exactly one shared characteristic.",
     });
+  }
+  for (const key of characteristics) {
+    const id = assignments[key];
+    if (
+      id === undefined ||
+      !rollIds.includes(id) ||
+      assignedIds.filter((candidate) => candidate === id).length > 1
+    ) {
+      issues.push({
+        code: "invalid-assignment",
+        field: "assignments",
+        characteristic: key,
+        ...(id === undefined ? {} : { rollId: id }),
+        message: "Assign an available roll not used by another characteristic.",
+      });
+    }
   }
   return issues;
 }
@@ -128,16 +160,31 @@ function validatePointBuy(
   ) {
     issues.push({
       code: "invalid-allocation",
+      field: "allocations",
       message:
         "Allocate an integer from 0 to 20 to each shared characteristic only.",
     });
+  }
+  for (const key of characteristics) {
+    if (!isAllocation(allocations[key])) {
+      issues.push({
+        code: "invalid-allocation",
+        field: "allocations",
+        characteristic: key,
+        message: "Allocate an integer from 0 to 20 to this characteristic.",
+      });
+    }
   }
   const total = values.reduce<number>(
     (sum, value) => sum + (isAllocation(value) ? value : 0),
     0,
   );
   if (total !== 80) {
-    issues.push({ code: "point-budget", message: "Spend exactly 80 points." });
+    issues.push({
+      code: "point-budget",
+      field: "allocations",
+      message: "Spend exactly 80 points.",
+    });
   }
   return issues;
 }

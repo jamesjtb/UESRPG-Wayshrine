@@ -2,14 +2,98 @@ import { StrictMode } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CharacterCreator } from "@wayshrine/core";
-import { controlledReads } from "./forgeTestHelpers";
-import { fixtureCatalog } from "./testCatalog";
+import { controlledReads } from "./test/forgeTestHelpers";
+import { fixtureCatalog } from "./test/testCatalog";
 import { useCharacterCreator } from "./useCharacterCreator";
 
 describe("useCharacterCreator command boundary", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
+
+  it("exposes only detached presentation data and named commands", () => {
+    const catalog = fixtureCatalog();
+    const { result } = renderHook(() => useCharacterCreator(catalog));
+    expect(Object.keys(result.current).sort()).toEqual([
+      "cancelRaceSelection",
+      "chooseRace",
+      "chooseRacialBonus",
+      "dismissError",
+      "next",
+      "previous",
+      "view",
+    ]);
+    expect(Object.keys(result.current.view!).sort()).toEqual([
+      "errorOpened",
+      "preview",
+      "snapshot",
+    ]);
+  });
+
+  it("publishes immediate pending and settled snapshots for race and bonus commands", async () => {
+    const catalog = fixtureCatalog();
+    const reads = controlledReads(catalog);
+    const race = reads.hold("race", "altmer");
+    const skill = reads.hold("skill", "alchemy");
+    const { result } = renderHook(() => useCharacterCreator(catalog));
+    act(() => result.current.chooseRace("altmer"));
+    expect(result.current.view!.snapshot.contentLoads).toEqual([
+      expect.objectContaining({ status: "loading" }),
+    ]);
+    expect(result.current.view!.preview.race).toBeUndefined();
+    await act(async () => race.resolve());
+    expect(result.current.view!.snapshot.contentLoads).toEqual([]);
+    expect(result.current.view!.snapshot.answers.raceKey).toBe("altmer");
+    expect(result.current.view!.preview.race).toBeDefined();
+    act(() => result.current.chooseRacialBonus("altmer/magic", ["alchemy"]));
+    expect(result.current.view!.snapshot.contentLoads).toEqual([
+      expect.objectContaining({ status: "loading" }),
+    ]);
+    expect(result.current.view!.preview.skills).toEqual([]);
+    await act(async () => skill.resolve());
+    expect(result.current.view!.snapshot.contentLoads).toEqual([]);
+    expect(result.current.view!.preview.skills[0]?.skill.skillKey).toBe(
+      "alchemy",
+    );
+  });
+
+  it.each(["success", "failure"])(
+    "ignores retained callbacks and pending %s after catalog replacement",
+    async (outcome) => {
+      const catalog = fixtureCatalog();
+      const reads = controlledReads(catalog);
+      const oldRead = reads.hold("race", "altmer");
+      const dispose = vi.spyOn(CharacterCreator.prototype, "dispose");
+      const { result, rerender } = renderHook(
+        ({ content }) => useCharacterCreator(content),
+        { initialProps: { content: catalog }, wrapper: StrictMode },
+      );
+      const oldCommands = result.current;
+      act(() => oldCommands.chooseRace("altmer"));
+      const disposalsBeforeReplacement = dispose.mock.calls.length;
+      const replacement = fixtureCatalog();
+      rerender({ content: replacement });
+      expect(dispose.mock.calls.length).toBe(disposalsBeforeReplacement + 1);
+      expect(result.current.view!.snapshot.answers.raceKey).toBeUndefined();
+      await act(async () => result.current.chooseRace("argonian"));
+      const replacementView = result.current.view;
+      await act(async () => {
+        oldCommands.chooseRace("unknown");
+        oldCommands.chooseRacialBonus("obsolete/group", []);
+        oldCommands.cancelRaceSelection();
+        oldCommands.dismissError();
+        oldCommands.next();
+        oldCommands.previous();
+        if (outcome === "success") oldRead.resolve();
+        else oldRead.reject(new Error("obsolete catalog read"));
+      });
+      expect(result.current.view).toBe(replacementView);
+      expect(result.current.view!.preview.race?.label).toBe("Argonian");
+      expect(console.error).not.toHaveBeenCalled();
+      expect(await catalog.list("race")).toHaveLength(3);
+      expect(await replacement.list("race")).toHaveLength(3);
+    },
+  );
 
   it("acknowledges an unknown choice without changing committed answers", async () => {
     // Unknown IDs cannot be entered through the snapshot-driven checkbox controls.

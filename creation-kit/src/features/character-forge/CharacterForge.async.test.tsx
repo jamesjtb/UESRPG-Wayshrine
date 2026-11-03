@@ -2,14 +2,14 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deferred } from "../../test/content";
-import { fixtureCatalog } from "./testCatalog";
+import { fixtureCatalog } from "./test/testCatalog";
 import {
   controlledReads,
   expectNavigationBlocked,
   renderForge,
   selectRace,
   sheet,
-} from "./forgeTestHelpers";
+} from "./test/forgeTestHelpers";
 
 describe("Character Forge asynchronous selections", () => {
   beforeEach(() => {

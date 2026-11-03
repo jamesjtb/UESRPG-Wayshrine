@@ -7,9 +7,9 @@ import type { ContentCatalog, ContentKind } from "@wayshrine/core";
 import {
   ContentCatalogProvider,
   ContentCatalogStatus,
-} from "../../app/ContentCatalogProvider";
-import { deferred } from "../../test/content";
-import { CharacterForge } from "./CharacterForge";
+} from "../../../app/ContentCatalogProvider";
+import { deferred } from "../../../test/content";
+import { CharacterForge } from "../CharacterForge";
 import { fixtureCatalog } from "./testCatalog";
 
 export function renderForge(catalog = fixtureCatalog()) {

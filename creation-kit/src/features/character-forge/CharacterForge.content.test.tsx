@@ -11,8 +11,8 @@ import {
   renderForge,
   selectRace,
   sheet,
-} from "./forgeTestHelpers";
-import { fixtureCatalog } from "./testCatalog";
+} from "./test/forgeTestHelpers";
+import { fixtureCatalog } from "./test/testCatalog";
 
 function changedVersion(
   version: ContentVersion,

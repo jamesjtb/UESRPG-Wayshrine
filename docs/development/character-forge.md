@@ -12,7 +12,11 @@ presents those rules rather than implementing a second rules model.
   sessions, so leaving the Forge does not discard the application catalog.
 - `useCharacterCreator.ts` creates a fresh Core `CharacterCreator` in its effect
   and disposes it during cleanup. React StrictMode effect replay creates a new
-  creator rather than reusing the disposed instance.
+  creator rather than reusing the disposed instance. Its interface exposes only
+  detached snapshots, preview data, error presentation state, and named commands.
+  The creator, liveness flag, and request identities stay private. Commands capture
+  their originating session; retained callbacks and pending completions cannot
+  affect a replacement session when the catalog changes or the Forge unmounts.
 - `CharacterForge.tsx` composes one creator session above the selected editor,
   workspace, and preview. Core snapshots supply registered breadcrumb steps,
   the current step, control values, choice groups, issues, and navigation
@@ -64,7 +68,7 @@ messages, but Core still enforces that requirement.
 ## Testing strategy
 
 Integration tests use the real `CharacterCreator` with small injectable catalogs.
-`testCatalog.ts` supplies content fixtures; `forgeTestHelpers.tsx` supplies shared
+`test/testCatalog.ts` supplies content fixtures; `test/forgeTestHelpers.tsx` supplies shared
 rendering helpers and explicitly released deferred reads. Request ordering is
 controlled without timer sleeps or mocked rule results.
 
@@ -87,6 +91,15 @@ Run `pnpm --filter @wayshrine/creation-kit test` for browser integration and con
 compiler tests, and `pnpm --filter @wayshrine/core test` for the shared rules.
 
 ## Limitations and extension boundaries
+
+Future Core-registered steps replace only the selected editor in `ForgeWorkspace`.
+Keep Core navigation and rules authoritative: do not add a React wizard, duplicate
+choice validation, or calculate character rules in presentation code. The shared
+catalog outlives the Forge, and the preview remains independent of individual editors.
+Reuse `ChoiceGroupField`, `useContentSummaries`, `LoadingIndicator`, and `ErrorModal`
+for new editors, adapting each step's snapshot and named commands locally. Keep
+these modules feature-local until another tool actually needs them; do not promote
+them application-wide or split the preview into speculative sections in advance.
 
 Only the race step is registered. Back and Next use Core's guards and remain
 disabled even with valid race answers; their handlers delegate to `previous()`

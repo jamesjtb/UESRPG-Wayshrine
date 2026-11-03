@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CharacterCreator } from "@wayshrine/core";
 import type { ContentCatalog, ContentSummary } from "@wayshrine/core";
 import { deferred } from "../../test/content";
-import { fixtureCatalog } from "./testCatalog";
+import { fixtureCatalog } from "./test/testCatalog";
 import { App } from "../../app/App";
 import { BrowserContentCatalog } from "../../lib/content/BrowserContentCatalog";
 import { contentKinds } from "../../lib/content/artifacts";
-import { renderForge, selectRace } from "./forgeTestHelpers";
+import { renderForge, selectRace } from "./test/forgeTestHelpers";
 
 function nextButton() {
   return screen.getByRole("button", { name: "Next" });

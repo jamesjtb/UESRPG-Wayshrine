@@ -7,7 +7,7 @@ import type {
   ContentSummary,
 } from "@wayshrine/core";
 import { deferred } from "../../../test/content";
-import { fixtureCatalog } from "../testCatalog";
+import { fixtureCatalog } from "../test/testCatalog";
 import { useContentSummaries } from "./useContentSummaries";
 
 const entries: readonly ContentSummary[] = [{ key: "altmer", label: "Altmer" }];

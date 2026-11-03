@@ -5,7 +5,7 @@ import { CharacterCreator } from "@wayshrine/core";
 import type { ContentCatalog } from "@wayshrine/core";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fixtureCatalog } from "../testCatalog";
+import { fixtureCatalog } from "../test/testCatalog";
 import { useCharacterCreator } from "../useCharacterCreator";
 import { CharacterPreview } from "./CharacterPreview";
 import { ForgeWorkspace } from "./ForgeWorkspace";

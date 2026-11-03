@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CharacterCreator } from "@wayshrine/core";
 import type { ContentCatalog, WizardResult } from "@wayshrine/core";
 import { isBlockingContentIssue } from "./issues";
@@ -16,7 +16,6 @@ type Session = ReturnType<typeof createSession>;
 
 function readSession(session: Session) {
   return {
-    session,
     snapshot: session.creator.getSnapshot(),
     preview: session.creator.getCharacterPreview(),
     errorOpened: session.errorOpened,
@@ -24,18 +23,22 @@ function readSession(session: Session) {
 }
 
 export function useCharacterCreator(catalog: ContentCatalog) {
+  const sessionRef = useRef<Session | undefined>(undefined);
   const [view, setView] = useState<ReturnType<typeof readSession>>();
 
   useEffect(() => {
     const session = createSession(catalog);
+    sessionRef.current = session;
     setView(readSession(session));
     return () => {
       session.live = false;
       session.creator.dispose();
+      sessionRef.current = undefined;
     };
   }, [catalog]);
 
-  const session = view?.session;
+  // Commands from this render stay bound to this session, including after await.
+  const session = sessionRef.current;
 
   function refresh() {
     if (session?.live) setView(readSession(session));

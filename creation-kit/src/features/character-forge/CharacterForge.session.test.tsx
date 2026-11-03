@@ -8,8 +8,8 @@ import { CharacterCreator } from "@wayshrine/core";
 import { AppRoutes } from "../../app/routes";
 import { ContentCatalogProvider } from "../../app/ContentCatalogProvider";
 import { CreationKitLayout } from "../../layouts/CreationKitLayout/CreationKitLayout";
-import { controlledReads, selectRace, sheet } from "./forgeTestHelpers";
-import { fixtureCatalog } from "./testCatalog";
+import { controlledReads, selectRace, sheet } from "./test/forgeTestHelpers";
+import { fixtureCatalog } from "./test/testCatalog";
 
 describe("Character Forge session lifetime", () => {
   beforeEach(() => {

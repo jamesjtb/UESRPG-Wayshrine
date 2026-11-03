@@ -104,9 +104,12 @@ to `SkillTraining`, not the shared definition. Optional skill display text can b
 resolved by the host; browsing labels may fall back to content keys.
 
 YAML under `content/` remains the authoring source. Its top-level map keys identify
-definitions; a future compiler must add `skillKey` from that map key. YAML parsing
-currently exists only in tests, not in Core runtime code. Static artifact generation
-and version-specific Foundry pack generation are deferred.
+definitions. Creation Kit's build-time compiler derives `skillKey` from that key
+and rejects contradictory authored values. It validates definitions and race
+references with these shared Core validators before publishing static JSON.
+YAML parsing stays in host build scripts and tests, never in Core runtime code.
+See the root README for artifact generation and layout. Browser catalog consumption
+and version-specific Foundry pack generation are not implemented yet.
 
 ## Checks
 

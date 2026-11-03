@@ -21,7 +21,8 @@ pnpm start:wck dev
 ```
 
 Run `pnpm format` to apply formatting.
-Run `pnpm --filter @wayshrine/creation-kit test` for Creation Kit navigation and routing tests.
+Run `pnpm --filter @wayshrine/creation-kit test` for Creation Kit navigation,
+routing, and static content compiler tests.
 
 ### Mantine type compatibility
 
@@ -118,6 +119,56 @@ Creation Kit uses hash routes (for example, `/#/`) so direct links work on stati
 hosts without URL rewrite rules. The responsive left navigation supports an
 icon-only desktop mode and a mobile menu. Home is currently the only available
 page; all six planned tools remain disabled until their workflows are implemented.
+
+### Creation Kit static content
+
+`dev` and `build` first run `pnpm --filter @wayshrine/creation-kit generate:content`.
+The compiler reads sorted `.yml` and `.yaml` files directly in
+`core/content/{races,skills,traits}/`, rejects malformed or duplicate definitions,
+and uses Core's definition, choice, and reference validators. These are the only
+content inputs; top-level map keys are stable definition keys, not filenames.
+Restart the dev server after editing YAML; there is no content watcher yet.
+
+Generated files live in ignored `creation-kit/public/content/` and are copied to
+`dist/content/` by Vite, with no YAML parser or authored YAML in the browser bundle:
+
+- `manifest.json`: `{ schemaVersion, revision }`.
+- `<revision>/<kind>/index.json`: `{ version, kind, entries }`, where `version` is
+  the manifest shape and entries contain only `{ key, label }`.
+- `<revision>/<kind>/definitions/<encoded-key>.json`:
+  `{ version, kind, key, definition }`, with a plain Core definition.
+
+Kinds are `race`, `skill`, and `trait`. Definition filenames use `encodeURIComponent`
+with dots and remaining URI punctuation (`!'()*`) additionally percent-encoded.
+HTTP consumers must URL-encode the resulting filename as one path segment (so
+literal percent signs in filenames survive URL decoding). The `definitions/`
+directory prevents a key named `index` from colliding with the browse index.
+Labels remain authored localization placeholders, falling back to the key when
+absent; there is no translation infrastructure.
+
+The SHA-256 revision covers validated content, Core's schema version, and the
+artifact-format version. Object keys and definition ordering are canonicalized;
+array order remains significant. Filenames, comments, and YAML formatting do not
+affect revisions. Shared transport schemas live in
+`creation-kit/src/lib/content/artifacts.ts`; bump `CONTENT_ARTIFACT_FORMAT` if the
+transport layout or filename encoding changes.
+
+The compiler validates all content and prepares every JSON file before changing
+output. On success it deletes and recreates `creation-kit/public/content/`.
+This directory is entirely generated: any files placed there are removed, including
+old revisions. A validation failure leaves previous output untouched; a disk-write
+failure can leave incomplete output. This is a pre-dev/pre-build step, not runtime-safe
+hot publication. Restart/reload after a content update. Keeping one build revision
+on disk is separate from any future browser catalog's memory-retention policy.
+
+The shared definition envelope schema validates transport metadata only. Content
+readers must explicitly call Core's `parseContentDefinition` for its payload;
+the generator already does this when loading YAML.
+
+This implements static generation only. A browser catalog adapter, application
+catalog provider, and Character Forge UI are not implemented yet. Node types and
+YAML/TS execution dependencies are isolated to build-script checks, outside Core
+runtime and Creation Kit's browser TypeScript configuration.
 
 ## Project Goals
 

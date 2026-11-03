@@ -2,6 +2,7 @@ export type { default as Attributes } from "../interface/character/Attributes";
 export type * from "../interface/character/Character";
 export type * from "../interface/character/CharacterCreation";
 export type * from "../interface/character/Characteristic";
+export type * from "../interface/character/CharacteristicGeneration";
 export type * from "../interface/character/Race";
 export type {
   default as Skill,
@@ -30,6 +31,10 @@ export {
   traitSchema,
 } from "./content/schemas";
 export { validateRaceContent } from "./content/validateRaceContent";
+export {
+  calculateCharacteristicGeneration,
+  validateCharacteristicGeneration,
+} from "./character/characteristicGeneration";
 
 export * from "./enum/Characteristic";
 export * from "./enum/Size";

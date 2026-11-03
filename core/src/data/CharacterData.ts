@@ -61,7 +61,7 @@ export default class PcCharacterData implements CharacterData {
         characteristicKey: PcCharacteristic,
     ): PcCharacteristicData {
         return {
-            baseline: 0,
+            baseline: characteristicKey === PcCharacteristic.Lck ? 30 : 0,
             rolled: 0,
             characteristicKey,
             favored: false,

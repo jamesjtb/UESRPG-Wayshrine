@@ -102,7 +102,7 @@ describe("CharacterCreator", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.characteristics.int.baseline).toBe(30);
-    expect(result.value.characteristics.lck.baseline).toBe(0);
+    expect(result.value.characteristics.lck.baseline).toBe(30);
     expect(result.value.traits).toEqual([
       { traitKey: "weakness", params: { type: "magic", X: 2 }, origin: "race" },
     ]);

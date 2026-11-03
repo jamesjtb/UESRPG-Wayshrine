@@ -15,15 +15,42 @@ function nextButton() {
 }
 
 function preview() {
-  return within(
-    screen.getByRole("heading", { name: "Unnamed Character (Draft)" })
-      .parentElement!,
-  );
+  return within(screen.getByRole("region", { name: "Character sheet" }));
 }
 
 describe("Character Forge race editing", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("saves every name keystroke through Core and allows clearing across race changes", async () => {
+    const user = userEvent.setup();
+    const setName = vi.spyOn(CharacterCreator.prototype, "setName");
+    renderForge();
+    const input = await screen.findByRole("textbox", {
+      name: "Character name",
+    });
+    expect(input).toHaveProperty("value", "");
+    expect(input).toHaveProperty("placeholder", "Unnamed Character");
+    expect(screen.queryByText(/\(Draft\)/)).toBeNull();
+    await user.type(input, "Neri");
+    expect(setName.mock.calls.map(([name]) => name)).toEqual([
+      "N",
+      "Ne",
+      "Ner",
+      "Neri",
+    ]);
+    expect(input).toHaveProperty("value", "Neri");
+    await selectRace("Altmer");
+    await screen.findByRole("checkbox", { name: "Alchemy" });
+    expect(input).toHaveProperty("value", "Neri");
+    await selectRace("Argonian");
+    await waitFor(() => expect(preview().getByText("Argonian")).toBeTruthy());
+    expect(input).toHaveProperty("value", "Neri");
+    await user.clear(input);
+    expect(setName.mock.calls.at(-1)).toEqual([""]);
+    expect(input).toHaveProperty("value", "");
+    expect(screen.getByPlaceholderText("Unnamed Character")).toBe(input);
   });
 
   it("acknowledges a browser catalog JSON failure without unblocking the failed selection", async () => {

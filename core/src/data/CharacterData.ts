@@ -8,6 +8,7 @@ import { PcCharacteristic } from "../enum/Characteristic";
 import { Size } from "../enum/Size";
 
 export default class PcCharacterData implements CharacterData {
+    name: string;
     attributes: Attributes;
     characteristics: PcCharacteristics;
     race?: Race;
@@ -18,6 +19,7 @@ export default class PcCharacterData implements CharacterData {
     traits: AppliedTrait[];
 
     constructor() {
+        this.name = "";
         this.attributes = {
             hp: { value: 0 },
             wt: { value: 0 },

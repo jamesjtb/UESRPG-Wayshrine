@@ -25,6 +25,7 @@ export function CharacterForge() {
 function ForgeSession({ catalog }: { catalog: ContentCatalog }) {
   const {
     view,
+    setName,
     chooseRace,
     cancelRaceSelection,
     chooseRacialBonus,
@@ -76,7 +77,11 @@ function ForgeSession({ catalog }: { catalog: ContentCatalog }) {
           />
         }
         preview={
-          <CharacterPreview preview={view.preview} raceLabel={raceLabel} />
+          <CharacterPreview
+            preview={view.preview}
+            raceLabel={raceLabel}
+            onNameChange={setName}
+          />
         }
       />
     </>

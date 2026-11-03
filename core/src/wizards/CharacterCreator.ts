@@ -37,6 +37,7 @@ function rejected(code: string, message: string): WizardResult {
 /** Shared character rules. Loading commands prepare data; evaluation never does I/O. */
 export default class CharacterCreator {
   private readonly content: ContentReader;
+  private name = "";
   private raceKey: string | undefined;
   private race: Race | undefined;
   private skillOptions: readonly ContentSummary[] = [];
@@ -53,6 +54,12 @@ export default class CharacterCreator {
       [{ id: "race", evaluate: () => this.evaluateRace() }],
       () => this.getCharacterPreview(),
     );
+  }
+
+  setName(name: string): WizardResult {
+    if (this.disposed) return this.disposedResult();
+    this.name = name;
+    return { ok: true, value: undefined };
   }
 
   async chooseRace(raceKey: string): Promise<WizardResult> {
@@ -158,6 +165,7 @@ export default class CharacterCreator {
     return {
       ...this.wizard.getSnapshot(),
       answers: {
+        name: this.name,
         raceKey: this.raceKey,
         racialBonuses: [...this.answers.values()].map((answer) => ({
           ...answer,
@@ -190,6 +198,7 @@ export default class CharacterCreator {
   /** Reconstruct effects from valid, resolved answers; never fetch or roll dice. */
   getCharacterPreview(): PcCharacterData {
     const character = new PcCharacterData();
+    character.name = this.name;
     if (
       !this.race ||
       this.disposed ||
@@ -226,6 +235,7 @@ export default class CharacterCreator {
   /** Invalidates outstanding commands and releases session-owned definitions/answers. */
   dispose(): void {
     this.disposed = true;
+    this.name = "";
     this.loads.clear();
     this.answers.clear();
     this.bonusSkills.clear();

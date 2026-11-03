@@ -10,12 +10,16 @@ describe("CharacterPreview", () => {
     const creator = new CharacterCreator(fixtureCatalog());
     render(
       <MantineProvider env="test">
-        <CharacterPreview preview={creator.getCharacterPreview()} />
+        <CharacterPreview
+          preview={creator.getCharacterPreview()}
+          onNameChange={() => {}}
+        />
       </MantineProvider>,
     );
     expect(
-      screen.getByRole("heading", { name: "Unnamed Character (Draft)" }),
-    ).toBeTruthy();
+      screen.getByRole("textbox", { name: "Character name" }),
+    ).toHaveProperty("value", "");
+    expect(screen.getByPlaceholderText("Unnamed Character")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Race" })).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Characteristics" }),
@@ -42,7 +46,7 @@ describe("CharacterPreview", () => {
     ];
     render(
       <MantineProvider env="test">
-        <CharacterPreview preview={preview} />
+        <CharacterPreview preview={preview} onNameChange={() => {}} />
       </MantineProvider>,
     );
     expect(screen.getByText("No race selected.")).toBeTruthy();
@@ -62,6 +66,7 @@ describe("CharacterPreview", () => {
         <CharacterPreview
           preview={creator.getCharacterPreview()}
           raceLabel="Altmer"
+          onNameChange={() => {}}
         />
       </MantineProvider>,
     );
@@ -70,7 +75,10 @@ describe("CharacterPreview", () => {
     await creator.chooseRace("argonian");
     view.rerender(
       <MantineProvider env="test">
-        <CharacterPreview preview={creator.getCharacterPreview()} />
+        <CharacterPreview
+          preview={creator.getCharacterPreview()}
+          onNameChange={() => {}}
+        />
       </MantineProvider>,
     );
     expect(screen.getByText("Argonian")).toBeTruthy();

@@ -12,7 +12,7 @@ import { ForgeWorkspace } from "./ForgeWorkspace";
 import { StepNavigation } from "./StepNavigation";
 
 function WorkspaceSession({ catalog }: { catalog: ContentCatalog }) {
-  const { view, chooseRace, chooseRacialBonus, previous, next } =
+  const { view, setName, chooseRace, chooseRacialBonus, previous, next } =
     useCharacterCreator(catalog);
   const [replaced, setReplaced] = useState(false);
   if (!view) return null;
@@ -41,7 +41,9 @@ function WorkspaceSession({ catalog }: { catalog: ContentCatalog }) {
             onNext={next}
           />
         }
-        preview={<CharacterPreview preview={view.preview} />}
+        preview={
+          <CharacterPreview preview={view.preview} onNameChange={setName} />
+        }
       />
     </>
   );
@@ -59,9 +61,10 @@ describe("ForgeWorkspace composition", () => {
     );
     const editorPane = screen.getByRole("region", { name: "Character editor" });
     const previewPane = screen.getByRole("region", { name: "Character sheet" });
-    const heading = within(previewPane).getByRole("heading", {
-      name: "Unnamed Character (Draft)",
+    const nameInput = within(previewPane).getByRole("textbox", {
+      name: "Character name",
     });
+    await user.type(nameInput, "Nerevar");
     const navigation = screen.getByRole("navigation", {
       name: "Character creation navigation",
     });
@@ -84,10 +87,11 @@ describe("ForgeWorkspace composition", () => {
       previewPane,
     );
     expect(
-      within(previewPane).getByRole("heading", {
-        name: "Unnamed Character (Draft)",
+      within(previewPane).getByRole("textbox", {
+        name: "Character name",
       }),
-    ).toBe(heading);
+    ).toBe(nameInput);
+    expect(nameInput).toHaveProperty("value", "Nerevar");
     expect(
       screen.getByRole("navigation", { name: "Character creation navigation" }),
     ).toBe(navigation);

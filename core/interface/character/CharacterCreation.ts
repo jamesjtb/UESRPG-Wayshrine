@@ -13,6 +13,7 @@ export interface CharacterContentLoad {
 }
 
 export interface CharacterCreationAnswers {
+  name: string;
   raceKey: string | undefined;
   racialBonuses: readonly ChoiceAnswer<string>[];
 }

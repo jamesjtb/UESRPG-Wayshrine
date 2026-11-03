@@ -9,6 +9,64 @@ import {
 } from "./support/ContentCatalog";
 
 describe("CharacterCreator", () => {
+  it("stores exact names synchronously without content reads and releases them on disposal", async () => {
+    const { catalog } = creationCatalogs();
+    const creator = new CharacterCreator(catalog);
+    expect(creator.getSnapshot().answers.name).toBe("");
+    expect(creator.getCharacterPreview().name).toBe("");
+    for (const name of ["N", "Ne", " Nerevar ", ""]) {
+      expect(creator.setName(name)).toEqual({ ok: true, value: undefined });
+      expect(creator.getSnapshot().answers.name).toBe(name);
+      expect(creator.getCharacterPreview().name).toBe(name);
+    }
+    expect(catalog.getCalls).toEqual([]);
+    expect(catalog.listCalls).toEqual([]);
+    creator.setName("Nerevar");
+    const snapshot = creator.getSnapshot();
+    const preview = creator.getCharacterPreview();
+    snapshot.answers.name = "Detached";
+    preview.name = "Detached";
+    await creator.chooseRace("argonian");
+    const result = creator.finish();
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.name).toBe("Nerevar");
+    creator.setName("");
+    expect(creator.finish().ok).toBe(true);
+    creator.setName("Nerevar");
+    creator.dispose();
+    expect(creator.setName("Too late")).toMatchObject({
+      ok: false,
+      issues: [{ code: "disposed" }],
+    });
+    expect(creator.getSnapshot().answers.name).toBe("");
+    expect(creator.getCharacterPreview().name).toBe("");
+  });
+
+  it("preserves name edits across pending, failed, canceled and successful race changes", async () => {
+    const { catalog } = creationCatalogs();
+    const creator = new CharacterCreator(catalog);
+    creator.setName("Before race");
+    await creator.chooseRace("altmer");
+    expect(creator.getCharacterPreview().name).toBe("Before race");
+    const gate = deferred();
+    catalog.beforeGet = async () => gate.promise;
+    const pending = creator.chooseRace("argonian");
+    creator.setName("While pending");
+    expect(creator.getCharacterPreview().race).toBeUndefined();
+    expect(creator.getCharacterPreview().name).toBe("While pending");
+    gate.reject(new Error("offline"));
+    await pending;
+    expect(creator.getSnapshot().contentLoads[0]?.status).toBe("failed");
+    creator.setName("While failed");
+    expect(creator.getCharacterPreview().name).toBe("While failed");
+    creator.cancelRaceSelection();
+    expect(creator.getCharacterPreview().name).toBe("While failed");
+    catalog.beforeGet = undefined;
+    await creator.chooseRace("argonian");
+    expect(creator.getSnapshot().answers.name).toBe("While failed");
+    expect(creator.getCharacterPreview().name).toBe("While failed");
+  });
+
   it("requires a race and does not load anything during construction", async () => {
     const { catalog } = creationCatalogs();
     const creator = new CharacterCreator(catalog);

@@ -5,6 +5,7 @@ import type { SkillTraining } from "./Skill";
 import type { AppliedTrait } from "./Trait";
 
 export interface CharacterData {
+    name: string;
     attributes: Attributes;
     characteristics: PcCharacteristics | NpcCharacteristics;
     race?: Race;

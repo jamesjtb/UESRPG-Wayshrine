@@ -1,4 +1,4 @@
-import { List, Stack, Text, Title } from "@mantine/core";
+import { List, Stack, Text, TextInput, Title } from "@mantine/core";
 import type { CharacterCreator } from "@wayshrine/core";
 import { SkillRank } from "@wayshrine/core";
 import { plainDescription, readableLabel } from "../labels";
@@ -18,9 +18,11 @@ function traitParameters(
 export function CharacterPreview({
   preview,
   raceLabel,
+  onNameChange,
 }: {
   preview: Preview;
   raceLabel?: string;
+  onNameChange: (name: string) => void;
 }) {
   const race = preview.race;
   const description = plainDescription(race?.description ?? "");
@@ -31,7 +33,14 @@ export function CharacterPreview({
   );
   return (
     <Stack>
-      <Title order={2}>Unnamed Character (Draft)</Title>
+      <TextInput
+        aria-label="Character name"
+        placeholder="Unnamed Character"
+        size="xl"
+        styles={{ input: { fontWeight: 700 } }}
+        value={preview.name}
+        onChange={(event) => onNameChange(event.currentTarget.value)}
+      />
       <Title order={3}>Race</Title>
       {!race && <Text>No race selected.</Text>}
       {race && (

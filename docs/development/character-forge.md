@@ -110,7 +110,16 @@ and `next()`. The UI does not call `finish()` or claim character completion.
 Additional registered steps will need navigation tests through the actual UI and
 hook boundaries, not placeholder steps added solely for testing.
 
-The “Unnamed Character (Draft)” preview renders Race, Characteristics, Traits,
+The preview's prominent controlled “Character name” input writes every change
+through the hook to Core's synchronous `setName` command. Name is a session-wide
+answer and character data field, initially an empty string. Core stores the exact
+input, including empty strings and whitespace; “Unnamed Character” is only a UI
+placeholder, and no draft suffix is stored. Name edits do not fetch content or
+affect race validation. They remain available during pending/failed content loads
+and survive race changes, retries, and cancellation. Disposing the creator clears
+the name; stale hook callbacks cannot rename a replacement session.
+
+The preview renders Race, Characteristics, Traits,
 and Skills from Core data. It shows nonzero baselines, trait keys and parameters,
 and resolved skill ranks, not rolled characteristics or calculated final statistics.
 There is no localization system: unresolved labels fall back to readable keys and

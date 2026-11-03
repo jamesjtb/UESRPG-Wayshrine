@@ -75,6 +75,12 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     refresh();
   }
 
+  function setName(name: string) {
+    if (!session?.live) return;
+    session.creator.setName(name);
+    refresh();
+  }
+
   function chooseRace(key: string) {
     if (!session?.live) return;
     session.requests.clear();
@@ -110,6 +116,7 @@ export function useCharacterCreator(catalog: ContentCatalog) {
 
   return {
     view,
+    setName,
     chooseRace,
     cancelRaceSelection,
     chooseRacialBonus,

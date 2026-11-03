@@ -21,6 +21,7 @@ describe("useCharacterCreator command boundary", () => {
       "dismissError",
       "next",
       "previous",
+      "setName",
       "view",
     ]);
     expect(Object.keys(result.current.view!).sort()).toEqual([
@@ -57,6 +58,38 @@ describe("useCharacterCreator command boundary", () => {
     );
   });
 
+  it("publishes name edits immediately without disturbing pending or failed loads", async () => {
+    const catalog = fixtureCatalog();
+    const reads = controlledReads(catalog);
+    const race = reads.hold("race", "altmer");
+    const { result, unmount } = renderHook(() => useCharacterCreator(catalog));
+    for (const name of ["N", "Ne", ""]) {
+      act(() => result.current.setName(name));
+      expect(result.current.view!.snapshot.answers.name).toBe(name);
+      expect(result.current.view!.preview.name).toBe(name);
+    }
+    expect(reads.get).not.toHaveBeenCalled();
+    act(() => result.current.chooseRace("altmer"));
+    act(() => result.current.setName("Pending"));
+    expect(result.current.view!.preview.name).toBe("Pending");
+    expect(result.current.view!.snapshot.contentLoads[0]?.status).toBe(
+      "loading",
+    );
+    await act(async () => race.reject(new Error("offline")));
+    act(() => result.current.setName("Failed"));
+    expect(result.current.view!.preview.name).toBe("Failed");
+    expect(result.current.view!.snapshot.contentLoads[0]?.status).toBe(
+      "failed",
+    );
+    expect(result.current.view!.errorOpened).toBe(true);
+    act(() => result.current.cancelRaceSelection());
+    await act(async () => result.current.chooseRace("argonian"));
+    expect(result.current.view!.preview.name).toBe("Failed");
+    const retained = result.current.setName;
+    unmount();
+    act(() => retained("After unmount"));
+  });
+
   it.each(["success", "failure"])(
     "ignores retained callbacks and pending %s after catalog replacement",
     async (outcome) => {
@@ -84,6 +117,7 @@ describe("useCharacterCreator command boundary", () => {
         oldCommands.dismissError();
         oldCommands.next();
         oldCommands.previous();
+        oldCommands.setName("Obsolete name");
         if (outcome === "success") oldRead.resolve();
         else oldRead.reject(new Error("obsolete catalog read"));
       });

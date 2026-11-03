@@ -15,7 +15,13 @@ const baselineCharacteristics = {
   prs: 25,
 };
 
-export function fixtureCatalog() {
+type FixtureDefinitions = {
+  [K in ContentKind]: Record<string, ContentDefinitions[K]>;
+};
+
+export function fixtureCatalog(
+  configure?: (definitions: FixtureDefinitions) => void,
+) {
   const races: Record<string, Race> = {
     altmer: {
       label: "{LOCALE.Race.Altmer}",
@@ -56,9 +62,7 @@ export function fixtureCatalog() {
       ],
     },
   };
-  const definitions: {
-    [K in ContentKind]: Record<string, ContentDefinitions[K]>;
-  } = {
+  const definitions: FixtureDefinitions = {
     race: races,
     skill: {
       alchemy: {
@@ -76,6 +80,7 @@ export function fixtureCatalog() {
       },
     },
   };
+  configure?.(definitions);
   const catalog: ContentCatalog = {
     version: { schemaVersion: 1, revision: "forge-test" },
     async list(kind) {

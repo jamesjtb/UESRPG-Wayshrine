@@ -177,54 +177,20 @@ mount/unmount lifetimes. Loading and retryable initialization errors do not bloc
 Home or navigation. Content changes require a fresh runtime/catalog/creator, not
 polling or swapping an active session's revision.
 
-### Character Forge (Phase 3)
-
-The Forge browses race summaries separately from loading a selected definition.
-Its race index has independent loading, empty, and retry states; app-level content
-initialization notices and retry remain in the shared shell. Each mounted Forge
-session owns a fresh Core `CharacterCreator` and disposes it on exit, including
-React StrictMode effect replay. The host catalog survives Forge sessions.
-
-Core snapshots control the selected/requested race, all racial skill choice groups,
-validation, and navigation availability. Resolved groups remain editable, invalid
-answers remain visible without effects, and failed/unresolved selections can be
-resubmitted. A pending or failed race change disables bonus editing and suppresses
-the old preview until resolved or canceled; race browsing stays available.
-
-Blocking content failures (initialization, browsing, or selection) are logged to
-the browser console and acknowledged with a simple “Something went wrong!” modal.
-OK closes only the modal; retry/cancel controls and Core's failed state remain.
-Technical error details are not rendered inline. Choice validation and loading
-messages remain inline, and obsolete selection failures are ignored. Loading uses
-shared accessible spinners scoped to catalog initialization, race browsing, race
-selection, or the individual skill group, without repeating technical load messages.
-
-The Forge session owns both panes; future steps replace only the editor contents.
-The reusable character preview renders Race, Characteristics, Traits, and Skills
-independently from the current Core character data. It currently displays supplied
-nonzero baselines, applied trait keys and parameters, and resolved skills with their
-Core ranks. Default zero characteristics are omitted. It is titled “Unnamed Character (Draft)”,
-with no rolled characteristics, calculated attributes, or fabricated final statistics.
-Unresolved localization labels use readable content keys; placeholder descriptions
-are omitted. There is no localization system or full-catalog definition preload.
-
-Only Select Race exists in the workflow. No placeholder stages or development-status
-messages are shown. Next delegates current/prior-step validation and
-advancement to Core `next()`; it does not call `finish()` or finalize a character.
-There is no separate confirmation action, final character completion,
-characteristic generation, or Foundry integration.
-
-Phase 3 includes essential async/session cleanup, race cancel/retry, and navigation
-guards so the UI is usable safely. Phase 4 remains for exhaustive deferred-request
-integration tests: out-of-order race and same-group selections, independent group
-concurrency, retained unresolved bonuses after cancellation, late success/failure
-after route exit, transient unknown-input notices, and invalid-reference/version
-failures. Future registered steps will also need Core-driven navigation guard tests;
-the current single-step screen keeps both Back/Next controls disabled. These use
-Core's navigation guards; Next remains disabled until another Core step exists.
-
 Node types and YAML/TS execution dependencies are isolated to build-script checks,
 outside Core runtime and Creation Kit's browser TypeScript configuration.
+
+### Character Forge
+
+Character Forge supports race selection and editable racial skill choices, with a
+draft preview of racial baselines, traits, and Novice skills. Failed content loads
+can be retried, and pending or failed race changes can be canceled.
+
+Only Select Race is available. Back and Next remain disabled; there is no character
+completion, characteristic generation, or Foundry integration.
+
+See [Character Forge engineering notes](docs/development/character-forge.md) for
+ownership, asynchronous behavior, testing strategy, and limitations.
 
 ## Project Goals
 

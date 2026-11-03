@@ -1,39 +1,14 @@
-import { StrictMode } from "react";
-import { MantineProvider } from "@mantine/core";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CharacterCreator } from "@wayshrine/core";
 import type { ContentCatalog, ContentSummary } from "@wayshrine/core";
-import {
-  ContentCatalogProvider,
-  ContentCatalogStatus,
-} from "../../app/ContentCatalogProvider";
 import { deferred } from "../../test/content";
-import { CharacterForge } from "./CharacterForge";
 import { fixtureCatalog } from "./testCatalog";
 import { App } from "../../app/App";
 import { BrowserContentCatalog } from "../../lib/content/BrowserContentCatalog";
 import { contentKinds } from "../../lib/content/artifacts";
-
-function renderForge(catalog = fixtureCatalog()) {
-  return render(
-    <StrictMode>
-      <MantineProvider env="test">
-        <ContentCatalogProvider loadCatalog={async () => catalog}>
-          <ContentCatalogStatus />
-          <CharacterForge />
-        </ContentCatalogProvider>
-      </MantineProvider>
-    </StrictMode>,
-  );
-}
-
-async function selectRace(label: string) {
-  const user = userEvent.setup();
-  await user.click(await screen.findByRole("combobox", { name: "Race" }));
-  await user.click(await screen.findByRole("option", { name: label }));
-}
+import { renderForge, selectRace } from "./forgeTestHelpers";
 
 function nextButton() {
   return screen.getByRole("button", { name: "Next" });

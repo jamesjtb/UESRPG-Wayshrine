@@ -10,6 +10,8 @@ import { ContentCatalogProvider } from "../../app/ContentCatalogProvider";
 import { CreationKitLayout } from "../../layouts/CreationKitLayout/CreationKitLayout";
 import {
   controlledReads,
+  closeWizard,
+  openWizard,
   expectCharacteristic,
   fillPointBuy,
   selectRace,
@@ -53,10 +55,12 @@ describe("Character Forge session lifetime", () => {
     );
     await selectRace("Argonian");
     await sheet().findByText("Argonian");
+    await closeWizard();
     await user.type(
       screen.getByRole("textbox", { name: "Character name" }),
       "Old session",
     );
+    await openWizard();
     await user.click(screen.getByRole("button", { name: "Next" }));
     await fillPointBuy(user);
     expectCharacteristic("Strength", {
@@ -74,10 +78,13 @@ describe("Character Forge session lifetime", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     await selectRace("Altmer");
     expect(screen.getByRole("status", { name: "Loading race" })).toBeTruthy();
+    await closeWizard();
     await user.click(screen.getByRole("link", { name: "Home" }));
     expect(screen.getByRole("heading", { name: "Home" })).toBeTruthy();
     await user.click(screen.getByRole("link", { name: "Character Sheet" }));
     await sheet().findByText("No race selected.");
+    expect(screen.queryByText("In progress")).toBeNull();
+    expect(screen.queryByText(/^Resume:/)).toBeNull();
     expectCharacteristic("Luck", {
       baseline: 30,
       generated: 0,
@@ -121,7 +128,9 @@ describe("Character Forge session lifetime", () => {
       screen.getByRole("textbox", { name: "Strength points" }),
     ).toHaveProperty("value", "0");
     expect(console.error).not.toHaveBeenCalled();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
   });
 
   it.each([
@@ -159,6 +168,7 @@ describe("Character Forge session lifetime", () => {
         );
       const disposedBeforeExit = dispose.mock.calls.length;
       const loadsBeforeExit = load.mock.calls.length;
+      await closeWizard();
       await user.click(screen.getByRole("link", { name: "Home" }));
       expect(dispose.mock.calls.length).toBe(disposedBeforeExit + 1);
       expect(screen.getByRole("heading", { name: /Welcome/ })).toBeTruthy();
@@ -179,7 +189,9 @@ describe("Character Forge session lifetime", () => {
         false,
       );
       expect(screen.queryByRole("status", { name: /Loading/ })).toBeNull();
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(
+        screen.queryByRole("dialog", { name: "Something went wrong!" }),
+      ).toBeNull();
       expect(console.error).not.toHaveBeenCalled();
       // StrictMode may request the loader twice; route changes must not request it again.
       const loadsBeforeEdit = load.mock.calls.length;

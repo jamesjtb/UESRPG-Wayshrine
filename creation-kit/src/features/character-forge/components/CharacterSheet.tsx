@@ -1,12 +1,4 @@
-import {
-  Badge,
-  List,
-  Stack,
-  Table,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { List, Stack, Table, Text, TextInput, Title } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 import type { CharacterCreator } from "@wayshrine/core";
 import { SkillRank } from "@wayshrine/core";
@@ -44,9 +36,6 @@ export function CharacterSheet({
   );
   return (
     <Stack>
-      <Badge variant="light" color="gray">
-        In progress
-      </Badge>
       <TextInput
         aria-label="Character name"
         placeholder="Unnamed Character"

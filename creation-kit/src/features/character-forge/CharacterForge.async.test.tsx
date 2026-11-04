@@ -43,7 +43,9 @@ describe("Character Forge asynchronous selections", () => {
       expect(screen.queryByRole("checkbox")).toBeNull();
       expect(list).not.toHaveBeenCalledWith("skill");
       expect(reads.get).not.toHaveBeenCalledWith("trait", "magicWeakness");
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(
+        screen.queryByRole("dialog", { name: "Something went wrong!" }),
+      ).toBeNull();
       expect(console.error).not.toHaveBeenCalled();
       expectRaceCanAdvance();
     },
@@ -102,7 +104,9 @@ describe("Character Forge asynchronous selections", () => {
       expect(
         screen.queryByRole("status", { name: "Loading skills" }),
       ).toBeNull();
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(
+        screen.queryByRole("dialog", { name: "Something went wrong!" }),
+      ).toBeNull();
       expect(console.error).not.toHaveBeenCalled();
     },
   );
@@ -128,7 +132,9 @@ describe("Character Forge asynchronous selections", () => {
     );
     expect(sheet().getByText("No skills.")).toBeTruthy();
     expect(screen.queryByRole("status", { name: "Loading skills" })).toBeNull();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
     await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
     await sheet().findByText("Alchemy (Novice)");
@@ -154,7 +160,9 @@ describe("Character Forge asynchronous selections", () => {
     await sheet().findByText("Alchemy (Novice)");
     expect(selected).toHaveProperty("checked", true);
     expect(unselected).toHaveProperty("disabled", true);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
   });
 
@@ -241,7 +249,9 @@ describe("Character Forge asynchronous selections", () => {
     expect(
       screen.getByRole("button", { name: "Retry skill selection" }),
     ).toBeTruthy();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).toHaveBeenCalledTimes(1);
   });
 
@@ -268,7 +278,9 @@ describe("Character Forge asynchronous selections", () => {
       expect(
         screen.queryByRole("status", { name: "Loading skills" }),
       ).toBeNull();
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(
+        screen.queryByRole("dialog", { name: "Something went wrong!" }),
+      ).toBeNull();
       expect(console.error).not.toHaveBeenCalled();
     },
   );
@@ -314,7 +326,9 @@ describe("Character Forge asynchronous selections", () => {
     });
     expect(reads.get).not.toHaveBeenCalledWith("skill", "alteration");
     expect(sheet().queryByText("Alteration (Novice)")).toBeNull();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
     await user.click(
       screen.getByRole("button", { name: "Retry skill selection" }),
@@ -362,7 +376,9 @@ describe("Character Forge asynchronous selections", () => {
     await user.click(screen.getByRole("button", { name: "OK" }));
     await user.click(overlap.getByRole("checkbox"));
     await sheet().findByText("Alchemy (Novice)");
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).toHaveBeenCalledTimes(1);
     expectNavigationBlocked();
     await user.click(
@@ -388,7 +404,9 @@ describe("Character Forge asynchronous selections", () => {
     expect(
       screen.queryByRole("button", { name: "Retry skill selection" }),
     ).toBeNull();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).toHaveBeenCalledTimes(2);
   });
 });

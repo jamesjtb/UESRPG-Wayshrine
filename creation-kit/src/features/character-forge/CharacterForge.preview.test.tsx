@@ -6,6 +6,8 @@ import { createCharacteristicRoller } from "./steps/characteristics/dice";
 import { fixtureCatalog } from "./test/testCatalog";
 import {
   controlledReads,
+  closeWizard,
+  openWizard,
   expectCharacteristic,
   fillPointBuy,
   renderForge,
@@ -33,10 +35,12 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   );
   await selectRace("Argonian");
   await sheet().findByText("Argonian");
+  await closeWizard();
   await user.type(
     screen.getByRole("textbox", { name: "Character name" }),
     "Keira",
   );
+  await openWizard();
   await user.click(screen.getByRole("button", { name: "Next" }));
   await fillPointBuy(user);
   const drafts =

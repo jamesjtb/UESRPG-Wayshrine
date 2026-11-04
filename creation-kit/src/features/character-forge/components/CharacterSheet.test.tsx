@@ -25,7 +25,7 @@ describe("CharacterSheet", () => {
       screen.getByRole("textbox", { name: "Character name" }),
     ).toHaveProperty("value", "");
     expect(screen.getByPlaceholderText("Unnamed Character")).toBeTruthy();
-    expect(screen.getByText("In progress")).toBeTruthy();
+    expect(screen.queryByText("In progress")).toBeNull();
     expect(screen.getByRole("heading", { name: "Race" })).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Characteristics" }),

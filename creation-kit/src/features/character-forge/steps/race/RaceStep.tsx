@@ -16,6 +16,7 @@ interface RaceStepProps {
   chooseRace: (key: string) => void;
   cancelRaceSelection: () => void;
   chooseRacialBonus: (id: string, selections: readonly string[]) => void;
+  errorModalStackId?: string;
 }
 
 export function RaceStep({
@@ -24,6 +25,7 @@ export function RaceStep({
   chooseRace,
   cancelRaceSelection,
   chooseRacialBonus,
+  errorModalStackId,
 }: RaceStepProps) {
   const index = useContentSummaries(catalog, "race");
 
@@ -49,6 +51,7 @@ export function RaceStep({
       {index.status === "error" && (
         <Stack gap="xs">
           <ErrorModal
+            stackId={errorModalStackId}
             opened={!index.acknowledged}
             onClose={index.acknowledge}
           />

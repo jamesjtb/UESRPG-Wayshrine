@@ -11,6 +11,8 @@ import { contentKinds } from "../../lib/content/artifacts";
 import {
   expectCharacteristicBaseline,
   renderForge,
+  openWizard,
+  closeWizard,
   selectRace,
 } from "./test/forgeTestHelpers";
 
@@ -51,6 +53,7 @@ describe("Character Forge race editing", () => {
     await selectRace("Argonian");
     await waitFor(() => expect(preview().getByText("Argonian")).toBeTruthy());
     expect(input).toHaveProperty("value", "Neri");
+    await closeWizard();
     await user.clear(input);
     expect(setName.mock.calls.at(-1)).toEqual([""]);
     expect(input).toHaveProperty("value", "");
@@ -110,7 +113,11 @@ describe("Character Forge race editing", () => {
     );
     expect(screen.queryByText(/Invalid JSON:|http:\/\/localhost/)).toBeNull();
     await user.click(within(modal).getByRole("button", { name: "OK" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Something went wrong!" }),
+      ).toBeNull(),
+    );
     expect(nextButton()).toHaveProperty("disabled", true);
     expect(screen.queryByRole("status", { name: "Loading race" })).toBeNull();
     expect(
@@ -122,7 +129,9 @@ describe("Character Forge race editing", () => {
     // A separate UI state change must not re-announce the acknowledged failure.
     await user.click(screen.getByRole("combobox", { name: "Race" }));
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(error).toHaveBeenCalledTimes(1);
     await user.click(
       screen.getByRole("button", { name: "Retry race selection" }),
@@ -138,7 +147,9 @@ describe("Character Forge race editing", () => {
     );
     await screen.findByRole("checkbox", { name: "Alchemy" });
     expectCharacteristicBaseline("Intelligence", 30);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(error).toHaveBeenCalledTimes(2);
   });
 
@@ -170,6 +181,7 @@ describe("Character Forge race editing", () => {
     expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "OK" }));
     await user.click(screen.getByRole("button", { name: "Retry content" }));
+    await openWizard();
     await screen.findByRole("combobox", { name: "Race" });
     expect(list).toHaveBeenCalledWith("race");
   });
@@ -181,6 +193,7 @@ describe("Character Forge race editing", () => {
     const catalog = fixtureCatalog();
     const get = vi.spyOn(catalog, "get");
     renderForge(catalog);
+    await openWizard();
     await screen.findByRole("combobox", { name: "Race" });
     expect(get).not.toHaveBeenCalled();
     expect(preview().queryByRole("rowheader", { name: "Strength" })).toBeNull();
@@ -252,7 +265,9 @@ describe("Character Forge race editing", () => {
     );
     expect(preview().getByText("Alchemy (Novice)")).toBeTruthy();
     expect(nextButton()).toHaveProperty("disabled", false);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(screen.queryByText(/Choose exactly/)).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
     await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
@@ -296,10 +311,13 @@ describe("Character Forge race editing", () => {
     vi.spyOn(catalog, "list").mockResolvedValue([]);
     const get = vi.spyOn(catalog, "get");
     renderForge(catalog);
+    await openWizard();
     await screen.findByText("No races available.");
     expect(screen.queryByRole("combobox", { name: "Race" })).toBeNull();
     expect(screen.queryByRole("status", { name: "Loading races" })).toBeNull();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(get).not.toHaveBeenCalled();
     expect(nextButton()).toHaveProperty("disabled", true);
   });
@@ -316,6 +334,7 @@ describe("Character Forge race editing", () => {
     const get = vi.spyOn(catalog, "get");
     const user = userEvent.setup();
     renderForge(catalog);
+    await openWizard();
     expect(
       await screen.findByRole("status", { name: "Loading races" }),
     ).toBeTruthy();
@@ -435,14 +454,18 @@ describe("Character Forge race editing", () => {
     renderForge(catalog);
     await selectRace("Altmer");
     expect(nextButton()).toHaveProperty("disabled", true);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
     await selectRace("Argonian");
     await preview().findByText("Argonian");
     await act(async () => pending.reject(new Error("obsolete JSON failure")));
     expect(preview().getByText("Argonian")).toBeTruthy();
     expect(nextButton()).toHaveProperty("disabled", false);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
   });
 
@@ -488,7 +511,9 @@ describe("Character Forge race editing", () => {
     );
     expect(nextButton()).toHaveProperty("disabled", true);
     expect(screen.queryByText("Content is still loading.")).toBeNull();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     await act(async () => skill.resolve());
     expect(await sheet.findByText("Alchemy (Novice)")).toBeTruthy();
     expect(editor.queryByRole("status", { name: "Loading skills" })).toBeNull();

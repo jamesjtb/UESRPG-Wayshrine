@@ -21,16 +21,25 @@ session, and page names remain in place to avoid an unrelated directory migratio
   flag, request identities, and point-buy initialization flag stay private.
   Commands capture their originating session; retained callbacks and pending
   completions cannot affect a replacement session after catalog changes or unmount.
-- `CharacterForge.tsx` keeps the creator session above the workspace, preview, and
-  navigation. It selects `RaceStep` or `CharacteristicsStep` solely from Core's
+- `CharacterForge.tsx` keeps the creator session and primary sheet outside the
+  creation modal. It selects `RaceStep` or `CharacteristicsStep` solely from Core's
   `currentStep`. Core supplies registered breadcrumb steps and navigation guards;
   the characteristics breadcrumb is labeled “Generate Characteristics”.
-- `components/ForgeWorkspace.tsx` owns the persistent sheet, editor, and navigation
-  slots. The single sheet comes first in DOM/mobile order and occupies the wider
-  left pane on desktop; the existing step editor and its bottom-anchored navigation
-  remain alongside it. Replacing the editor does not replace the frame, sheet, or
-  session. Its styles own independent desktop scrolling and mobile stacking.
-  `StepNavigation.tsx` delegates Back/Next to Core.
+- The creation wizard is an initially closed Mantine `Modal`, large on desktop
+  and fullscreen below 48em. The “Create Character” button always retains its
+  label. Session-owned visibility and ever-opened flags show “In progress” and
+  “Resume: <current step label>” only after the first opening, while closed—even
+  without answers. These flags do not infer completeness. The modal contains the
+  step indicator, current editor, and `StepNavigation.tsx`, which delegates
+  Back/Next to Core. Name editing stays on the persistent sheet.
+- Close control, Escape, and backdrop dismissal hide the wizard without disposing
+  the creator, changing Core's current step, canceling commands, or resetting
+  answers. Editors mount on first opening and remain mounted while hidden, retaining
+  presentation drafts and race-index loading/acknowledgment state. Pending creator
+  commands continue updating the sheet, and failures can still open the error modal.
+  A feature-local Mantine `Modal.Stack` coordinates the wizard and existing creator
+  and race-index errors; `ErrorModal` accepts an optional stack ID. This does not
+  establish application-wide layering or message infrastructure.
 - `hooks/useContentSummaries.ts` owns summary-list loading, failure acknowledgment,
   retry, and request liveness. Catalog adapters retain caching and deduplication.
   `steps/race/RaceStep.tsx` browses summaries rather than loading all definitions,
@@ -62,6 +71,8 @@ scrolling when needed, touch-sized items, keyboard navigation, dismissal, and fo
 return. It renders labels only, not totals, checks, validation, or dice details.
 Custom triggers must forward their ref and button props to the focusable element.
 `RollTile.tsx` does this while composing the tooltip and menu ARIA attributes.
+Assignment menus use Mantine's exit-transition callback to restore focus to the
+trigger after dismissal, including when the modal's focus trap has reclaimed focus.
 
 ## Generation commands and drafts
 
@@ -193,8 +204,8 @@ strings and whitespace. “Unnamed Character” is a placeholder only. Name edit
 not fetch content or affect validation and remain available during content failures.
 
 `components/CharacterSheet.tsx` renders Race, Characteristics, Traits, and Skills
-from the detached Core preview, without a competing preview view. Its “In progress”
-badge identifies the unfinished character without a development-status banner.
+from the detached Core preview, without a competing preview view. The resume
+indicator belongs to the session's wizard launcher rather than the sheet itself.
 The responsive characteristic table has columns
 Characteristic, Baseline, Generated, Favored, and Total, in that order. Generated is
 Core's `rolled` field for either method. Total is only `baseline + rolled`: it adds
@@ -226,6 +237,9 @@ cover invalid inputs that the UI prevents and all-step finish guards from either
 step. Component tests cover keyboard/touch interaction, tooltip/menu composition,
 focus return, controlled limits, and useful invalid numeric feedback. Core tests
 remain responsible for shared rules and calculations.
+Wizard tests cover initially closed presentation, unanswered first-opening resume,
+both steps and all three dismissal mechanisms, retained generation drafts and
+assignments, sheet updates while closed, and pending content success/failure.
 
 `scripts/content-pipeline.test.ts` compiles YAML to temporary files under
 `/tmp/opencode`, then reads those files through the real browser catalog and creator.
@@ -242,7 +256,7 @@ character-creation or advancement rules. There is no Foundry runtime integration
 For Core state/projection boundaries, see
 [generation engineering notes](characteristic-generation.md).
 
-New editors should replace only the workspace editor slot and continue using Core
+New editors should replace only the modal's current editor and continue using Core
 snapshots and guards. Keep shared UI feature-local until another tool needs it;
 do not introduce a second wizard or rules calculator. The application catalog
 outlives Forge sessions and represents a pinned revision. Content updates require

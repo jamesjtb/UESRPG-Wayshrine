@@ -12,7 +12,7 @@ import { loadTestCatalog } from "../test/content";
 import { navigationItems } from "../layouts/CreationKitLayout/navigation";
 
 describe("Creation Kit navigation", () => {
-  it("places the brand in the sidebar and tool steps in the workspace header", async () => {
+  it("places the brand in the sidebar and creation steps inside the wizard", async () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", "/#/character-sheet");
     render(<App loadCatalog={loadTestCatalog} />);
@@ -23,10 +23,16 @@ describe("Creation Kit navigation", () => {
     expect(brand.closest("#creation-kit-navigation")).not.toBeNull();
     expect(within(header).queryByText("Wayshrine Creation Kit")).toBeNull();
     expect(
-      await within(header).findByRole("button", { name: "Select Race" }),
-    ).toBeTruthy();
+      within(header).queryByRole("button", { name: "Select Race" }),
+    ).toBeNull();
+    await user.click(
+      await screen.findByRole("button", { name: "Create Character" }),
+    );
+    const wizard = within(
+      screen.getByRole("dialog", { name: "Create Character" }),
+    );
     const breadcrumbs = within(
-      within(header).getByRole("navigation", {
+      wizard.getByRole("navigation", {
         name: "Character creation steps",
       }),
     );
@@ -43,17 +49,20 @@ describe("Creation Kit navigation", () => {
       }),
     ).toBeNull();
     expect(
-      await within(screen.getByRole("main")).findByRole("button", {
+      wizard.getByRole("button", {
         name: "Next",
       }),
     ).toBeTruthy();
-    expect(within(main).getByRole("button", { name: "Next" })).toHaveProperty(
+    expect(wizard.getByRole("button", { name: "Next" })).toHaveProperty(
       "disabled",
       true,
     );
-    expect(within(main).getByRole("button", { name: "Back" })).toHaveProperty(
+    expect(wizard.getByRole("button", { name: "Back" })).toHaveProperty(
       "disabled",
       true,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Close character creation" }),
     );
     await user.click(screen.getByRole("link", { name: "Home" }));
     expect(main.className).not.toContain("forgeWorkspace");

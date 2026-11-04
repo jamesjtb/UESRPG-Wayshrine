@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { MantineProvider } from "@mantine/core";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, vi } from "vitest";
 import type { ContentCatalog, ContentKind } from "@wayshrine/core";
@@ -32,8 +32,31 @@ export function renderForge(
 
 export async function selectRace(label: string) {
   const user = userEvent.setup();
+  if (!screen.queryByRole("dialog", { name: "Create Character" })) {
+    await openWizard();
+  }
   await user.click(await screen.findByRole("combobox", { name: "Race" }));
   await user.click(await screen.findByRole("option", { name: label }));
+}
+
+export async function openWizard() {
+  const user = userEvent.setup();
+  await user.click(
+    await screen.findByRole("button", { name: "Create Character" }),
+  );
+  return screen.findByRole("dialog", { name: "Create Character" });
+}
+
+export async function closeWizard() {
+  const user = userEvent.setup();
+  await user.click(
+    screen.getByRole("button", { name: "Close character creation" }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("dialog", { name: "Create Character" }),
+    ).toBeNull(),
+  );
 }
 
 export function sheet() {

@@ -30,10 +30,11 @@ describe("Character Sheet route", () => {
       expect(
         screen.getAllByRole("region", { name: "Character sheet" }),
       ).toHaveLength(1);
-      expect(sheet.nextElementSibling).toBe(
-        screen.getByRole("region", { name: "Character editor" }),
-      );
-      expect(within(sheet).getByText("In progress")).toBeTruthy();
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.queryByText("In progress")).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Create Character" }),
+      ).toBeTruthy();
       expect(
         within(sheet).getByRole("textbox", { name: "Character name" }),
       ).toBeTruthy();
@@ -62,8 +63,13 @@ describe("Character Sheet route", () => {
         .getByRole("link", { name: "Character Sheet" })
         .getAttribute("aria-current"),
     ).toBe("page");
+    await user.click(
+      await screen.findByRole("button", { name: "Create Character" }),
+    );
     const navigation = within(
-      screen.getByRole("navigation", { name: "Character creation steps" }),
+      await screen.findByRole("navigation", {
+        name: "Character creation steps",
+      }),
     );
     expect(
       navigation.getAllByRole("button").map((button) => button.textContent),

@@ -85,7 +85,9 @@ it("switches editors through Core navigation while retaining the session, name a
   expect(
     editor.getByRole("textbox", { name: "Strength points" }),
   ).toHaveProperty("value", "0");
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(
+    screen.queryByRole("dialog", { name: "Something went wrong!" }),
+  ).toBeNull();
   expect(screen.queryByRole("button", { name: "Finish" })).toBeNull();
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",

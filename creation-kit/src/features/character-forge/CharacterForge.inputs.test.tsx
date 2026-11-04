@@ -239,7 +239,9 @@ describe("Character Forge generation inputs", () => {
       favored: true,
       total: 36,
     });
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
   });
 
@@ -793,7 +795,9 @@ describe("Character Forge generation inputs", () => {
       for (const value of Object.values(allocation))
         expect(value).toBeGreaterThanOrEqual(0);
     }
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
   });
 
@@ -968,7 +972,9 @@ describe("Character Forge generation inputs", () => {
         screen.getByRole("textbox", { name: `${label} points` }),
       ).toHaveProperty("value", "");
     expect(snapshot().canFinish).toBe(false);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Something went wrong!" }),
+    ).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
   });
 });

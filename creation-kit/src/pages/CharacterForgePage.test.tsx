@@ -1,21 +1,65 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "../app/App";
 import { loadTestCatalog } from "../test/content";
 
-describe("Character Forge route", () => {
+describe("Character Sheet route", () => {
+  it("replaces the legacy history entry rather than adding a redirect entry", async () => {
+    window.history.replaceState(null, "", "/#/");
+    window.history.pushState(null, "", "/#/character-forge");
+    render(<App loadCatalog={loadTestCatalog} />);
+    await screen.findByRole("region", { name: "Character sheet" });
+    expect(window.location.hash).toBe("#/character-sheet");
+    window.history.back();
+    await waitFor(() => expect(window.location.hash).toBe("#/"));
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain(
+      "Welcome",
+    );
+  });
+
+  it.each(["/character-sheet", "/character-forge"])(
+    "opens %s at the canonical sheet URL with one primary sheet",
+    async (path) => {
+      window.history.replaceState(null, "", `/#${path}`);
+      render(<App loadCatalog={loadTestCatalog} />);
+      const sheet = await screen.findByRole("region", {
+        name: "Character sheet",
+      });
+      expect(window.location.hash).toBe("#/character-sheet");
+      expect(
+        screen.getAllByRole("region", { name: "Character sheet" }),
+      ).toHaveLength(1);
+      expect(sheet.nextElementSibling).toBe(
+        screen.getByRole("region", { name: "Character editor" }),
+      );
+      expect(within(sheet).getByText("In progress")).toBeTruthy();
+      expect(
+        within(sheet).getByRole("textbox", { name: "Character name" }),
+      ).toBeTruthy();
+      expect(screen.queryByText("Character Forge")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: /finish|finalize/i }),
+      ).toBeNull();
+      expect(
+        screen
+          .getByRole("link", { name: "Character Sheet" })
+          .getAttribute("aria-current"),
+      ).toBe("page");
+    },
+  );
+
   it("opens from the sidebar and keeps only Select Race active", async () => {
     const user = userEvent.setup();
     render(<App loadCatalog={loadTestCatalog} />);
-    await user.click(screen.getByRole("link", { name: "Character Forge" }));
-    expect(window.location.hash).toBe("#/character-forge");
+    await user.click(screen.getByRole("link", { name: "Character Sheet" }));
+    expect(window.location.hash).toBe("#/character-sheet");
     expect(
-      screen.getByRole("heading", { name: "Character Forge" }),
+      screen.getByRole("heading", { name: "Character Sheet" }),
     ).toBeTruthy();
     expect(
       screen
-        .getByRole("link", { name: "Character Forge" })
+        .getByRole("link", { name: "Character Sheet" })
         .getAttribute("aria-current"),
     ).toBe("page");
     const navigation = within(

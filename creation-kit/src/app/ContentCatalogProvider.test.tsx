@@ -123,9 +123,9 @@ describe("ContentCatalogProvider", () => {
     ).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "OK" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    await user.click(screen.getByRole("link", { name: "Character Forge" }));
+    await user.click(screen.getByRole("link", { name: "Character Sheet" }));
     expect(
-      screen.getByRole("heading", { name: "Character Forge" }),
+      screen.getByRole("heading", { name: "Character Sheet" }),
     ).toBeTruthy();
     await user.click(screen.getByRole("link", { name: "Home" }));
     await user.click(screen.getByRole("button", { name: "Retry content" }));

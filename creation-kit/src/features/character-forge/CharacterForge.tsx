@@ -6,7 +6,7 @@ import { ToolHeader } from "../../layouts/CreationKitLayout/ToolHeader";
 import { useCharacterCreator } from "./useCharacterCreator";
 import { RaceStep } from "./steps/race/RaceStep";
 import { CharacteristicsStep } from "./steps/characteristics/CharacteristicsStep";
-import { CharacterPreview } from "./components/CharacterPreview";
+import { CharacterSheet } from "./components/CharacterSheet";
 import { ForgeWorkspace } from "./components/ForgeWorkspace";
 import { StepNavigation } from "./components/StepNavigation";
 import { ErrorModal } from "../../components/ErrorModal";
@@ -23,7 +23,7 @@ export function CharacterForge({
   const content = useContentCatalog();
   return (
     <Stack className={classes.forge}>
-      <Title order={1}>Character Forge</Title>
+      <Title order={1}>Character Sheet</Title>
       {content.status === "ready" && (
         <ForgeSession catalog={content.catalog} rollDice={rollDice} />
       )}
@@ -114,8 +114,8 @@ function ForgeSession({
             onNext={next}
           />
         }
-        preview={
-          <CharacterPreview
+        sheet={
+          <CharacterSheet
             preview={view.preview}
             raceLabel={raceLabel}
             onNameChange={setName}

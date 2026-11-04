@@ -1,9 +1,13 @@
-# Character Forge engineering notes
+# Character Sheet engineering notes
 
-Character Forge presents Core's headless race and characteristic-generation
+Character Sheet presents Core's headless race and characteristic-generation
 workflow. See the [Core contract](../../core/README.md#character-creation) for rules,
 content validation, answer retention, and preview semantics. React presents Core's
 snapshots rather than implementing a second rules or progression model.
+
+The canonical tool URL is `/character-sheet` (a hash route in the browser).
+`/character-forge` redirects with history replacement. Internal Forge feature,
+session, and page names remain in place to avoid an unrelated directory migration.
 
 ## Ownership and lifetime
 
@@ -21,10 +25,12 @@ snapshots rather than implementing a second rules or progression model.
   navigation. It selects `RaceStep` or `CharacteristicsStep` solely from Core's
   `currentStep`. Core supplies registered breadcrumb steps and navigation guards;
   the characteristics breadcrumb is labeled “Generate Characteristics”.
-- `components/ForgeWorkspace.tsx` owns the persistent editor, navigation, and
-  preview slots. Replacing the editor does not replace the frame, preview, or
-  session. Its styles own independent desktop scrolling, bottom-anchored navigation,
-  and mobile stacking. `StepNavigation.tsx` delegates Back/Next to Core.
+- `components/ForgeWorkspace.tsx` owns the persistent sheet, editor, and navigation
+  slots. The single sheet comes first in DOM/mobile order and occupies the wider
+  left pane on desktop; the existing step editor and its bottom-anchored navigation
+  remain alongside it. Replacing the editor does not replace the frame, sheet, or
+  session. Its styles own independent desktop scrolling and mobile stacking.
+  `StepNavigation.tsx` delegates Back/Next to Core.
 - `hooks/useContentSummaries.ts` owns summary-list loading, failure acknowledgment,
   retry, and request liveness. Catalog adapters retain caching and deduplication.
   `steps/race/RaceStep.tsx` browses summaries rather than loading all definitions,
@@ -179,15 +185,17 @@ text. They do not remove Core issues or relax navigation/completeness guards:
 Superseded results are not operational failures. Failed race content still blocks
 completion even after its error modal is acknowledged.
 
-## Preview and navigation
+## Primary sheet and navigation
 
-The preview is independent of the selected editor. Its controlled name input writes
+The sheet is independent of the selected editor. Its controlled name input writes
 each change through Core's `setName` command, preserving exact input including empty
 strings and whitespace. “Unnamed Character” is a placeholder only. Name edits do
 not fetch content or affect validation and remain available during content failures.
 
-`components/CharacterPreview.tsx` renders Race, Characteristics, Traits, and Skills
-from the detached Core preview. The responsive characteristic table has columns
+`components/CharacterSheet.tsx` renders Race, Characteristics, Traits, and Skills
+from the detached Core preview, without a competing preview view. Its “In progress”
+badge identifies the unfinished character without a development-status banner.
+The responsive characteristic table has columns
 Characteristic, Baseline, Generated, Favored, and Total, in that order. Generated is
 Core's `rolled` field for either method. Total is only `baseline + rolled`: it adds
 neither a favored bonus nor modifiers and is not a final modified score. Favored

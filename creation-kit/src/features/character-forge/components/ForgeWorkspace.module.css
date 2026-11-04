@@ -1,4 +1,7 @@
 .panes {
+  display: grid;
+  gap: var(--mantine-spacing-md);
+  grid-template-columns: minmax(0, 1fr);
   flex: 1;
 }
 
@@ -21,6 +24,7 @@
   }
 
   .panes {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     grid-template-rows: minmax(0, 1fr);
   }
 

@@ -31,7 +31,7 @@ describe("Character Forge session lifetime", () => {
     const rollDice = createCharacteristicRoller(() => 0.45);
     const load = async () => catalog;
     const user = userEvent.setup();
-    window.history.replaceState(null, "", "/#/character-forge");
+    window.history.replaceState(null, "", "/#/character-sheet");
     render(
       <StrictMode>
         <MantineProvider env="test">
@@ -40,7 +40,7 @@ describe("Character Forge session lifetime", () => {
               <CreationKitLayout>
                 <Routes>
                   <Route
-                    path="/character-forge"
+                    path="/character-sheet"
                     element={<CharacterForge rollDice={rollDice} />}
                   />
                   <Route path="/" element={<h1>Home</h1>} />
@@ -76,7 +76,7 @@ describe("Character Forge session lifetime", () => {
     expect(screen.getByRole("status", { name: "Loading race" })).toBeTruthy();
     await user.click(screen.getByRole("link", { name: "Home" }));
     expect(screen.getByRole("heading", { name: "Home" })).toBeTruthy();
-    await user.click(screen.getByRole("link", { name: "Character Forge" }));
+    await user.click(screen.getByRole("link", { name: "Character Sheet" }));
     await sheet().findByText("No race selected.");
     expectCharacteristic("Luck", {
       baseline: 30,
@@ -162,7 +162,7 @@ describe("Character Forge session lifetime", () => {
       await user.click(screen.getByRole("link", { name: "Home" }));
       expect(dispose.mock.calls.length).toBe(disposedBeforeExit + 1);
       expect(screen.getByRole("heading", { name: /Welcome/ })).toBeTruthy();
-      await user.click(screen.getByRole("link", { name: "Character Forge" }));
+      await user.click(screen.getByRole("link", { name: "Character Sheet" }));
       expect(load.mock.calls.length).toBe(loadsBeforeExit);
       expect(await sheet().findByText("No race selected.")).toBeTruthy();
       await selectRace("Altmer");

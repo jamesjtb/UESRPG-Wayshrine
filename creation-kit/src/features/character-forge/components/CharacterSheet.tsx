@@ -1,4 +1,12 @@
-import { List, Stack, Table, Text, TextInput, Title } from "@mantine/core";
+import {
+  Badge,
+  List,
+  Stack,
+  Table,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 import type { CharacterCreator } from "@wayshrine/core";
 import { SkillRank } from "@wayshrine/core";
@@ -19,7 +27,7 @@ function traitParameters(
   return ` (${entries.join(", ")})`;
 }
 
-export function CharacterPreview({
+export function CharacterSheet({
   preview,
   raceLabel,
   onNameChange,
@@ -36,6 +44,9 @@ export function CharacterPreview({
   );
   return (
     <Stack>
+      <Badge variant="light" color="gray">
+        In progress
+      </Badge>
       <TextInput
         aria-label="Character name"
         placeholder="Unnamed Character"
@@ -60,7 +71,7 @@ export function CharacterPreview({
           aria-label="Characteristic table scrolling"
         >
           <Table
-            aria-label="Characteristic preview"
+            aria-label="Sheet characteristics"
             horizontalSpacing={6}
             verticalSpacing={4}
             fz="sm"

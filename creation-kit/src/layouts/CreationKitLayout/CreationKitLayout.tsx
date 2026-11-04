@@ -99,7 +99,7 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
       </AppShell.Navbar>
       <AppShell.Main
         className={
-          location.pathname === "/character-forge"
+          location.pathname === "/character-sheet"
             ? classes.forgeWorkspace
             : undefined
         }

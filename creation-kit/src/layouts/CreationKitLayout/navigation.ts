@@ -11,8 +11,8 @@ import {
 export const navigationItems = [
   { label: "Home", path: "/", icon: IconHome, available: true },
   {
-    label: "Character Forge",
-    path: "/character-forge",
+    label: "Character Sheet",
+    path: "/character-sheet",
     icon: IconUser,
     available: true,
   },

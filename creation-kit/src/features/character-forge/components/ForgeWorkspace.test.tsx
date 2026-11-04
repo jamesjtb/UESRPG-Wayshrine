@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fixtureCatalog } from "../test/testCatalog";
 import { expectCharacteristicBaseline } from "../test/forgeTestHelpers";
 import { useCharacterCreator } from "../useCharacterCreator";
-import { CharacterPreview } from "./CharacterPreview";
+import { CharacterSheet } from "./CharacterSheet";
 import { ForgeWorkspace } from "./ForgeWorkspace";
 import { StepNavigation } from "./StepNavigation";
 
@@ -42,9 +42,7 @@ function WorkspaceSession({ catalog }: { catalog: ContentCatalog }) {
             onNext={next}
           />
         }
-        preview={
-          <CharacterPreview preview={view.preview} onNameChange={setName} />
-        }
+        sheet={<CharacterSheet preview={view.preview} onNameChange={setName} />}
       />
     </>
   );
@@ -62,6 +60,10 @@ describe("ForgeWorkspace composition", () => {
     );
     const editorPane = screen.getByRole("region", { name: "Character editor" });
     const previewPane = screen.getByRole("region", { name: "Character sheet" });
+    expect(
+      screen.getAllByRole("region", { name: "Character sheet" }),
+    ).toHaveLength(1);
+    expect(previewPane.nextElementSibling).toBe(editorPane);
     const nameInput = within(previewPane).getByRole("textbox", {
       name: "Character name",
     });

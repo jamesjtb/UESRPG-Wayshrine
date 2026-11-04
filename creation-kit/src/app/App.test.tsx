@@ -14,7 +14,7 @@ import { navigationItems } from "../layouts/CreationKitLayout/navigation";
 describe("Creation Kit navigation", () => {
   it("places the brand in the sidebar and tool steps in the workspace header", async () => {
     const user = userEvent.setup();
-    window.history.replaceState(null, "", "/#/character-forge");
+    window.history.replaceState(null, "", "/#/character-sheet");
     render(<App loadCatalog={loadTestCatalog} />);
     const header = screen.getByRole("banner");
     const main = screen.getByRole("main");
@@ -82,7 +82,7 @@ describe("Creation Kit navigation", () => {
     }
   });
 
-  it("shows Home, Character Forge, and five disabled tools without additional labels", async () => {
+  it("shows Home, Character Sheet, and five disabled tools without additional labels", async () => {
     const user = userEvent.setup();
     render(<App loadCatalog={loadTestCatalog} />);
     const navigation = within(
@@ -95,7 +95,7 @@ describe("Creation Kit navigation", () => {
         .getAttribute("aria-current"),
     ).toBe("page");
     expect(
-      navigation.getByRole("link", { name: "Character Forge" }),
+      navigation.getByRole("link", { name: "Character Sheet" }),
     ).toBeTruthy();
     for (const item of navigationItems.filter((item) => !item.available)) {
       const button = navigation.getByRole("button", { name: item.label });
@@ -116,17 +116,17 @@ describe("Creation Kit navigation", () => {
     await user.click(
       screen.getByRole("button", { name: "Collapse navigation" }),
     );
-    const tool = screen.getByRole("link", { name: "Character Forge" });
+    const tool = screen.getByRole("link", { name: "Character Sheet" });
     expect(screen.getByLabelText("Wayshrine Creation Kit").textContent).toBe(
       "W",
     );
     expect(tool.textContent).toBe("");
     await user.hover(tool.parentElement!);
     expect((await screen.findByRole("tooltip")).textContent).toBe(
-      "Character Forge",
+      "Character Sheet",
     );
     await user.click(screen.getByRole("button", { name: "Expand navigation" }));
-    expect(tool.textContent).toBe("Character Forge");
+    expect(tool.textContent).toBe("Character Sheet");
     expect(screen.getByText("Wayshrine Creation Kit")).toBeTruthy();
   });
 
@@ -162,7 +162,7 @@ describe("Creation Kit navigation", () => {
     },
   );
 
-  it.each(["/", "/missing", "/character-forge"])(
+  it.each(["/", "/missing", "/character-sheet", "/character-forge"])(
     "closes mobile navigation when returning Home from %s",
     async (path) => {
       vi.spyOn(window, "matchMedia").mockImplementation((query) => ({

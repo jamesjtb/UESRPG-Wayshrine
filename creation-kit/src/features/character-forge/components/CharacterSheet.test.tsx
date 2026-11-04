@@ -2,7 +2,7 @@ import { MantineProvider } from "@mantine/core";
 import { render, screen, within } from "@testing-library/react";
 import { CharacterCreator, SkillRank } from "@wayshrine/core";
 import { describe, expect, it } from "vitest";
-import { CharacterPreview } from "./CharacterPreview";
+import { CharacterSheet } from "./CharacterSheet";
 import { fixtureCatalog } from "../test/testCatalog";
 
 function characteristicCells(label: string) {
@@ -10,12 +10,12 @@ function characteristicCells(label: string) {
   return within(header.closest("tr")!).getAllByRole("cell");
 }
 
-describe("CharacterPreview", () => {
+describe("CharacterSheet", () => {
   it("shows independent empty sections and Core's default Luck baseline", () => {
     const creator = new CharacterCreator(fixtureCatalog());
     render(
       <MantineProvider env="test">
-        <CharacterPreview
+        <CharacterSheet
           preview={creator.getCharacterPreview()}
           onNameChange={() => {}}
         />
@@ -25,6 +25,7 @@ describe("CharacterPreview", () => {
       screen.getByRole("textbox", { name: "Character name" }),
     ).toHaveProperty("value", "");
     expect(screen.getByPlaceholderText("Unnamed Character")).toBeTruthy();
+    expect(screen.getByText("In progress")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Race" })).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Characteristics" }),
@@ -65,7 +66,7 @@ describe("CharacterPreview", () => {
     ];
     render(
       <MantineProvider env="test">
-        <CharacterPreview preview={preview} onNameChange={() => {}} />
+        <CharacterSheet preview={preview} onNameChange={() => {}} />
       </MantineProvider>,
     );
     expect(screen.getByText("No race selected.")).toBeTruthy();
@@ -88,7 +89,7 @@ describe("CharacterPreview", () => {
       screen.queryByText("Totals are baseline + generated, before modifiers."),
     ).toBeNull();
     expect(
-      screen.getByRole("table", { name: "Characteristic preview" }),
+      screen.getByRole("table", { name: "Sheet characteristics" }),
     ).toBeTruthy();
     expect(screen.getByText("Magic Resistance (X: 10)")).toBeTruthy();
     expect(screen.getByText("Custom Skill (Apprentice)")).toBeTruthy();
@@ -102,7 +103,7 @@ describe("CharacterPreview", () => {
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     const view = render(
       <MantineProvider env="test">
-        <CharacterPreview
+        <CharacterSheet
           preview={creator.getCharacterPreview()}
           raceLabel="Altmer"
           onNameChange={() => {}}
@@ -114,7 +115,7 @@ describe("CharacterPreview", () => {
     await creator.chooseRace("argonian");
     view.rerender(
       <MantineProvider env="test">
-        <CharacterPreview
+        <CharacterSheet
           preview={creator.getCharacterPreview()}
           onNameChange={() => {}}
         />

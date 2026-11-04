@@ -1,20 +1,30 @@
-import { Paper, SimpleGrid, Stack } from "@mantine/core";
+import { Paper, Stack } from "@mantine/core";
 import type { ReactNode } from "react";
 import classes from "./ForgeWorkspace.module.css";
 
 interface ForgeWorkspaceProps {
   editor: ReactNode;
   navigation: ReactNode;
-  preview: ReactNode;
+  sheet: ReactNode;
 }
 
 export function ForgeWorkspace({
   editor,
   navigation,
-  preview,
+  sheet,
 }: ForgeWorkspaceProps) {
   return (
-    <SimpleGrid cols={{ base: 1, md: 2 }} className={classes.panes}>
+    <div className={classes.panes}>
+      <Paper
+        component="section"
+        aria-label="Character sheet"
+        tabIndex={0}
+        withBorder
+        p="md"
+        className={`${classes.pane} ${classes.sheet}`}
+      >
+        {sheet}
+      </Paper>
       <Paper
         component="section"
         aria-label="Character editor"
@@ -29,16 +39,6 @@ export function ForgeWorkspace({
           {navigation}
         </Stack>
       </Paper>
-      <Paper
-        component="section"
-        aria-label="Character sheet"
-        tabIndex={0}
-        withBorder
-        p="md"
-        className={`${classes.pane} ${classes.sheet}`}
-      >
-        {preview}
-      </Paper>
-    </SimpleGrid>
+    </div>
   );
 }

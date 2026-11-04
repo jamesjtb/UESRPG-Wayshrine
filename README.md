@@ -1,6 +1,6 @@
 # UESRPG Wayshrine
 
-UESRPG Wayshrine is a monorepo that is intended to house all digital tools available for UESRPG, a community-created TTRPG set in the Elder Scrolls universe.
+UESRPG Wayshrine is a monorepo that is intended to house a number of digital tools for UESRPG, a community-created TTRPG set in the Elder Scrolls universe, all in one place.
 
 **UESRPG Wayshrine is a Work-in-Progress.**
 

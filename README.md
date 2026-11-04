@@ -42,7 +42,7 @@ not runtime polyfills. Strict checking remains enabled, including dependency dec
 | -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `vtt/foundry`  | `@wayshrine/foundry`      | Foundry system skeleton. The target Foundry version, manifest, typings, and bundling are deferred; this is not yet a loadable system. |
 | `core`         | `@wayshrine/core`         | Platform-independent TypeScript domain types for UESRPG 3ev4. No server or separate build.                                            |
-| `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application with initial Character Forge race editing. No backend.                                               |
+| `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application with Character Forge race selection and characteristic generation. No backend.                       |
 
 Both applications depend on Core through `workspace:*`. Import domain types from
 `@wayshrine/core` using `import type`. Domain interfaces live in `core/interface/`,
@@ -59,7 +59,7 @@ Core exports a headless `Wizard`, shared choice types and `validateChoice`, and
 runtime workflow tests. Test-runner environment types are isolated from Core's
 platform-independent source checks.
 
-`CharacterCreator` takes race and skill catalogs. Call `chooseRace(raceKey)`, then
+`CharacterCreator` takes a shared `ContentCatalog`. Call `chooseRace(raceKey)`, then
 use `getSnapshot().racialBonusChoices` to display each group's stable, source-scoped
 ID, `choose` requirement, options, and current selections. Submit selections with
 `chooseRacialBonus(choiceId, selections)`. Each selected skill grants Novice training;
@@ -77,9 +77,11 @@ pure and tolerate an incomplete draft. `next()` checks all steps through the cur
 one, `previous()` preserves answers, and `finish()` validates every registered step.
 Operations return `{ ok, value }` or `{ ok, issues }`; a rejected bonus answer is
 stored for correction, while an unknown race or choice leaves answers unchanged.
-Only the race step is implemented so far; characteristic generation remains future
-work. Future steps should retain their inputs, reevaluate validity after upstream
-edits, and apply only valid effects. Evaluation must never generate or reroll dice.
+The registered steps are race and characteristic generation, not complete character
+creation. Generation commands retain separate rolled and point-buy drafts, shared
+favored selections, and a separate Luck roll. Hosts supply identified dice faces;
+evaluation never generates randomness. See the
+[Core usage contract](core/README.md#characteristic-generation) for command examples.
 
 ### Creation Kit source layout
 
@@ -182,12 +184,16 @@ outside Core runtime and Creation Kit's browser TypeScript configuration.
 
 ### Character Forge
 
-Character Forge supports race selection and editable racial skill choices, with a
-draft preview of racial baselines, traits, and Novice skills. Failed content loads
-can be retried, and pending or failed race changes can be canceled.
+Character Forge supports race selection, editable racial skill choices, and rolled
+or point-buy characteristic generation with favored choices and separate Luck.
+Back/Next follow Core guards and retain answers. Roll/Reroll controls acquire dice
+in the browser; point-buy cards support direct numeric entry and icon steppers.
+The preview shows baselines, generated contributions, favored flags, totals of
+baseline plus generation, traits, and Novice skills. Failed content loads can be
+retried, and pending or failed race changes can be canceled.
 
-Only Select Race is available. Back and Next remain disabled; there is no character
-completion, characteristic generation, or Foundry integration.
+Only race and characteristic generation are implemented. There is no Finish action,
+full character completion, advancement workflow, or Foundry runtime integration.
 
 See [Character Forge engineering notes](docs/development/character-forge.md) for
 ownership, asynchronous behavior, testing strategy, and limitations.

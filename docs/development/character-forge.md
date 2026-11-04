@@ -1,10 +1,9 @@
 # Character Forge engineering notes
 
-Character Forge currently renders a race-only editor backed by Core's headless
-creator, which implements both race and characteristic generation. See the
-[Core contract](../../core/README.md#character-creation) for selection rules,
-content validation, answer retention, and preview semantics. The browser UI
-presents those rules rather than implementing a second rules model.
+Character Forge presents Core's headless race and characteristic-generation
+workflow. See the [Core contract](../../core/README.md#character-creation) for rules,
+content validation, answer retention, and preview semantics. React presents Core's
+snapshots rather than implementing a second rules or progression model.
 
 ## Ownership and lifetime
 
@@ -12,134 +11,232 @@ presents those rules rather than implementing a second rules model.
   `ContentCatalogProvider` exposes initialization state independently of Forge
   sessions, so leaving the Forge does not discard the application catalog.
 - `useCharacterCreator.ts` creates a fresh Core `CharacterCreator` in its effect
-  and disposes it during cleanup. React StrictMode effect replay creates a new
-  creator rather than reusing the disposed instance. Its interface exposes only
-  detached snapshots, preview data, error presentation state, and named commands.
-  The creator, liveness flag, and request identities stay private. Commands capture
-  their originating session; retained callbacks and pending completions cannot
-  affect a replacement session when the catalog changes or the Forge unmounts.
-- `CharacterForge.tsx` composes one creator session above the editor,
-  workspace, and preview. Core snapshots supply registered breadcrumb steps,
-  the current step, control values, choice groups, issues, and navigation
-  availability; `getCharacterPreview()` supplies the displayed effects.
-  The editor is currently an unconditional `RaceStep`, not selected by current step.
-- `components/ForgeWorkspace.tsx` owns the persistent two-pane frame with editor,
-  navigation, and preview slots. Replacing the editor does not replace the frame,
-  preview, or creator session. Its styles own independent desktop scrolling,
-  bottom-anchored navigation, and mobile stacking.
-- `components/StepNavigation.tsx` presents Core's Back/Next availability and
-  delegates callbacks without owning validation or progression state.
-- `components/ChoiceGroupField.tsx` presents controlled Core choice selections,
-  supplied labels, loading, visible messages, and optional retry. It does not
-  validate or retain answers. `steps/race/RacialSkillChoices.tsx` adapts race
-  snapshot issues and loads, skill labels and wording, and selection commands.
-  At or above the supplied choice limit, only unselected checkboxes are disabled;
-  selected answers remain removable unless the whole field is disabled. This
-  presentation guard does not replace Core validation or disable group retries.
+  and disposes it during cleanup. StrictMode effect replay creates a new creator
+  rather than reusing a disposed instance. Its interface exposes detached snapshots,
+  preview data, error presentation state, and named commands. The creator, liveness
+  flag, request identities, and point-buy initialization flag stay private.
+  Commands capture their originating session; retained callbacks and pending
+  completions cannot affect a replacement session after catalog changes or unmount.
+- `CharacterForge.tsx` keeps the creator session above the workspace, preview, and
+  navigation. It selects `RaceStep` or `CharacteristicsStep` solely from Core's
+  `currentStep`. Core supplies registered breadcrumb steps and navigation guards;
+  the characteristics breadcrumb is labeled “Generate Characteristics”.
+- `components/ForgeWorkspace.tsx` owns the persistent editor, navigation, and
+  preview slots. Replacing the editor does not replace the frame, preview, or
+  session. Its styles own independent desktop scrolling, bottom-anchored navigation,
+  and mobile stacking. `StepNavigation.tsx` delegates Back/Next to Core.
 - `hooks/useContentSummaries.ts` owns summary-list loading, failure acknowledgment,
   retry, and request liveness. Catalog adapters retain caching and deduplication.
-- `steps/race/RaceStep.tsx` presents race browsing, including its independent loading,
-  empty, and retry states, picker labels, and generic error modal. Browsing reads
-  summaries, not all race definitions.
-  Application initialization notices remain in the shared shell.
+  `steps/race/RaceStep.tsx` browses summaries rather than loading all definitions,
+  and presents its independent loading, empty, retry, and error states.
 
-The feature files above live in `creation-kit/src/features/character-forge/`;
-the provider lives in `creation-kit/src/app/`.
+Feature paths in these notes are relative to
+`creation-kit/src/features/character-forge/`; the provider lives in
+`creation-kit/src/app/`.
+
+## Shared presentation components
+
+`components/LimitedCheckboxGroup.tsx` is a controlled presentation component: it
+accepts labels, options, selections, a limit, disabled state, and a callback, not a
+Core choice object. Both racial skills through `ChoiceGroupField` and favored
+characteristics through `CharacteristicsStep` render it. At or above the limit,
+only unselected options are disabled. Selected answers, including externally
+supplied over-limit answers, remain removable unless the whole field is disabled.
+This convenience guard does not replace Core validation.
+
+`ChoiceGroupField.tsx` retains the bold “Choose N” wording, scoped loading, visible
+feedback, and optional retry. `steps/race/RacialSkillChoices.tsx` adapts Core race
+choices, loads, labels, and commands. Favored characteristics use the seven non-Luck
+options with the static description “Choose two”.
+
+`components/AssignmentMenu.tsx` is domain-free and feature-local. It accepts a
+trigger element, simple `{ value, label }` options, and `onSelect(value)`. It owns
+only Mantine menu presentation: tile-anchored positioning with viewport adjustment,
+scrolling when needed, touch-sized items, keyboard navigation, dismissal, and focus
+return. It renders labels only, not totals, checks, validation, or dice details.
+Custom triggers must forward their ref and button props to the focusable element.
+`RollTile.tsx` does this while composing the tooltip and menu ARIA attributes.
+
+## Generation commands and drafts
+
+The hook exposes all six synchronous generation commands with public Core types:
+
+- `setFavoredCharacteristics`
+- `setCharacteristicGenerationMethod`
+- `submitCharacteristicRolls`
+- `setCharacteristicAssignments`
+- `setCharacteristicAllocations`
+- `submitLuckRoll`
+
+Each live command delegates to Core, refreshes the snapshot and preview, and returns
+the Core command result. Stale callbacks do nothing. A successful field command is
+not evidence that the whole character is valid; use Core's generation completeness
+and wizard availability. Ordinary validation does not open the error modal.
+
+No generation method is selected automatically. Rolled and point-buy drafts remain
+separate in Core, while favored selections and Luck are shared. Switching methods,
+Back/Next, and race changes retain these answers. Assignment and allocation edits
+submit whole replacement maps, including partial maps and explicit clears.
+
+On the first explicit point-buy method selection in a session, the hook supplies
+seven zero allocations only if the stored allocation map is empty. A prepopulated
+inactive draft is preserved. The private session flag prevents later method
+selections or editor remounts from refilling a partial or deliberately cleared
+`{}` map. This is a browser default submitted through Core commands, not a Core rule
+or a render effect. The method command still returns its own result; initialization
+does not make generation complete.
+
+### Browser dice and roll assignments
+
+`steps/characteristics/dice.ts` supplies the small browser acquisition seam.
+`createCharacteristicRoller(random)` creates identified 2d10 rolls from an injectable
+random-number source, defaulting to `Math.random`. Forge accepts an injected roller,
+so tests exercise acquisition deterministically without mocking Core rules. Core
+never generates randomness.
+
+The pool button is “Roll” when empty and “Reroll” otherwise. One activation obtains
+seven rolls and submits the complete pool. Core clears all assignments on pool
+replacement. There are no automatic rolls, individual rerolls, or roll history.
+Luck has its own “Roll”/“Reroll” action and replaces only the Luck answer.
+
+Rounded `RollTile` buttons display totals and, for assigned pool rolls, a
+characteristic caption. IDs stay internal; equal totals remain distinct by ID and
+ordinal accessible name. Tooltips expose the individual faces and total, for
+example `2d10: 6 + 7 = 13`, with hover, focus, and touch events enabled. Pool taps
+perform the assignment/unassignment action, not a separate details toggle; the
+assignment menu contains no dice header. Luck tile activation toggles an inline
+breakdown and exposes its expanded state.
+
+`RollAssignmentMenu.tsx` is the roll-specific adapter. Activating an unassigned tile
+opens the shared menu with only unoccupied characteristic names. All occupied
+targets are omitted, so replacing an occupied destination requires unassigning its
+current roll first. Activating an assigned tile directly unassigns it by primary
+click, tap, or keyboard; its accessible name describes that action and it has no
+menu ARIA. Moving a roll therefore means unassigning it, then choosing a new target
+from its menu. Each assignment or unassignment submits one whole map. Focus returns
+to the tile when its interaction changes between direct action and menu trigger.
+Menu dismissal does not change answers; pool replacement discards open tile menus.
+
+### Point-buy controls
+
+`PointBuyCharacteristics.tsx` renders bounded, wrapping cards and a single points
+remaining indicator. `AllocationCard.tsx` places a linked full characteristic label
+above an icon-only minus button, editable number, and icon-only plus button. Both
+buttons retain 44px hit targets, accessible names, keyboard focus, and disabled
+states. Local input text preserves lexical edits such as `1.`; Core owns the numeric
+draft.
+
+The UI does not submit negative allocations: typed minus signs are ignored, so
+typing `-5` enters `5`; a negative numeric paste resets the allocation to zero.
+The change boundary also normalizes negative numeric values to zero. Decrement is
+disabled at zero, and increment is disabled at 20 or when fewer than one point
+remains. Steppers operate only on integer, in-range drafts; invalid typed values
+must be corrected by direct entry. Native number-input arrow stepping is disabled
+so it cannot bypass these controls.
+
+Direct entry above 20 or of a fraction is not clamped or reverted: the edit stays
+visible with targeted Core feedback. Clearing an input removes its key from the
+replacement allocation map. Remaining points are presentation arithmetic over the
+entered values, not another validator. Core still enforces all seven allocations,
+integer/range constraints, and the exact budget, including for hook commands that
+the controls cannot emit.
 
 ## Asynchronous behavior and feedback
 
-The hook refreshes the snapshot when a selection starts and settles. Session
-liveness and per-operation request identities prevent obsolete or unmounted
-completions from refreshing the UI, logging failures, or opening a modal. A new
-race intent invalidates outstanding bonus operations; different bonus groups can
-resolve independently. Core owns which answers and effects remain valid.
+The hook refreshes when a content selection starts and settles. Session liveness
+and request identities prevent obsolete completions from refreshing the UI,
+logging failures, or opening a modal. A new race intent invalidates outstanding
+bonus operations; different bonus groups can resolve independently.
 
 A pending or failed race change disables bonus editing and suppresses the old
-preview, but leaves race browsing available. Cancel restores the committed race;
-retained unresolved bonus selections require resubmission. Resolved groups stay
-editable, and invalid answers remain visible without granting effects. An
-individual skill load does not hide unrelated valid grants or racial baselines.
+race effects and all generation contributions, including favored flags and Luck's
+rolled contribution. Luck's baseline remains 30. Cancel restores the committed
+race and retained generation effects; a successful change recalculates against the
+new racial baselines without clearing generation drafts. Retained unresolved bonus
+selections require resubmission, while resolved groups stay editable. An individual
+bonus failure does not suppress unrelated valid groups. Core owns these decisions.
 
 Shared accessible spinners are scoped to catalog initialization, race browsing,
 race selection, or the individual skill group. Content failures are logged and
 shown through the generic “Something went wrong!” modal, not technical inline
-messages. Selection logs contain Core's detached issues, not the adapter's original
-error or cause. OK acknowledges the failure without clearing Core's failed state;
-retry and cancel controls remain available. A new failed retry can open the modal
-again. Ordinary choice validation and superseded results do not trigger operational
-error feedback. The bold “Choose N” label replaces redundant selection-count
-messages, but Core still enforces that requirement.
+messages. Selection logs contain detached Core issues rather than the adapter's
+original error or cause. OK acknowledges a failure without clearing Core's failed
+state; retry and cancel remain available, and a failed retry can reopen the modal.
+
+Ordinary validation stays inline, with restrained incomplete-state feedback. Display
+filters use `field`, `code`, `characteristic`, and `rollId`, never parsed message
+text. They do not remove Core issues or relax navigation/completeness guards:
+
+- Favored-count feedback is omitted in favor of the static instruction, and the
+  method-required message is omitted.
+- Routine `invalid-assignment` messages are omitted. `roll-count` is hidden only for
+  an empty pool; count/dice errors for a supplied invalid pool remain visible.
+- Luck identity/dice errors are hidden only when no roll exists. Invalid supplied
+  Luck rolls still show their Core errors.
+- Point-budget and generic/missing-allocation messages are omitted; supplied invalid
+  numeric values retain their characteristic-targeted feedback.
+
+Superseded results are not operational failures. Failed race content still blocks
+completion even after its error modal is acknowledged.
+
+## Preview and navigation
+
+The preview is independent of the selected editor. Its controlled name input writes
+each change through Core's `setName` command, preserving exact input including empty
+strings and whitespace. “Unnamed Character” is a placeholder only. Name edits do
+not fetch content or affect validation and remain available during content failures.
+
+`components/CharacterPreview.tsx` renders Race, Characteristics, Traits, and Skills
+from the detached Core preview. The responsive characteristic table has columns
+Characteristic, Baseline, Generated, Favored, and Total, in that order. Generated is
+Core's `rolled` field for either method. Total is only `baseline + rolled`: it adds
+neither a favored bonus nor modifiers and is not a final modified score. Favored
+entries show an accessible checkmark; non-favored cells are blank. Rows with any
+baseline, generated contribution, or favored flag are visible, so Luck's baseline
+row appears even without a race. The table does not require explanatory product
+prose. Traits retain keys/parameters and skills retain resolved ranks; unresolved
+labels fall back to readable keys and placeholder descriptions are omitted.
+
+Core registers only `race` then `characteristics`. Valid race answers enable Next;
+Back preserves answers. Invalidating an earlier step blocks Core finish eligibility
+without automatically moving the current step. Forge does not call `finish()`,
+offer a Finish action, or claim complete character creation.
 
 ## Testing strategy
 
-Integration tests use the real `CharacterCreator` with small injectable catalogs.
-`test/testCatalog.ts` supplies content fixtures; `test/forgeTestHelpers.tsx` supplies shared
-rendering helpers and explicitly released deferred reads. Request ordering is
-controlled without timer sleeps or mocked rule results.
+Integration tests use real Core creators, injectable catalogs, browser dice sources,
+and explicitly settled deferred reads, not timer sleeps or mocked rules.
+`test/testCatalog.ts` supplies content fixtures; `test/forgeTestHelpers.tsx` supplies
+rendering, row assertions, and controlled reads. Tests verify actual preview cells
+as well as detached drafts and command results.
 
-The Forge tests exercise observable selections, preview effects, scoped loading,
-acknowledgment/retry behavior, invalid content, and late completions across route
-exit and fresh sessions. Browser-catalog tests cover transport validation and
-request sharing; provider tests cover shared initialization across remounts.
-Hook tests exercise transient unknown-choice results that snapshot-driven controls
-cannot submit, retained internal answers, and actual navigation handler results.
-Core tests remain responsible for the shared mechanics themselves.
+Coverage spans both generation methods, equal-total identity, whole-map edits,
+reroll isolation, method/navigation retention including cleared allocations,
+independent valid-group projection, race suppression/cancel/recalculation, and
+generation session isolation across route exit or catalog replacement. Hook tests
+cover invalid inputs that the UI prevents and all-step finish guards from either
+step. Component tests cover keyboard/touch interaction, tooltip/menu composition,
+focus return, controlled limits, and useful invalid numeric feedback. Core tests
+remain responsible for shared rules and calculations.
 
-`scripts/content-pipeline.test.ts` compiles the authored YAML to temporary files
-under `/tmp/opencode`, then reads those files through the real browser catalog and
-creator. Its file-backed fetch seam models a static host's single URL-decoding
-pass. This checks the published artifact contract without a live development
-server or committed generated catalogs. Script checks include DOM and Vite types
-for this cross-environment test; Node types remain outside the browser config.
+`scripts/content-pipeline.test.ts` compiles YAML to temporary files under
+`/tmp/opencode`, then reads those files through the real browser catalog and creator.
+Its file-backed fetch seam models a static host's single URL-decoding pass. Script
+checks include DOM and Vite types; Node types stay outside the browser config.
 
-Run `pnpm --filter @wayshrine/creation-kit test` for browser integration and content
-compiler tests, and `pnpm --filter @wayshrine/core test` for the shared rules.
+Run `pnpm --filter @wayshrine/creation-kit test` for frontend and content compiler
+tests, and `pnpm --filter @wayshrine/core test` for shared type and rule checks.
 
 ## Limitations and extension boundaries
 
-New step editors should replace only the editor slot in `ForgeWorkspace`.
-Keep Core navigation and rules authoritative: do not add a React wizard, duplicate
-choice validation, or calculate character rules in presentation code. The shared
-catalog outlives the Forge, and the preview remains independent of individual editors.
-Reuse `ChoiceGroupField`, `useContentSummaries`, `LoadingIndicator`, and `ErrorModal`
-for new editors, adapting each step's snapshot and named commands locally. Keep
-these modules feature-local until another tool actually needs them; do not promote
-them application-wide or split the preview into speculative sections in advance.
+Only race and characteristic generation are implemented, not the remaining
+character-creation or advancement rules. There is no Foundry runtime integration.
+For Core state/projection boundaries, see
+[generation engineering notes](characteristic-generation.md).
 
-Core registers `race` then `characteristics`. Back and Next delegate to Core's
-`previous()` and `next()` guards: valid race answers now enable Next, and moving to
-characteristics enables Back. However, `CharacterForge.tsx` still renders `RaceStep`
-unconditionally, and the hook does not expose generation commands. Advancing
-changes Core's current step and breadcrumbs without displaying a generation editor.
-Frontend followup must select the editor by current step, expose the public
-generation commands, and update navigation tests through the real UI/hook boundary.
-The UI does not call `finish()` or claim character completion; Core finish now
-requires both implemented steps, not just valid race answers. Neither component
-implements the remaining character-creation rules.
-
-The preview's prominent controlled “Character name” input writes every change
-through the hook to Core's synchronous `setName` command. Name is a session-wide
-answer and character data field, initially an empty string. Core stores the exact
-input, including empty strings and whitespace; “Unnamed Character” is only a UI
-placeholder, and no draft suffix is stored. Name edits do not fetch content or
-affect race validation. They remain available during pending/failed content loads
-and survive race changes, retries, and cancellation. Disposing the creator clears
-the name; stale hook callbacks cannot rename a replacement session.
-
-The preview renders Race, Characteristics, Traits,
-and Skills from Core data. It shows nonzero baselines, trait keys and parameters,
-and resolved skill ranks, not rolled characteristics or calculated final statistics.
-Luck's default baseline is 30 even before a race is selected, so the current
-baseline-only presentation can show Luck rather than the empty-characteristics
-placeholder. Consumer expectations of an all-zero default preview must change.
-There is no localization system: unresolved labels fall back to readable keys and
-placeholder descriptions are omitted.
-
-Core implements characteristic generation; the browser has no generation editor
-or generated-score presentation yet, and there is no Foundry integration. See the
-[generation engineering notes](characteristic-generation.md) for state, projection,
-and integration boundaries. Content is pinned
-to the application catalog's revision; updates require a fresh runtime/catalog
-and creator rather than swapping content within an active session. See the
-[static content maintenance instructions](../../README.md#creation-kit-static-content)
-for generation and reload behavior.
+New editors should replace only the workspace editor slot and continue using Core
+snapshots and guards. Keep shared UI feature-local until another tool needs it;
+do not introduce a second wizard or rules calculator. The application catalog
+outlives Forge sessions and represents a pinned revision. Content updates require
+a fresh runtime/catalog and creator rather than swapping definitions inside a
+session; see the [static content maintenance instructions](../../README.md#creation-kit-static-content).

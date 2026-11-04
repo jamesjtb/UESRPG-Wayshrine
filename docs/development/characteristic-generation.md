@@ -56,15 +56,67 @@ clears assignments, even when IDs are reused; hosts must explicitly reassign it.
 Replacing Luck has no shared-pool side effects. Do not turn map replacements into
 merges or make inactive-draft edits switch methods.
 
+### Creation Kit integration
+
+Forge selects its race and generation editors from Core's `currentStep`, keeping
+the session, workspace, preview, and Back/Next controls above them.
+`useCharacterCreator` exposes `setFavoredCharacteristics`,
+`setCharacteristicGenerationMethod`, `submitCharacteristicRolls`,
+`setCharacteristicAssignments`, `setCharacteristicAllocations`, and `submitLuckRoll`.
+They use public Core types, refresh detached snapshots and previews, and are bound
+to the originating session. Catalog replacement or route exit disposes that session;
+retained callbacks and obsolete content completions cannot affect its replacement.
+
+Browser randomness lives in the feature-local `createCharacteristicRoller(random)`
+seam, injectable through Forge. Pool and Luck controls say “Roll” or “Reroll” and
+acquire dice only on activation. A pool reroll submits seven identified rolls and
+clears assignments through Core; Luck replacement remains independent.
+
+Roll tiles show totals and assigned characteristic captions, retaining IDs
+internally and distinguishing equal totals with ordinal accessible names.
+Tooltips expose die math on hover/focus, with touch
+events enabled. An unassigned tile opens a tile-anchored, label-only menu of
+available characteristics; an assigned tile directly unassigns on click, tap, or
+keyboard activation. Moving therefore requires unassigning before choosing a new
+target. The shared `AssignmentMenu` knows only its trigger, options, and selection
+callback. Luck tile activation instead toggles an inline breakdown. Pool menus do
+not contain dice details or validation. See [Forge engineering notes](character-forge.md)
+for interaction ownership and focus handling.
+
+The browser does not choose a method automatically. Its first explicit point-buy
+selection supplies seven zeros only if the stored allocation map is empty; a
+private per-session flag preserves prepopulated drafts and later partial/cleared
+maps. This is a host default via commands, not a Core default. Compact point-buy
+cards use linked labels and inline icon-only minus/input/plus controls with 44px
+button targets. UI entry cannot submit negative values; typed minus signs are
+ignored and negative numeric pastes normalize to zero. Direct values above 20 or
+fractions remain invalid Core drafts with inline feedback. Clearing a field removes
+its key. Budget display and stepper guards are presentation conveniences, not
+substitutes for Core validation. Favored and racial choices share the controlled
+`LimitedCheckboxGroup`, without inventing another domain choice object.
+
+Forge filters routine incomplete-state messages by structured issue targets/codes,
+without changing Core issues or guards. Missing method/favored-count, routine
+assignment, empty-pool count, absent-Luck, and routine allocation/budget feedback
+are restrained; actual supplied invalid dice and numeric edits retain actionable
+feedback. Invalid groups still lose their contributions independently. Pending or
+failed race changes suppress all generation effects except Luck's baseline; cancel
+restores them, and a successful change reapplies retained drafts to new baselines.
+
+The preview columns are Characteristic, Baseline, Generated, Favored, and Total.
+Baseline, Generated (`rolled` for both methods), and Favored come from Core; Total
+is presentation-only `baseline + rolled`. It applies no favored bonus or modifiers.
+Favored entries have an accessible check; other cells in that column are blank.
+Luck's default baseline remains visible even before race selection. No explanatory
+totals prose is required in the product UI.
+
 Only race and characteristic generation are implemented, not full character
-creation. The browser still renders its race editor unconditionally; see
+creation. Forge has no Finish action and no Foundry runtime integration; see
 [Forge limitations](character-forge.md#limitations-and-extension-boundaries).
-Frontend followup must expose generation commands and route editors by Core's
-current step, without duplicating validation or generating dice inside Core.
 
 Core tests separate numeric/identity rules, creator retention/isolation and
 projection, and package-entry-point host flows. The public host test compares
 submission issues, full active validation, step completeness, strict calculation,
-and finished data while correcting invalid submissions. Consumer tests must model
-the two registered steps and the default Luck baseline rather than assuming a
-race-only creator or an entirely zero-characteristic preview.
+and finished data while correcting invalid submissions. Consumer tests exercise
+both registered steps and the default Luck baseline, independently valid preview
+groups, draft retention, race-change suppression/restoration, and session isolation.

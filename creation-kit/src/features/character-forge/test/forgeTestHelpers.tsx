@@ -11,14 +11,19 @@ import {
 import { deferred } from "../../../test/content";
 import { CharacterForge } from "../CharacterForge";
 import { fixtureCatalog } from "./testCatalog";
+import { rollCharacteristicDice } from "../steps/characteristics/dice";
+import type { CharacteristicRoller } from "../steps/characteristics/dice";
 
-export function renderForge(catalog = fixtureCatalog()) {
+export function renderForge(
+  catalog = fixtureCatalog(),
+  rollDice: CharacteristicRoller = rollCharacteristicDice,
+) {
   return render(
     <StrictMode>
       <MantineProvider env="test">
         <ContentCatalogProvider loadCatalog={async () => catalog}>
           <ContentCatalogStatus />
-          <CharacterForge />
+          <CharacterForge rollDice={rollDice} />
         </ContentCatalogProvider>
       </MantineProvider>
     </StrictMode>,
@@ -33,6 +38,64 @@ export async function selectRace(label: string) {
 
 export function sheet() {
   return within(screen.getByRole("region", { name: "Character sheet" }));
+}
+
+export function characteristicRow(label: string) {
+  const header = sheet().getByRole("rowheader", { name: label });
+  return within(header.closest("tr")!);
+}
+
+export function expectCharacteristicBaseline(label: string, baseline: number) {
+  expect(characteristicRow(label).getAllByRole("cell")[0]).toHaveProperty(
+    "textContent",
+    String(baseline),
+  );
+}
+
+export function expectCharacteristic(
+  label: string,
+  expected: {
+    baseline: number;
+    generated: number;
+    favored: boolean;
+    total: number;
+  },
+) {
+  const row = characteristicRow(label);
+  const cells = row.getAllByRole("cell");
+  expect(cells[0]).toHaveProperty("textContent", String(expected.baseline));
+  expect(cells[1]).toHaveProperty("textContent", String(expected.generated));
+  if (expected.favored)
+    expect(row.getByRole("img", { name: "Favored" })).toBeTruthy();
+  else {
+    expect(cells[2]).toHaveProperty("textContent", "");
+    expect(
+      within(cells[2]!).queryByRole("img", { name: "Favored" }),
+    ).toBeNull();
+  }
+  expect(cells[3]).toHaveProperty("textContent", String(expected.total));
+}
+
+export async function fillPointBuy(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("radio", { name: "Point buy" }));
+  const amounts = {
+    Strength: 20,
+    Endurance: 20,
+    Agility: 20,
+    Intelligence: 10,
+    Willpower: 10,
+    Perception: 0,
+    Personality: 0,
+  };
+  for (const [label, amount] of Object.entries(amounts)) {
+    const input = screen.getByRole("textbox", { name: `${label} points` });
+    await user.clear(input);
+    await user.type(input, String(amount));
+  }
+  await user.click(screen.getByRole("checkbox", { name: "Strength" }));
+  await user.click(screen.getByRole("checkbox", { name: "Endurance" }));
+  const luck = within(screen.getByRole("group", { name: "Luck roll" }));
+  await user.click(luck.getByRole("button", { name: "Roll" }));
 }
 
 /** Each gate holds exactly one matching read; tests explicitly settle every gate. */
@@ -66,5 +129,19 @@ export function expectNavigationBlocked() {
   expect(navigation.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
     true,
+  );
+}
+
+export function expectRaceCanAdvance() {
+  const navigation = within(
+    screen.getByRole("navigation", { name: "Character creation navigation" }),
+  );
+  expect(navigation.getByRole("button", { name: "Back" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+  expect(navigation.getByRole("button", { name: "Next" })).toHaveProperty(
+    "disabled",
+    false,
   );
 }

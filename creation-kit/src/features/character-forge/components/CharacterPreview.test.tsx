@@ -1,12 +1,17 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { CharacterCreator, SkillRank } from "@wayshrine/core";
 import { describe, expect, it } from "vitest";
 import { CharacterPreview } from "./CharacterPreview";
 import { fixtureCatalog } from "../test/testCatalog";
 
+function characteristicCells(label: string) {
+  const header = screen.getByRole("rowheader", { name: label });
+  return within(header.closest("tr")!).getAllByRole("cell");
+}
+
 describe("CharacterPreview", () => {
-  it("shows independent empty sections without Core's default zero characteristics", () => {
+  it("shows independent empty sections and Core's default Luck baseline", () => {
     const creator = new CharacterCreator(fixtureCatalog());
     render(
       <MantineProvider env="test">
@@ -27,16 +32,30 @@ describe("CharacterPreview", () => {
     expect(screen.getByRole("heading", { name: "Traits" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Skills" })).toBeTruthy();
     expect(screen.getByText("No race selected.")).toBeTruthy();
-    expect(screen.getByText("No characteristics.")).toBeTruthy();
+    expect(
+      screen.getAllByRole("columnheader").map((header) => header.textContent),
+    ).toEqual(["Characteristic", "Baseline", "Generated", "Favored", "Total"]);
+    expect(characteristicCells("Luck").map((cell) => cell.textContent)).toEqual(
+      ["30", "0", "", "30"],
+    );
+    expect(screen.queryByText("No characteristics.")).toBeNull();
     expect(screen.getByText("No traits.")).toBeTruthy();
     expect(screen.getByText("No skills.")).toBeTruthy();
-    expect(screen.queryByText(/Str: 0|Lck: 0/)).toBeNull();
+    expect(screen.queryByRole("rowheader", { name: "Strength" })).toBeNull();
+    expect(screen.getAllByRole("rowheader")).toHaveLength(1);
   });
 
   it("renders current characteristics, traits and skills even without a race", () => {
     const creator = new CharacterCreator(fixtureCatalog());
     const preview = creator.getCharacterPreview();
-    preview.updateCharacteristic("str", { baseline: 27 });
+    preview.updateCharacteristic("str", {
+      baseline: 27,
+      rolled: 5,
+      favored: true,
+      modifiers: [{ sourceId: "bonus", sourceText: "A modifier", value: 9 }],
+    });
+    preview.updateCharacteristic("ag", { rolled: 7 });
+    preview.updateCharacteristic("int", { favored: true });
     preview.traits = [{ traitKey: "magicResistance", params: { X: 10 } }];
     preview.skills = [
       {
@@ -50,7 +69,27 @@ describe("CharacterPreview", () => {
       </MantineProvider>,
     );
     expect(screen.getByText("No race selected.")).toBeTruthy();
-    expect(screen.getByText("Str: 27")).toBeTruthy();
+    const strength = characteristicCells("Strength");
+    expect(strength[0]).toHaveProperty("textContent", "27");
+    expect(strength[1]).toHaveProperty("textContent", "5");
+    expect(
+      within(strength[2]!).getByRole("img", { name: "Favored" }),
+    ).toBeTruthy();
+    expect(strength[3]).toHaveProperty("textContent", "32");
+    expect(
+      characteristicCells("Agility").map((cell) => cell.textContent),
+    ).toEqual(["0", "7", "", "7"]);
+    expect(
+      within(characteristicCells("Intelligence")[2]!).getByRole("img", {
+        name: "Favored",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText("Totals are baseline + generated, before modifiers."),
+    ).toBeNull();
+    expect(
+      screen.getByRole("table", { name: "Characteristic preview" }),
+    ).toBeTruthy();
     expect(screen.getByText("Magic Resistance (X: 10)")).toBeTruthy();
     expect(screen.getByText("Custom Skill (Apprentice)")).toBeTruthy();
     expect(screen.queryByText("No traits.")).toBeNull();

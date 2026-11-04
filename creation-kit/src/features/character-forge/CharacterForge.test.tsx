@@ -8,7 +8,11 @@ import { fixtureCatalog } from "./test/testCatalog";
 import { App } from "../../app/App";
 import { BrowserContentCatalog } from "../../lib/content/BrowserContentCatalog";
 import { contentKinds } from "../../lib/content/artifacts";
-import { renderForge, selectRace } from "./test/forgeTestHelpers";
+import {
+  expectCharacteristicBaseline,
+  renderForge,
+  selectRace,
+} from "./test/forgeTestHelpers";
 
 function nextButton() {
   return screen.getByRole("button", { name: "Next" });
@@ -109,7 +113,9 @@ describe("Character Forge race editing", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(nextButton()).toHaveProperty("disabled", true);
     expect(screen.queryByRole("status", { name: "Loading race" })).toBeNull();
-    expect(preview().queryByText("Int: 30")).toBeNull();
+    expect(
+      preview().queryByRole("rowheader", { name: "Intelligence" }),
+    ).toBeNull();
     expect(
       screen.getByRole("button", { name: "Retry race selection" }),
     ).toBeTruthy();
@@ -131,7 +137,7 @@ describe("Character Forge race editing", () => {
       screen.getByRole("button", { name: "Retry race selection" }),
     );
     await screen.findByRole("checkbox", { name: "Alchemy" });
-    expect(preview().getByText("Int: 30")).toBeTruthy();
+    expectCharacteristicBaseline("Intelligence", 30);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(error).toHaveBeenCalledTimes(2);
   });
@@ -177,7 +183,7 @@ describe("Character Forge race editing", () => {
     renderForge(catalog);
     await screen.findByRole("combobox", { name: "Race" });
     expect(get).not.toHaveBeenCalled();
-    expect(screen.queryByText("Str: 0")).toBeNull();
+    expect(preview().queryByRole("rowheader", { name: "Strength" })).toBeNull();
     expect(preview().getByText("No race selected.")).toBeTruthy();
     expect(screen.queryByText(/No final statistics/)).toBeNull();
     await selectRace("Altmer");
@@ -201,7 +207,7 @@ describe("Character Forge race editing", () => {
     expect(preview().getByRole("heading", { name: "Traits" })).toBeTruthy();
     expect(preview().getByRole("heading", { name: "Skills" })).toBeTruthy();
     expect(preview().getByText("No skills.")).toBeTruthy();
-    expect(preview().getByText("Int: 30")).toBeTruthy();
+    expectCharacteristicBaseline("Intelligence", 30);
     expect(
       preview().getByText("Magic Weakness (Type: magic, X: 2)"),
     ).toBeTruthy();
@@ -220,7 +226,7 @@ describe("Character Forge race editing", () => {
     );
     expect(stepNavigation.getByRole("button", { name: "Next" })).toHaveProperty(
       "disabled",
-      true,
+      false,
     );
     expect(get.mock.calls.filter(([kind]) => kind === "skill")).toEqual([
       ["skill", "alchemy"],
@@ -229,7 +235,6 @@ describe("Character Forge race editing", () => {
       screen.queryByRole("button", { name: "Confirm race choices" }),
     ).toBeNull();
     expect(screen.queryByText(/Race choices confirmed/)).toBeNull();
-    await user.click(nextButton());
     expect(finish).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
     expect(screen.getByRole("checkbox", { name: "Alteration" })).toHaveProperty(
@@ -246,7 +251,7 @@ describe("Character Forge race editing", () => {
       false,
     );
     expect(preview().getByText("Alchemy (Novice)")).toBeTruthy();
-    expect(nextButton()).toHaveProperty("disabled", true);
+    expect(nextButton()).toHaveProperty("disabled", false);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByText(/Choose exactly/)).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
@@ -260,7 +265,7 @@ describe("Character Forge race editing", () => {
     expect(await preview().findByText("Alteration (Novice)")).toBeTruthy();
     await selectRace("Argonian");
     await waitFor(() => expect(screen.queryByRole("checkbox")).toBeNull());
-    expect(nextButton()).toHaveProperty("disabled", true);
+    expect(nextButton()).toHaveProperty("disabled", false);
     expect(preview().getByText("A plain description.")).toBeTruthy();
     expect(preview().queryByText("Alteration (Novice)")).toBeNull();
   });
@@ -283,7 +288,7 @@ describe("Character Forge race editing", () => {
     await user.click(none.getByRole("checkbox", { name: "Alchemy" }));
     expect(none.getByRole("checkbox")).toHaveProperty("disabled", true);
     expect(none.getByRole("checkbox")).toHaveProperty("checked", false);
-    expect(nextButton()).toHaveProperty("disabled", true);
+    expect(nextButton()).toHaveProperty("disabled", false);
   });
 
   it("shows an empty race list without a picker or definition reads", async () => {
@@ -346,7 +351,9 @@ describe("Character Forge race editing", () => {
     await screen.findByRole("button", { name: "Retry race selection" });
     await screen.findByRole("dialog", { name: "Something went wrong!" });
     await user.click(screen.getByRole("button", { name: "OK" }));
-    expect(preview().queryByText("Int: 30")).toBeNull();
+    expect(
+      preview().queryByRole("rowheader", { name: "Intelligence" }),
+    ).toBeNull();
     expect(screen.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(
       "disabled",
       true,
@@ -434,7 +441,7 @@ describe("Character Forge race editing", () => {
     await preview().findByText("Argonian");
     await act(async () => pending.reject(new Error("obsolete JSON failure")));
     expect(preview().getByText("Argonian")).toBeTruthy();
-    expect(nextButton()).toHaveProperty("disabled", true);
+    expect(nextButton()).toHaveProperty("disabled", false);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(console.error).not.toHaveBeenCalled();
   });
@@ -472,7 +479,7 @@ describe("Character Forge race editing", () => {
     ).toHaveLength(1);
     expect(editor.queryByRole("status", { name: "Loading race" })).toBeNull();
     expect(sheet.getByText("Altmer")).toBeTruthy();
-    expect(sheet.getByText("Int: 30")).toBeTruthy();
+    expectCharacteristicBaseline("Intelligence", 30);
     expect(sheet.getByText("Magic Weakness (Type: magic, X: 2)")).toBeTruthy();
     expect(sheet.queryByText("Alchemy (Novice)")).toBeNull();
     expect(screen.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(

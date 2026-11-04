@@ -8,6 +8,8 @@ import { deferred } from "../../test/content";
 import {
   controlledReads,
   expectNavigationBlocked,
+  expectRaceCanAdvance,
+  expectCharacteristicBaseline,
   renderForge,
   selectRace,
   sheet,
@@ -48,7 +50,9 @@ describe("Character Forge content validation", () => {
         ]),
       );
       expect(sheet().getByText("No race selected.")).toBeTruthy();
-      expect(sheet().queryByText("Int: 30")).toBeNull();
+      expect(
+        sheet().queryByRole("rowheader", { name: "Intelligence" }),
+      ).toBeNull();
       expect(sheet().queryByText(/Magic Weakness/)).toBeNull();
       expectNavigationBlocked();
       await user.click(screen.getByRole("button", { name: "OK" }));
@@ -141,7 +145,7 @@ describe("Character Forge content validation", () => {
       "Argonian",
     );
     expect(screen.queryByRole("status", { name: "Loading race" })).toBeNull();
-    expectNavigationBlocked();
+    expectRaceCanAdvance();
   });
 
   it.each(["schema", "revision"])(
@@ -173,7 +177,7 @@ describe("Character Forge content validation", () => {
         ]),
       );
       expect(sheet().getByText("No skills.")).toBeTruthy();
-      expect(sheet().getByText("Int: 30")).toBeTruthy();
+      expectCharacteristicBaseline("Intelligence", 30);
       expectNavigationBlocked();
     },
   );

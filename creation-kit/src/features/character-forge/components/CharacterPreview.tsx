@@ -1,7 +1,11 @@
-import { List, Stack, Text, TextInput, Title } from "@mantine/core";
+import { List, Stack, Table, Text, TextInput, Title } from "@mantine/core";
+import { IconCheck } from "@tabler/icons-react";
 import type { CharacterCreator } from "@wayshrine/core";
 import { SkillRank } from "@wayshrine/core";
 import { plainDescription, readableLabel } from "../labels";
+import { characteristicLabels } from "../steps/characteristics/characteristicLabels";
+
+const previewCharacteristicLabels = { ...characteristicLabels, lck: "Luck" };
 
 type Preview = ReturnType<CharacterCreator["getCharacterPreview"]>;
 
@@ -26,10 +30,9 @@ export function CharacterPreview({
 }) {
   const race = preview.race;
   const description = plainDescription(race?.description ?? "");
-  // Core initializes unused characteristics to zero. Show supplied baselines,
-  // without deriving rolled/final scores or relying on race-owned field lists.
+  // Hide only unused rows. Core owns generation contributions and favored flags.
   const characteristics = Object.values(preview.characteristics).filter(
-    (value) => value.baseline !== 0,
+    (value) => value.baseline !== 0 || value.rolled !== 0 || value.favored,
   );
   return (
     <Stack>
@@ -49,13 +52,59 @@ export function CharacterPreview({
       {description && <Text>{description}</Text>}
       <Title order={3}>Characteristics</Title>
       {characteristics.length === 0 && <Text>No characteristics.</Text>}
-      <List>
-        {characteristics.map((value) => (
-          <List.Item key={value.characteristicKey}>
-            {readableLabel(value.characteristicKey)}: {value.baseline}
-          </List.Item>
-        ))}
-      </List>
+      {characteristics.length > 0 && (
+        <Table.ScrollContainer
+          minWidth={360}
+          type="native"
+          tabIndex={0}
+          aria-label="Characteristic table scrolling"
+        >
+          <Table
+            aria-label="Characteristic preview"
+            horizontalSpacing={6}
+            verticalSpacing={4}
+            fz="sm"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th scope="col">Characteristic</Table.Th>
+                <Table.Th scope="col" ta="right">
+                  Baseline
+                </Table.Th>
+                <Table.Th scope="col" ta="right">
+                  Generated
+                </Table.Th>
+                <Table.Th scope="col" ta="center">
+                  Favored
+                </Table.Th>
+                <Table.Th scope="col" ta="right">
+                  Total
+                </Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {characteristics.map((value) => (
+                <Table.Tr key={value.characteristicKey}>
+                  <Table.Th scope="row" fw={500}>
+                    {previewCharacteristicLabels[value.characteristicKey]}
+                  </Table.Th>
+                  <Table.Td ta="right">{value.baseline}</Table.Td>
+                  <Table.Td ta="right">{value.rolled}</Table.Td>
+                  <Table.Td ta="center">
+                    {value.favored && (
+                      <IconCheck size={16} role="img" aria-label="Favored" />
+                    )}
+                  </Table.Td>
+                  <Table.Td ta="right" fw={600}>
+                    {value.baseline + value.rolled}
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
+      )}
       <Title order={3}>Traits</Title>
       {preview.traits.length === 0 && <Text>No traits.</Text>}
       <List>

@@ -6,6 +6,7 @@ import { fixtureCatalog } from "./test/testCatalog";
 import {
   controlledReads,
   expectNavigationBlocked,
+  expectRaceCanAdvance,
   renderForge,
   selectRace,
   sheet,
@@ -44,7 +45,7 @@ describe("Character Forge asynchronous selections", () => {
       expect(reads.get).not.toHaveBeenCalledWith("trait", "magicWeakness");
       expect(screen.queryByRole("dialog")).toBeNull();
       expect(console.error).not.toHaveBeenCalled();
-      expectNavigationBlocked();
+      expectRaceCanAdvance();
     },
   );
 
@@ -131,7 +132,7 @@ describe("Character Forge asynchronous selections", () => {
     expect(console.error).not.toHaveBeenCalled();
     await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
     await sheet().findByText("Alchemy (Novice)");
-    expectNavigationBlocked();
+    expectRaceCanAdvance();
   });
 
   it("blocks excess selections during loading without superseding the pending answer", async () => {
@@ -205,7 +206,7 @@ describe("Character Forge asynchronous selections", () => {
       expect(
         screen.queryByRole("status", { name: "Loading skills" }),
       ).toBeNull();
-      expectNavigationBlocked();
+      expectRaceCanAdvance();
     },
   );
 
@@ -288,7 +289,9 @@ describe("Character Forge asynchronous selections", () => {
     await sheet().findByText("Alchemy (Novice)");
     await selectRace("Argonian");
     expect(sheet().queryByText("Alchemy (Novice)")).toBeNull();
-    expect(sheet().queryByText("Int: 30")).toBeNull();
+    expect(
+      sheet().queryByRole("rowheader", { name: "Intelligence" }),
+    ).toBeNull();
     expect(pair.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(
       "checked",
       true,

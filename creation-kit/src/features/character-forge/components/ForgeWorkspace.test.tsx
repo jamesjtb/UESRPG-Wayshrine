@@ -6,6 +6,7 @@ import type { ContentCatalog } from "@wayshrine/core";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fixtureCatalog } from "../test/testCatalog";
+import { expectCharacteristicBaseline } from "../test/forgeTestHelpers";
 import { useCharacterCreator } from "../useCharacterCreator";
 import { CharacterPreview } from "./CharacterPreview";
 import { ForgeWorkspace } from "./ForgeWorkspace";
@@ -71,7 +72,8 @@ describe("ForgeWorkspace composition", () => {
     expect(previewPane.tabIndex).toBe(0);
     expect(navigation.closest("footer")).not.toBeNull();
     await user.click(screen.getByRole("button", { name: "Select Altmer" }));
-    await within(previewPane).findByText("Int: 30");
+    await within(previewPane).findByRole("rowheader", { name: "Intelligence" });
+    expectCharacteristicBaseline("Intelligence", 30);
     previewPane.scrollTop = 120;
     await user.click(screen.getByRole("button", { name: "Replace editor" }));
     expect(screen.queryByRole("button", { name: "Select Altmer" })).toBeNull();

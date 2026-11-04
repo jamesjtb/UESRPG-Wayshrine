@@ -1,10 +1,24 @@
 import { StrictMode } from "react";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CharacterCreator } from "@wayshrine/core";
+import type {
+  Characteristic,
+  CharacteristicAssignments,
+} from "@wayshrine/core";
 import { controlledReads } from "./test/forgeTestHelpers";
 import { fixtureCatalog } from "./test/testCatalog";
 import { useCharacterCreator } from "./useCharacterCreator";
+
+const zeroAllocations = {
+  str: 0,
+  end: 0,
+  ag: 0,
+  int: 0,
+  wp: 0,
+  prc: 0,
+  prs: 0,
+};
 
 describe("useCharacterCreator command boundary", () => {
   beforeEach(() => {
@@ -21,7 +35,13 @@ describe("useCharacterCreator command boundary", () => {
       "dismissError",
       "next",
       "previous",
+      "setCharacteristicAllocations",
+      "setCharacteristicAssignments",
+      "setCharacteristicGenerationMethod",
+      "setFavoredCharacteristics",
       "setName",
+      "submitCharacteristicRolls",
+      "submitLuckRoll",
       "view",
     ]);
     expect(Object.keys(result.current.view!).sort()).toEqual([
@@ -56,6 +76,248 @@ describe("useCharacterCreator command boundary", () => {
     expect(result.current.view!.preview.skills[0]?.skill.skillKey).toBe(
       "alchemy",
     );
+  });
+
+  it("initializes point buy only on its first selection and preserves partial and cleared drafts", () => {
+    const catalog = fixtureCatalog();
+    const reads = controlledReads(catalog);
+    const allocations = vi.spyOn(
+      CharacterCreator.prototype,
+      "setCharacteristicAllocations",
+    );
+    const { result } = renderHook(() => useCharacterCreator(catalog), {
+      wrapper: StrictMode,
+    });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual({});
+    act(() => result.current.setCharacteristicGenerationMethod("rolled"));
+    expect(allocations).not.toHaveBeenCalled();
+    act(() => {
+      expect(
+        result.current.setCharacteristicGenerationMethod("point-buy"),
+      ).toEqual({ ok: true, value: undefined });
+    });
+    expect(allocations).toHaveBeenCalledExactlyOnceWith(zeroAllocations);
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual(zeroAllocations);
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.complete,
+    ).toBe(false);
+    act(() => result.current.setCharacteristicGenerationMethod("point-buy"));
+    expect(allocations).toHaveBeenCalledTimes(1);
+    act(() => {
+      result.current.setCharacteristicAllocations({ str: 4 });
+      result.current.setCharacteristicGenerationMethod("rolled");
+      result.current.setCharacteristicGenerationMethod("point-buy");
+    });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual({ str: 4 });
+    act(() => {
+      result.current.setCharacteristicAllocations({});
+      result.current.setCharacteristicGenerationMethod("rolled");
+      result.current.setCharacteristicGenerationMethod("point-buy");
+    });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual({});
+    expect(allocations).toHaveBeenCalledTimes(3);
+    expect(reads.get).not.toHaveBeenCalled();
+    expect(result.current.view!.errorOpened).toBe(false);
+  });
+
+  it.each([{ str: 7 }, { str: -1 }])(
+    "preserves prepopulated inactive point-buy draft %j on first selection",
+    (draft) => {
+      const catalog = fixtureCatalog();
+      const allocations = vi.spyOn(
+        CharacterCreator.prototype,
+        "setCharacteristicAllocations",
+      );
+      const { result } = renderHook(() => useCharacterCreator(catalog));
+      act(() => result.current.setCharacteristicAllocations(draft));
+      expect(
+        result.current.view!.snapshot.characteristicGeneration.drafts.method,
+      ).toBeUndefined();
+      act(() => result.current.setCharacteristicGenerationMethod("point-buy"));
+      expect(allocations).toHaveBeenCalledExactlyOnceWith(draft);
+      expect(
+        result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+          .allocations,
+      ).toEqual(draft);
+      act(() => {
+        result.current.setCharacteristicAllocations({});
+        result.current.setCharacteristicGenerationMethod("rolled");
+        result.current.setCharacteristicGenerationMethod("point-buy");
+      });
+      expect(
+        result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+          .allocations,
+      ).toEqual({});
+      expect(result.current.view!.errorOpened).toBe(false);
+      expect(console.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it("binds first-selection tracking to each session and ignores stale initialization callbacks", () => {
+    const allocations = vi.spyOn(
+      CharacterCreator.prototype,
+      "setCharacteristicAllocations",
+    );
+    const { result, rerender, unmount } = renderHook(
+      ({ catalog }) => useCharacterCreator(catalog),
+      {
+        initialProps: { catalog: fixtureCatalog() },
+        wrapper: StrictMode,
+      },
+    );
+    const oldCommands = result.current;
+    act(() => oldCommands.setCharacteristicGenerationMethod("point-buy"));
+    expect(allocations).toHaveBeenCalledTimes(1);
+    rerender({ catalog: fixtureCatalog() });
+    const replacementView = result.current.view;
+    act(() => oldCommands.setCharacteristicGenerationMethod("point-buy"));
+    expect(result.current.view).toBe(replacementView);
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual({});
+    act(() => result.current.setCharacteristicGenerationMethod("point-buy"));
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual(zeroAllocations);
+    expect(allocations).toHaveBeenCalledTimes(2);
+    const retained = result.current.setCharacteristicGenerationMethod;
+    unmount();
+    act(() => expect(retained("point-buy")).toBeUndefined());
+    expect(allocations).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes generation drafts and previews while preserving invalid and inactive edits", async () => {
+    const catalog = fixtureCatalog();
+    const reads = controlledReads(catalog);
+    const pending = reads.hold("race", "argonian");
+    const { result, unmount } = renderHook(() => useCharacterCreator(catalog));
+    const keys: Characteristic[] = [
+      "str",
+      "end",
+      "ag",
+      "int",
+      "wp",
+      "prc",
+      "prs",
+    ];
+    const rolls = keys.map((key) => ({ id: key, dice: [5, 6] }));
+    const assignments: CharacteristicAssignments = {
+      str: "str",
+      end: "end",
+      ag: "ag",
+      int: "int",
+      wp: "wp",
+      prc: "prc",
+      prs: "prs",
+    };
+    act(() => {
+      result.current.setFavoredCharacteristics(["str", "end"]);
+      result.current.setCharacteristicGenerationMethod("rolled");
+      result.current.submitCharacteristicRolls(rolls);
+      result.current.setCharacteristicAssignments(assignments);
+      result.current.submitLuckRoll({ id: "luck", dice: [6, 7] });
+    });
+    expect(reads.get).not.toHaveBeenCalled();
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.complete,
+    ).toBe(true);
+    expect(result.current.view!.preview.characteristics.str.rolled).toBe(0);
+    act(() => result.current.chooseRace("argonian"));
+    act(() => result.current.setCharacteristicAllocations({ str: -1 }));
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual({ str: -1 });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.complete,
+    ).toBe(true);
+    await act(async () => pending.resolve());
+    expect(result.current.view!.preview.characteristics.str).toMatchObject({
+      rolled: 11,
+      favored: true,
+    });
+    expect(result.current.view!.preview.characteristics.lck.rolled).toBe(13);
+    act(() => result.current.setCharacteristicGenerationMethod("point-buy"));
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.issues,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "allocations",
+          characteristic: "str",
+        }),
+      ]),
+    );
+    expect(result.current.view!.preview.characteristics.str.rolled).toBe(0);
+    act(() => result.current.setCharacteristicGenerationMethod("rolled"));
+    expect(result.current.view!.preview.characteristics.str.rolled).toBe(11);
+    act(() => result.current.setCharacteristicAssignments({ str: "missing" }));
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.rolled
+        .assignments,
+    ).toEqual({ str: "missing" });
+    expect(result.current.view!.preview.characteristics.str.rolled).toBe(0);
+    act(() => result.current.setCharacteristicAssignments(assignments));
+    act(() => result.current.submitCharacteristicRolls(rolls));
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.rolled
+        .assignments,
+    ).toEqual({});
+    act(() => {
+      const invalid = result.current.submitCharacteristicRolls([
+        { id: "bad-roll", dice: [0, 11] },
+      ]);
+      expect(invalid).toMatchObject({
+        ok: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ field: "rolls", rollId: "bad-roll" }),
+        ]),
+      });
+    });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.rolled
+        .rolls,
+    ).toEqual([{ id: "bad-roll", dice: [0, 11] }]);
+    act(() => {
+      result.current.setFavoredCharacteristics(["str", "str"]);
+      result.current.submitLuckRoll({ id: "bad-luck", dice: [0, 11] });
+    });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.favored,
+    ).toEqual(["str", "str"]);
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.luck,
+    ).toEqual({ id: "bad-luck", dice: [0, 11] });
+    expect(result.current.view!.preview.characteristics.str.favored).toBe(
+      false,
+    );
+    expect(result.current.view!.preview.characteristics.lck.rolled).toBe(0);
+    expect(result.current.view!.errorOpened).toBe(false);
+    expect(console.error).not.toHaveBeenCalled();
+    const retained = result.current;
+    unmount();
+    act(() => {
+      retained.setFavoredCharacteristics([]);
+      retained.setCharacteristicGenerationMethod("rolled");
+      retained.submitCharacteristicRolls([]);
+      retained.setCharacteristicAssignments({});
+      retained.setCharacteristicAllocations({});
+      retained.submitLuckRoll({ id: "late", dice: [1, 1] });
+    });
   });
 
   it("publishes name edits immediately without disturbing pending or failed loads", async () => {
@@ -102,13 +364,55 @@ describe("useCharacterCreator command boundary", () => {
         { initialProps: { content: catalog }, wrapper: StrictMode },
       );
       const oldCommands = result.current;
+      act(() => {
+        oldCommands.setFavoredCharacteristics(["str", "end"]);
+        oldCommands.setCharacteristicGenerationMethod("rolled");
+        oldCommands.submitCharacteristicRolls([
+          { id: "old-draft", dice: [5, 6] },
+        ]);
+        oldCommands.setCharacteristicAssignments({ str: "old-draft" });
+        oldCommands.setCharacteristicAllocations({ str: 8 });
+        oldCommands.submitLuckRoll({ id: "old-luck", dice: [6, 7] });
+      });
       act(() => oldCommands.chooseRace("altmer"));
       const disposalsBeforeReplacement = dispose.mock.calls.length;
       const replacement = fixtureCatalog();
       rerender({ content: replacement });
       expect(dispose.mock.calls.length).toBe(disposalsBeforeReplacement + 1);
       expect(result.current.view!.snapshot.answers.raceKey).toBeUndefined();
+      expect(
+        result.current.view!.snapshot.characteristicGeneration.drafts,
+      ).toEqual({
+        method: undefined,
+        favored: [],
+        luck: undefined,
+        rolled: { rolls: [], assignments: {} },
+        pointBuy: { allocations: {} },
+      });
       await act(async () => result.current.chooseRace("argonian"));
+      expect(result.current.view!.preview.characteristics.str).toMatchObject({
+        baseline: 25,
+        rolled: 0,
+        favored: false,
+      });
+      expect(result.current.view!.preview.characteristics.lck).toMatchObject({
+        baseline: 30,
+        rolled: 0,
+      });
+      act(() => {
+        result.current.setFavoredCharacteristics(["ag", "wp"]);
+        result.current.setCharacteristicGenerationMethod("point-buy");
+        result.current.setCharacteristicAllocations({
+          str: 20,
+          end: 20,
+          ag: 20,
+          int: 10,
+          wp: 10,
+          prc: 0,
+          prs: 0,
+        });
+        result.current.submitLuckRoll({ id: "fresh-luck", dice: [3, 4] });
+      });
       const replacementView = result.current.view;
       await act(async () => {
         oldCommands.chooseRace("unknown");
@@ -118,11 +422,29 @@ describe("useCharacterCreator command boundary", () => {
         oldCommands.next();
         oldCommands.previous();
         oldCommands.setName("Obsolete name");
+        oldCommands.setFavoredCharacteristics(["str", "end"]);
+        oldCommands.setCharacteristicGenerationMethod("point-buy");
+        oldCommands.submitCharacteristicRolls([{ id: "old", dice: [5, 5] }]);
+        oldCommands.setCharacteristicAssignments({ str: "old" });
+        oldCommands.setCharacteristicAllocations({ str: 20 });
+        oldCommands.submitLuckRoll({ id: "old-luck", dice: [5, 5] });
         if (outcome === "success") oldRead.resolve();
         else oldRead.reject(new Error("obsolete catalog read"));
       });
       expect(result.current.view).toBe(replacementView);
       expect(result.current.view!.preview.race?.label).toBe("Argonian");
+      expect(result.current.view!.preview.characteristics.str).toMatchObject({
+        baseline: 25,
+        rolled: 20,
+        favored: false,
+      });
+      expect(result.current.view!.preview.characteristics.ag.favored).toBe(
+        true,
+      );
+      expect(result.current.view!.preview.characteristics.lck).toMatchObject({
+        baseline: 30,
+        rolled: 7,
+      });
       expect(console.error).not.toHaveBeenCalled();
       expect(await catalog.list("race")).toHaveLength(3);
       expect(await replacement.list("race")).toHaveLength(3);
@@ -231,7 +553,7 @@ describe("useCharacterCreator command boundary", () => {
     expect(console.error).toHaveBeenCalledTimes(1);
   });
 
-  it("delegates navigation to the real race-only creator without advancing or finishing in any state", async () => {
+  it("delegates guarded navigation and all-step finish eligibility to Core", async () => {
     const catalog = fixtureCatalog();
     const reads = controlledReads(catalog);
     const pending = reads.hold("race", "altmer");
@@ -280,10 +602,42 @@ describe("useCharacterCreator command boundary", () => {
     await act(async () =>
       result.current.chooseRacialBonus("altmer/magic", ["alchemy"]),
     );
-    await waitFor(() =>
-      expect(result.current.view!.snapshot.canFinish).toBe(true),
-    );
-    expectBlockedNavigation("last-step");
+    expect(result.current.view!.snapshot.canGoNext).toBe(true);
+    expect(result.current.view!.snapshot.canFinish).toBe(false);
+    const answers = result.current.view!.snapshot.answers;
+    act(() => result.current.next());
+    expect(next.mock.results.at(-1)?.value.ok).toBe(true);
+    expect(result.current.view!.snapshot.currentStep).toBe("characteristics");
+    expect(result.current.view!.snapshot.canGoPrevious).toBe(true);
+    expect(result.current.view!.snapshot.canGoNext).toBe(false);
+    expect(result.current.view!.snapshot.canFinish).toBe(false);
+    act(() => result.current.previous());
+    expect(result.current.view!.snapshot.currentStep).toBe("race");
+    expect(result.current.view!.snapshot.answers).toEqual(answers);
+    act(() => {
+      result.current.setFavoredCharacteristics(["str", "end"]);
+      result.current.setCharacteristicGenerationMethod("point-buy");
+      result.current.setCharacteristicAllocations({
+        str: 20,
+        end: 20,
+        ag: 20,
+        int: 10,
+        wp: 10,
+        prc: 0,
+        prs: 0,
+      });
+      result.current.submitLuckRoll({ id: "luck", dice: [5, 6] });
+    });
+    expect(result.current.view!.snapshot.canFinish).toBe(true);
+    act(() => result.current.next());
+    expect(result.current.view!.snapshot.currentStep).toBe("characteristics");
+    expect(result.current.view!.snapshot.canFinish).toBe(true);
+    act(() => result.current.next());
+    expect(next.mock.results.at(-1)?.value).toMatchObject({
+      ok: false,
+      issues: [expect.objectContaining({ code: "last-step" })],
+    });
+    expect(result.current.view!.snapshot.currentStep).toBe("characteristics");
     expect(result.current.view!.errorOpened).toBe(false);
     expect(result.current.view!.preview.skills).toHaveLength(1);
     expect(finish).not.toHaveBeenCalled();

@@ -1,0 +1,47 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, min(100%, 9.5rem));
+  align-items: start;
+  gap: 6px;
+}
+
+.card {
+  min-width: 0;
+  padding: 6px;
+  border: 2px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--mantine-color-default);
+}
+
+.label {
+  display: block;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.25;
+  text-align: center;
+}
+
+.value {
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 4px;
+}
+
+.input {
+  min-width: 0;
+}
+
+.stepper,
+.stepper:disabled {
+  background: transparent;
+  border: 0;
+}

@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { CharacterCreator } from "@wayshrine/core";
-import type { ContentCatalog, WizardResult } from "@wayshrine/core";
+import type {
+  Characteristic,
+  CharacteristicAllocations,
+  CharacteristicAssignments,
+  CharacteristicGenerationMethod,
+  CharacteristicRoll,
+  ContentCatalog,
+  WizardResult,
+} from "@wayshrine/core";
 import { isBlockingContentIssue } from "./issues";
 
 function createSession(catalog: ContentCatalog) {
@@ -9,10 +17,29 @@ function createSession(catalog: ContentCatalog) {
     live: true,
     requests: new Map<string, object>(),
     errorOpened: false,
+    pointBuySelected: false,
   };
 }
 
 type Session = ReturnType<typeof createSession>;
+
+function initializePointBuy(session: Session) {
+  if (session.pointBuySelected) return;
+  session.pointBuySelected = true;
+  const allocations =
+    session.creator.getSnapshot().characteristicGeneration.drafts.pointBuy
+      .allocations;
+  if (Object.keys(allocations).length > 0) return;
+  session.creator.setCharacteristicAllocations({
+    str: 0,
+    end: 0,
+    ag: 0,
+    int: 0,
+    wp: 0,
+    prc: 0,
+    prs: 0,
+  });
+}
 
 function readSession(session: Session) {
   return {
@@ -87,6 +114,56 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     void select("race", () => session.creator.chooseRace(key));
   }
 
+  function setFavoredCharacteristics(favored: readonly Characteristic[]) {
+    if (!session?.live) return;
+    const result = session.creator.setFavoredCharacteristics(favored);
+    refresh();
+    return result;
+  }
+
+  function setCharacteristicGenerationMethod(
+    method: CharacteristicGenerationMethod,
+  ) {
+    if (!session?.live) return;
+    const result = session.creator.setCharacteristicGenerationMethod(method);
+    if (result.ok && method === "point-buy") initializePointBuy(session);
+    refresh();
+    // This is the method command's result; full validation stays in the snapshot.
+    return result;
+  }
+
+  function submitCharacteristicRolls(rolls: readonly CharacteristicRoll[]) {
+    if (!session?.live) return;
+    const result = session.creator.submitCharacteristicRolls(rolls);
+    refresh();
+    return result;
+  }
+
+  function setCharacteristicAssignments(
+    assignments: CharacteristicAssignments,
+  ) {
+    if (!session?.live) return;
+    const result = session.creator.setCharacteristicAssignments(assignments);
+    refresh();
+    return result;
+  }
+
+  function setCharacteristicAllocations(
+    allocations: CharacteristicAllocations,
+  ) {
+    if (!session?.live) return;
+    const result = session.creator.setCharacteristicAllocations(allocations);
+    refresh();
+    return result;
+  }
+
+  function submitLuckRoll(roll: CharacteristicRoll) {
+    if (!session?.live) return;
+    const result = session.creator.submitLuckRoll(roll);
+    refresh();
+    return result;
+  }
+
   function cancelRaceSelection() {
     if (!session?.live) return;
     session.requests.delete("race");
@@ -117,6 +194,12 @@ export function useCharacterCreator(catalog: ContentCatalog) {
   return {
     view,
     setName,
+    setFavoredCharacteristics,
+    setCharacteristicGenerationMethod,
+    submitCharacteristicRolls,
+    setCharacteristicAssignments,
+    setCharacteristicAllocations,
+    submitLuckRoll,
     chooseRace,
     cancelRaceSelection,
     chooseRacialBonus,

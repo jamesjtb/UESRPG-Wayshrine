@@ -1,6 +1,7 @@
-import { Button, Checkbox, Stack, Text } from "@mantine/core";
+import { Button, Stack, Text } from "@mantine/core";
 import type { ChoiceState } from "@wayshrine/core";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
+import { LimitedCheckboxGroup } from "./LimitedCheckboxGroup";
 
 interface Props {
   group: ChoiceState<string>;
@@ -25,28 +26,17 @@ export function ChoiceGroupField({
   onRetry,
   retryLabel,
 }: Props) {
-  const limitReached = group.selections.length >= group.choose;
-
   return (
     <Stack gap="xs">
-      <Checkbox.Group
+      <LimitedCheckboxGroup
         label={<strong>Choose {group.choose}</strong>}
-        value={[...group.selections]}
+        options={group.options}
+        optionLabels={optionLabels}
+        selections={group.selections}
+        limit={group.choose}
+        disabled={disabled}
         onChange={onChange}
-      >
-        <Stack gap="xs" mt="xs">
-          {group.options.map((key) => (
-            <Checkbox
-              key={key}
-              value={key}
-              disabled={
-                disabled || (limitReached && !group.selections.includes(key))
-              }
-              label={optionLabels[key]}
-            />
-          ))}
-        </Stack>
-      </Checkbox.Group>
+      />
       {loading && <LoadingIndicator label={loadingLabel} />}
       {visibleIssues.map((message, index) => (
         <Text size="sm" role="status" key={index}>

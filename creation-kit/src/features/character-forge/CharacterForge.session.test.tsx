@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { MantineProvider } from "@mantine/core";
-import { HashRouter } from "react-router-dom";
+import { HashRouter, Route, Routes } from "react-router-dom";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,12 +8,120 @@ import { CharacterCreator } from "@wayshrine/core";
 import { AppRoutes } from "../../app/routes";
 import { ContentCatalogProvider } from "../../app/ContentCatalogProvider";
 import { CreationKitLayout } from "../../layouts/CreationKitLayout/CreationKitLayout";
-import { controlledReads, selectRace, sheet } from "./test/forgeTestHelpers";
+import {
+  controlledReads,
+  expectCharacteristic,
+  fillPointBuy,
+  selectRace,
+  sheet,
+} from "./test/forgeTestHelpers";
 import { fixtureCatalog } from "./test/testCatalog";
+import { CharacterForge } from "./CharacterForge";
+import { createCharacteristicRoller } from "./steps/characteristics/dice";
 
 describe("Character Forge session lifetime", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("discards generated answers on route exit and ignores an old race failure after reopening", async () => {
+    const catalog = fixtureCatalog();
+    const reads = controlledReads(catalog);
+    const old = reads.hold("race", "altmer");
+    const rollDice = createCharacteristicRoller(() => 0.45);
+    const load = async () => catalog;
+    const user = userEvent.setup();
+    window.history.replaceState(null, "", "/#/character-forge");
+    render(
+      <StrictMode>
+        <MantineProvider env="test">
+          <ContentCatalogProvider loadCatalog={load}>
+            <HashRouter>
+              <CreationKitLayout>
+                <Routes>
+                  <Route
+                    path="/character-forge"
+                    element={<CharacterForge rollDice={rollDice} />}
+                  />
+                  <Route path="/" element={<h1>Home</h1>} />
+                </Routes>
+              </CreationKitLayout>
+            </HashRouter>
+          </ContentCatalogProvider>
+        </MantineProvider>
+      </StrictMode>,
+    );
+    await selectRace("Argonian");
+    await sheet().findByText("Argonian");
+    await user.type(
+      screen.getByRole("textbox", { name: "Character name" }),
+      "Old session",
+    );
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await fillPointBuy(user);
+    expectCharacteristic("Strength", {
+      baseline: 25,
+      generated: 20,
+      favored: true,
+      total: 45,
+    });
+    expectCharacteristic("Luck", {
+      baseline: 30,
+      generated: 10,
+      favored: false,
+      total: 40,
+    });
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await selectRace("Altmer");
+    expect(screen.getByRole("status", { name: "Loading race" })).toBeTruthy();
+    await user.click(screen.getByRole("link", { name: "Home" }));
+    expect(screen.getByRole("heading", { name: "Home" })).toBeTruthy();
+    await user.click(screen.getByRole("link", { name: "Character Forge" }));
+    await sheet().findByText("No race selected.");
+    expectCharacteristic("Luck", {
+      baseline: 30,
+      generated: 0,
+      favored: false,
+      total: 30,
+    });
+    expect(sheet().getAllByRole("rowheader")).toHaveLength(1);
+    await act(async () => old.reject(new Error("old race unavailable")));
+    await selectRace("Argonian");
+    await sheet().findByText("Argonian");
+    expectCharacteristic("Strength", {
+      baseline: 25,
+      generated: 0,
+      favored: false,
+      total: 25,
+    });
+    expectCharacteristic("Luck", {
+      baseline: 30,
+      generated: 0,
+      favored: false,
+      total: 30,
+    });
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByRole("checkbox", { name: "Strength" })).toHaveProperty(
+      "checked",
+      false,
+    );
+    expect(screen.getByRole("radio", { name: "Point buy" })).toHaveProperty(
+      "checked",
+      false,
+    );
+    expect(screen.getByRole("radio", { name: "Rolled" })).toHaveProperty(
+      "checked",
+      false,
+    );
+    expect(
+      screen.getByRole("textbox", { name: "Character name" }),
+    ).toHaveProperty("value", "");
+    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    expect(
+      screen.getByRole("textbox", { name: "Strength points" }),
+    ).toHaveProperty("value", "0");
+    expect(console.error).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it.each([

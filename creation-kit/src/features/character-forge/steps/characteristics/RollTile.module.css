@@ -1,0 +1,31 @@
+.tile {
+  width: 5.5rem;
+  min-height: 5.5rem;
+  padding: var(--mantine-spacing-xs);
+  border: 2px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--mantine-color-default);
+  text-align: center;
+}
+
+.tile:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.tile[aria-expanded="true"] {
+  border-color: var(--mantine-color-blue-filled);
+  background: var(--mantine-color-blue-light);
+}
+
+.total {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.assignment {
+  display: block;
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}

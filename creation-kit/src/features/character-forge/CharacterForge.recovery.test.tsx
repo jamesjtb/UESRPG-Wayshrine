@@ -26,7 +26,6 @@ it("dismisses race search and assignment menus with Escape before the wizard", a
   await selectRace("Argonian");
   await sheet().findByText("Argonian");
   await user.click(screen.getByRole("button", { name: "Next" }));
-  await user.click(screen.getByRole("radio", { name: "Rolled" }));
   const pool = within(
     screen.getByRole("group", { name: "Rolled characteristics" }),
   );

@@ -97,8 +97,6 @@ describe("Character Forge generation inputs", () => {
     const random = vi.fn(() => samples.shift() ?? 0.45);
     const { user, snapshot } = await startGeneration(random);
     expect(random).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
-    expect(random).not.toHaveBeenCalled();
     expect(screen.queryByText("Submit seven separate 2d10 rolls.")).toBeNull();
     expect(snapshot().characteristicGeneration.issues).toEqual(
       expect.arrayContaining([
@@ -251,7 +249,6 @@ describe("Character Forge generation inputs", () => {
       "setCharacteristicAssignments",
     );
     const { user, snapshot } = await startGeneration(() => 0.45);
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
     await user.click(poolRollButton());
     await assignPool(user);
     const rolls = snapshot().characteristicGeneration.drafts.rolled.rolls;
@@ -289,7 +286,6 @@ describe("Character Forge generation inputs", () => {
       "Neri",
     );
     await favorStrengthAndEndurance(user);
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
     await user.click(poolRollButton());
     await assignPool(user);
     await user.click(luckRollButton());
@@ -303,10 +299,14 @@ describe("Character Forge generation inputs", () => {
     expect(
       luckGroup.getByRole("button", { name: "Luck roll, total 10" }),
     ).toBeTruthy();
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     await enterPoints(user, "Strength", "20");
     await enterPoints(user, "Endurance", "10");
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     const before = snapshot();
     expectCharacteristic("Strength", {
       baseline: 25,
@@ -364,7 +364,9 @@ describe("Character Forge generation inputs", () => {
       luckGroup.getByRole("button", { name: "Luck roll, total 10" }),
     ).toBeTruthy();
     expect(snapshot().canFinish).toBe(true);
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     expect(
       screen.getByRole("textbox", { name: "Strength points" }),
     ).toHaveProperty("value", "20");
@@ -373,10 +375,9 @@ describe("Character Forge generation inputs", () => {
     ).toHaveProperty("value", "10");
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByRole("radio", { name: "Point buy" })).toHaveProperty(
-      "checked",
-      true,
-    );
+    expect(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    ).toHaveProperty("checked", true);
     expect(
       screen.getByRole("textbox", { name: "Strength points" }),
     ).toHaveProperty("value", "20");
@@ -389,7 +390,9 @@ describe("Character Forge generation inputs", () => {
       favored: true,
       total: 25,
     });
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     expect(poolTile(0).getAttribute("aria-label")).toBe(
       "Roll 1, total 10, assigned Strength, unassign",
     );
@@ -399,7 +402,9 @@ describe("Character Forge generation inputs", () => {
       favored: true,
       total: 35,
     });
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     expectCharacteristic("Strength", {
       baseline: 25,
       generated: 0,
@@ -416,7 +421,6 @@ describe("Character Forge generation inputs", () => {
       "setCharacteristicAssignments",
     );
     const { user, snapshot } = await startGeneration(() => 0.45);
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
     await user.click(poolRollButton());
     await user.click(poolTile(0));
     expect(poolTile(0)).toHaveProperty("ariaExpanded", "true");
@@ -513,7 +517,6 @@ describe("Character Forge generation inputs", () => {
   it("supports keyboard and touch assignment, focus tooltips and Luck disclosure", async () => {
     const random = vi.fn(() => 0.45);
     const { user, snapshot } = await startGeneration(random);
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
     await user.click(poolRollButton());
     await user.tab();
     expect(document.activeElement).toBe(poolTile(0));
@@ -626,7 +629,6 @@ describe("Character Forge generation inputs", () => {
       "setCharacteristicAssignments",
     );
     const { user, snapshot } = await startGeneration(() => 0.45);
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
     await user.click(poolRollButton());
     const before = snapshot().characteristicGeneration.drafts;
     await user.click(poolTile(0));
@@ -675,7 +677,9 @@ describe("Character Forge generation inputs", () => {
     );
     const random = vi.fn(() => 0.45);
     const { user, snapshot } = await startGeneration(random);
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     const zeros = { str: 0, end: 0, ag: 0, int: 0, wp: 0, prc: 0, prs: 0 };
     expect(
       snapshot().characteristicGeneration.drafts.pointBuy.allocations,
@@ -765,7 +769,9 @@ describe("Character Forge generation inputs", () => {
       "setCharacteristicAllocations",
     );
     const { user, snapshot } = await startGeneration(() => 0.45);
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     const input = screen.getByRole("textbox", { name: "Strength points" });
     await user.click(input);
     await user.keyboard("{ArrowDown}-");
@@ -804,7 +810,9 @@ describe("Character Forge generation inputs", () => {
   it("accepts a complete point-buy answer and retains Core-invalid numeric edits without clamping", async () => {
     const random = vi.fn(() => 0.45);
     const { user, snapshot } = await startGeneration(random);
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     expect(random).not.toHaveBeenCalled();
     expect(screen.getByText("Points remaining: 80")).toBeTruthy();
     for (const label of Object.values(characteristicLabels)) {
@@ -960,8 +968,12 @@ describe("Character Forge generation inputs", () => {
     ).toEqual({});
     expect(screen.getByText("Points remaining: 80")).toBeTruthy();
     expect(screen.queryByText(/Allocate an integer/)).toBeNull();
-    await user.click(screen.getByRole("radio", { name: "Rolled" }));
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(

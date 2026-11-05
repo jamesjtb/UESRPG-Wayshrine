@@ -51,6 +51,47 @@ describe("useCharacterCreator command boundary", () => {
     ]);
   });
 
+  it("initializes rolled generation through Core for every new session without changing Core defaults", () => {
+    const catalog = fixtureCatalog();
+    const coreCreator = new CharacterCreator(catalog);
+    expect(
+      coreCreator.getSnapshot().characteristicGeneration.drafts.method,
+    ).toBeUndefined();
+    coreCreator.dispose();
+    const method = vi.spyOn(
+      CharacterCreator.prototype,
+      "setCharacteristicGenerationMethod",
+    );
+    const { result, rerender } = renderHook(
+      ({ content }) => useCharacterCreator(content),
+      { initialProps: { content: catalog }, wrapper: StrictMode },
+    );
+    expect(method).toHaveBeenCalledWith("rolled");
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts,
+    ).toEqual({
+      method: "rolled",
+      favored: [],
+      luck: undefined,
+      rolled: { rolls: [], assignments: {} },
+      pointBuy: { allocations: {} },
+    });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.complete,
+    ).toBe(false);
+    act(() => result.current.setCharacteristicGenerationMethod("point-buy"));
+    method.mockClear();
+    rerender({ content: fixtureCatalog() });
+    expect(method).toHaveBeenCalledExactlyOnceWith("rolled");
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.method,
+    ).toBe("rolled");
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.pointBuy
+        .allocations,
+    ).toEqual({});
+  });
+
   it("publishes immediate pending and settled snapshots for race and bonus commands", async () => {
     const catalog = fixtureCatalog();
     const reads = controlledReads(catalog);
@@ -144,7 +185,7 @@ describe("useCharacterCreator command boundary", () => {
       act(() => result.current.setCharacteristicAllocations(draft));
       expect(
         result.current.view!.snapshot.characteristicGeneration.drafts.method,
-      ).toBeUndefined();
+      ).toBe("rolled");
       act(() => result.current.setCharacteristicGenerationMethod("point-buy"));
       expect(allocations).toHaveBeenCalledExactlyOnceWith(draft);
       expect(
@@ -383,7 +424,7 @@ describe("useCharacterCreator command boundary", () => {
       expect(
         result.current.view!.snapshot.characteristicGeneration.drafts,
       ).toEqual({
-        method: undefined,
+        method: "rolled",
         favored: [],
         luck: undefined,
         rolled: { rolls: [], assignments: {} },

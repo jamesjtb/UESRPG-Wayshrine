@@ -133,10 +133,9 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
   await sheet().findByText("Alchemy (Novice)");
   await user.click(screen.getByRole("button", { name: "Next" }));
-  expect(screen.getByRole("radio", { name: "Point buy" })).toHaveProperty(
-    "checked",
-    true,
-  );
+  expect(
+    screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+  ).toHaveProperty("checked", true);
   expect(
     screen.getByRole("textbox", { name: "Strength points" }),
   ).toHaveProperty("value", "20");

@@ -1,4 +1,4 @@
-import { Radio, Stack, Title } from "@mantine/core";
+import { Stack, Switch, Title } from "@mantine/core";
 import { Characteristic } from "@wayshrine/core";
 import type {
   CharacteristicAllocations,
@@ -53,9 +53,11 @@ export function CharacteristicsStep({
     setFavoredCharacteristics(favored);
   }
 
-  function changeMethod(value: string) {
-    if (value === "rolled" || value === "point-buy") {
-      setCharacteristicGenerationMethod(value);
+  function changeMethod(pointBuy: boolean) {
+    if (pointBuy) {
+      setCharacteristicGenerationMethod("point-buy");
+    } else {
+      setCharacteristicGenerationMethod("rolled");
     }
   }
 
@@ -73,17 +75,6 @@ export function CharacteristicsStep({
         onChange={changeFavored}
       />
       <GenerationIssues issues={generation.issues} field="favored" />
-      <Radio.Group
-        label="Generation method"
-        value={generation.drafts.method ?? ""}
-        onChange={changeMethod}
-      >
-        <Stack gap="xs" mt="xs">
-          <Radio value="rolled" label="Rolled" />
-          <Radio value="point-buy" label="Point buy" />
-        </Stack>
-      </Radio.Group>
-      <GenerationIssues issues={methodIssues} field="method" />
       {generation.drafts.method === "rolled" && (
         <RolledCharacteristics
           draft={generation.drafts.rolled}
@@ -100,6 +91,12 @@ export function CharacteristicsStep({
           setCharacteristicAllocations={setCharacteristicAllocations}
         />
       )}
+      <Switch
+        label="Use Optional Point Buy Rules"
+        checked={generation.drafts.method === "point-buy"}
+        onChange={(event) => changeMethod(event.currentTarget.checked)}
+      />
+      <GenerationIssues issues={methodIssues} field="method" />
       <LuckRoll
         roll={generation.drafts.luck}
         issues={generation.issues}

@@ -99,7 +99,12 @@ the Core command result. Stale callbacks do nothing. A successful field command 
 not evidence that the whole character is valid; use Core's generation completeness
 and wizard availability. Ordinary validation does not open the error modal.
 
-No generation method is selected automatically. Rolled and point-buy drafts remain
+Each new Creation Kit session selects rolled generation through Core's method
+command before publishing its first snapshot; Core's own defaults and rules remain
+unchanged. The “Use Optional Point Buy Rules” Mantine switch is off for rolled
+generation, whose controls appear immediately, and on for point buy. There is no
+separate generation-method heading or radio group. The switch follows the active
+rolled or point-buy controls and precedes the shared Luck section. Rolled and point-buy drafts remain
 separate in Core, while favored selections and Luck are shared. Switching methods,
 Back/Next, and race changes retain these answers. Assignment and allocation edits
 submit whole replacement maps, including partial maps and explicit clears.

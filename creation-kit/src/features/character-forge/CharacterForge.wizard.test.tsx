@@ -103,7 +103,6 @@ describe("Character creation modal", () => {
       await selectRace("Argonian");
       await sheet().findByText("Argonian");
       await user.click(screen.getByRole("button", { name: "Next" }));
-      await user.click(screen.getByRole("radio", { name: "Rolled" }));
       const pool = within(
         screen.getByRole("group", { name: "Rolled characteristics" }),
       );
@@ -140,10 +139,9 @@ describe("Character creation modal", () => {
         total: 40,
       });
       await openWizard();
-      expect(screen.getByRole("radio", { name: "Point buy" })).toHaveProperty(
-        "checked",
-        true,
-      );
+      expect(
+        screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+      ).toHaveProperty("checked", true);
       expect(
         screen.getByRole("textbox", { name: "Strength points" }),
       ).toHaveProperty("value", "20");
@@ -151,7 +149,9 @@ describe("Character creation modal", () => {
         "checked",
         true,
       );
-      await user.click(screen.getByRole("radio", { name: "Rolled" }));
+      await user.click(
+        screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+      );
       expect(
         screen.getByRole("button", {
           name: "Roll 1, total 10, assigned Strength, unassign",
@@ -181,7 +181,9 @@ describe("Character creation modal", () => {
     await selectRace("Argonian");
     await sheet().findByText("Argonian");
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     const strength = screen.getByRole("textbox", { name: "Strength points" });
     await user.clear(strength);
     await user.type(strength, "1.");

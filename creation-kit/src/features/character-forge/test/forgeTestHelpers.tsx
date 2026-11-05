@@ -111,7 +111,9 @@ export function expectCharacteristic(
 }
 
 export async function fillPointBuy(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("radio", { name: "Point buy" }));
+  await user.click(
+    screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+  );
   const amounts = {
     Strength: 20,
     Endurance: 20,

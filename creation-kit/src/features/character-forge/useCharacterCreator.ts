@@ -12,8 +12,10 @@ import type {
 import { isBlockingContentIssue } from "./issues";
 
 function createSession(catalog: ContentCatalog) {
+  const creator = new CharacterCreator(catalog);
+  creator.setCharacteristicGenerationMethod("rolled");
   return {
-    creator: new CharacterCreator(catalog),
+    creator,
     live: true,
     requests: new Map<string, object>(),
     errorOpened: false,

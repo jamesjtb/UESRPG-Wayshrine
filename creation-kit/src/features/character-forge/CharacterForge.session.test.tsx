@@ -118,18 +118,18 @@ describe("Character Forge session lifetime", () => {
       "checked",
       false,
     );
-    expect(screen.getByRole("radio", { name: "Point buy" })).toHaveProperty(
-      "checked",
-      false,
-    );
-    expect(screen.getByRole("radio", { name: "Rolled" })).toHaveProperty(
-      "checked",
-      false,
-    );
+    expect(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    ).toHaveProperty("checked", false);
+    expect(
+      screen.getByRole("group", { name: "Rolled characteristics" }),
+    ).toBeTruthy();
     expect(
       screen.getByRole("textbox", { name: "Character name" }),
     ).toHaveProperty("value", "");
-    await user.click(screen.getByRole("radio", { name: "Point buy" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+    );
     expect(
       screen.getByRole("textbox", { name: "Strength points" }),
     ).toHaveProperty("value", "0");

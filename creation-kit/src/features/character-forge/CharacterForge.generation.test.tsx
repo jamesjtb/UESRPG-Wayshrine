@@ -4,6 +4,41 @@ import { CharacterCreator } from "@wayshrine/core";
 import { expect, it, vi } from "vitest";
 import { renderForge, selectRace, sheet } from "./test/forgeTestHelpers";
 
+it("places the optional point-buy switch after the active flow and before Luck", async () => {
+  const user = userEvent.setup();
+  renderForge();
+  await selectRace("Argonian");
+  await sheet().findByText("Argonian");
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  const methodSwitch = screen.getByRole("switch", {
+    name: "Use Optional Point Buy Rules",
+  });
+
+  function expectSwitchBetween(flowEnd: Element) {
+    expect(
+      flowEnd.compareDocumentPosition(methodSwitch) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      methodSwitch.compareDocumentPosition(
+        screen.getByRole("heading", { name: "Luck" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  }
+
+  expectSwitchBetween(
+    screen.getByRole("group", { name: "Rolled characteristics" }),
+  );
+  await user.click(methodSwitch);
+  expectSwitchBetween(
+    screen.getByRole("button", { name: "Increase Personality points" }),
+  );
+  await user.click(methodSwitch);
+  expectSwitchBetween(
+    screen.getByRole("group", { name: "Rolled characteristics" }),
+  );
+});
+
 it("switches editors through Core navigation while retaining the session, name and answers", async () => {
   const user = userEvent.setup();
   const dispose = vi.spyOn(CharacterCreator.prototype, "dispose");
@@ -29,14 +64,15 @@ it("switches editors through Core navigation while retaining the session, name a
   expect(editor.queryByRole("combobox", { name: "Race" })).toBeNull();
   expect(editor.getAllByRole("checkbox")).toHaveLength(7);
   expect(editor.queryByRole("checkbox", { name: "Luck" })).toBeNull();
-  expect(editor.getByRole("radio", { name: "Rolled" })).toHaveProperty(
-    "checked",
-    false,
-  );
-  expect(editor.getByRole("radio", { name: "Point buy" })).toHaveProperty(
-    "checked",
-    false,
-  );
+  expect(
+    editor.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+  ).toHaveProperty("checked", false);
+  expect(editor.queryByText("Generation method")).toBeNull();
+  expect(editor.queryByRole("radio")).toBeNull();
+  expect(
+    editor.getByRole("group", { name: "Rolled characteristics" }),
+  ).toBeTruthy();
+  expect(editor.queryByRole("textbox", { name: "Strength points" })).toBeNull();
   expect(
     editor.queryByText("Choose rolled or point-buy generation."),
   ).toBeNull();
@@ -81,7 +117,9 @@ it("switches editors through Core navigation while retaining the session, name a
   await user.click(editor.getByRole("checkbox", { name: "Agility" }));
   expect(setFavored.mock.calls.at(-1)).toEqual([["str", "ag"]]);
   expect(setFavored.mock.results.at(-1)?.value.ok).toBe(true);
-  await user.click(editor.getByRole("radio", { name: "Point buy" }));
+  await user.click(
+    editor.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+  );
   expect(
     editor.getByRole("textbox", { name: "Strength points" }),
   ).toHaveProperty("value", "0");
@@ -118,11 +156,12 @@ it("switches editors through Core navigation while retaining the session, name a
     "checked",
     false,
   );
-  expect(editor.getByRole("radio", { name: "Point buy" })).toHaveProperty(
-    "checked",
-    true,
+  expect(
+    editor.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+  ).toHaveProperty("checked", true);
+  await user.click(
+    editor.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
   );
-  await user.click(editor.getByRole("radio", { name: "Rolled" }));
   expect(
     within(
       editor.getByRole("group", { name: "Rolled characteristics" }),

@@ -1,0 +1,54 @@
+.frame {
+  min-width: 0;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.item {
+  border: 0;
+  background: transparent;
+}
+
+.control,
+.single {
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  color: inherit;
+  font-size: inherit;
+}
+
+.control {
+  border-radius: var(--mantine-radius-sm);
+}
+
+.label {
+  min-width: 0;
+  padding: 0;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.summaryText {
+  min-width: 0;
+}
+
+.content {
+  padding: 0 var(--mantine-spacing-sm) var(--mantine-spacing-xs);
+  font-size: inherit;
+}
+
+.list {
+  margin: 0;
+  padding-inline-start: var(--mantine-spacing-md);
+}
+
+.list li + li {
+  margin-top: 0.25rem;
+}

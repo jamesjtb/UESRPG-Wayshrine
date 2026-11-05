@@ -95,6 +95,7 @@ describe("Character creation modal", () => {
     async (dismissal) => {
       const user = userEvent.setup();
       const snapshots = vi.spyOn(CharacterCreator.prototype, "getSnapshot");
+      const finish = vi.spyOn(CharacterCreator.prototype, "finish");
       renderForge(
         fixtureCatalog(),
         createCharacteristicRoller(() => 0.45),
@@ -113,7 +114,18 @@ describe("Character creation modal", () => {
       );
       await fillPointBuy(user);
       const before = snapshots.mock.results.at(-1)!.value;
+      // Core can finish its registered subset, not the full creation sequence.
+      expect(before.canFinish).toBe(true);
+      expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
+        "disabled",
+        true,
+      );
+      expect(
+        screen.queryByRole("button", { name: /finish|finalize/i }),
+      ).toBeNull();
       await dismissWizard(user, dismissal);
+      expect(screen.getByText("In progress")).toBeTruthy();
+      expect(finish).not.toHaveBeenCalled();
       expect(screen.getByText("Resume: Generate Characteristics")).toBeTruthy();
       expectCharacteristic("Strength", {
         baseline: 25,

@@ -22,7 +22,7 @@ pnpm start:wck dev
 
 Run `pnpm format` to apply formatting.
 Run `pnpm --filter @wayshrine/creation-kit test` for Creation Kit navigation,
-routing, Character Forge, and static content pipeline tests.
+routing, Character Sheet, and static content pipeline tests.
 
 ### Mantine type compatibility
 
@@ -42,7 +42,7 @@ not runtime polyfills. Strict checking remains enabled, including dependency dec
 | -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `vtt/foundry`  | `@wayshrine/foundry`      | Foundry system skeleton. The target Foundry version, manifest, typings, and bundling are deferred; this is not yet a loadable system. |
 | `core`         | `@wayshrine/core`         | Platform-independent TypeScript domain types for UESRPG 3ev4. No server or separate build.                                            |
-| `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application with Character Forge race selection and characteristic generation. No backend.                       |
+| `creation-kit` | `@wayshrine/creation-kit` | React + Vite browser application with Character Sheet race selection and characteristic generation. No backend.                       |
 
 Both applications depend on Core through `workspace:*`. Import domain types from
 `@wayshrine/core` using `import type`. Domain interfaces live in `core/interface/`,
@@ -119,7 +119,7 @@ production hosting.
 
 Creation Kit uses hash routes (for example, `/#/`) so direct links work on static
 hosts without URL rewrite rules. The responsive left navigation supports an
-icon-only desktop mode and a mobile menu. Home and Character Forge are available;
+icon-only desktop mode and a mobile menu. Home and Character Sheet are available;
 the other five planned tools remain disabled.
 
 ### Creation Kit static content
@@ -182,20 +182,26 @@ polling or swapping an active session's revision.
 Node types and YAML/TS execution dependencies are isolated to build-script checks,
 outside Core runtime and Creation Kit's browser TypeScript configuration.
 
-### Character Forge
+### Character Sheet
 
-Character Forge supports race selection, editable racial skill choices, and rolled
+Open `/#/character-sheet` for the character sheet; the legacy `/#/character-forge`
+link redirects there. **Create Character** opens a modal wizard over the sheet.
+Dismiss it to inspect or name the character, then use the same button to resume
+the current step with choices retained. Session state lasts while the tool remains
+mounted; leaving the tool or reloading starts a new character.
+
+The wizard supports race selection, editable racial skill choices, and rolled
 or point-buy characteristic generation with favored choices and separate Luck.
 Back/Next follow Core guards and retain answers. Roll/Reroll controls acquire dice
 in the browser; point-buy cards support direct numeric entry and icon steppers.
-The preview shows baselines, generated contributions, favored flags, totals of
+The sheet shows baselines, generated contributions, favored flags, totals of
 baseline plus generation, traits, and Novice skills. Failed content loads can be
 retried, and pending or failed race changes can be canceled.
 
 Only race and characteristic generation are implemented. There is no Finish action,
 full character completion, advancement workflow, or Foundry runtime integration.
 
-See [Character Forge engineering notes](docs/development/character-forge.md) for
+See [Character Sheet engineering notes](docs/development/character-forge.md) for
 ownership, asynchronous behavior, testing strategy, and limitations.
 
 ## Project Goals
@@ -220,7 +226,7 @@ Provide guided game prep workflows and some gameplay workflows for both GMs and 
 
 These are the planned tools for the project's full release. Additional features may be implemented post-release.
 
-- [ ] Character Forge - Covers character creation and advancement
+- [ ] Character Sheet - Covers character creation and, later, during-play interactions
 - [ ] NPC Profile Editor[^1] - Covers creation and editing of NPC Profiles
 - [ ] Unconventional Spell Creator[^1] - Covers the creation of unconventional spells
 - [ ] Enchantment Creator[^1] - Covers constant, strike, and cast enchantments

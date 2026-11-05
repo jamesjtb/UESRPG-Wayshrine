@@ -58,8 +58,9 @@ merges or make inactive-draft edits switch methods.
 
 ### Creation Kit integration
 
-Forge selects its race and generation editors from Core's `currentStep`, keeping
-the session, workspace, preview, and Back/Next controls above them.
+Character Sheet selects its race and generation editors from Core's `currentStep`.
+The session and primary sheet stay outside the dismissible creation modal;
+Back/Next controls live inside the modal above the individual editors' lifetimes.
 `useCharacterCreator` exposes `setFavoredCharacteristics`,
 `setCharacteristicGenerationMethod`, `submitCharacteristicRolls`,
 `setCharacteristicAssignments`, `setCharacteristicAllocations`, and `submitLuckRoll`.
@@ -80,7 +81,7 @@ available characteristics; an assigned tile directly unassigns on click, tap, or
 keyboard activation. Moving therefore requires unassigning before choosing a new
 target. The shared `AssignmentMenu` knows only its trigger, options, and selection
 callback. Luck tile activation instead toggles an inline breakdown. Pool menus do
-not contain dice details or validation. See [Forge engineering notes](character-forge.md)
+not contain dice details or validation. See [Character Sheet engineering notes](character-forge.md)
 for interaction ownership and focus handling.
 
 The browser does not choose a method automatically. Its first explicit point-buy

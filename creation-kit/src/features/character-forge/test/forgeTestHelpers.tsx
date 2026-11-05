@@ -64,16 +64,18 @@ export function sheet() {
   return within(screen.getByRole("region", { name: "Character sheet" }));
 }
 
-export function characteristicRow(label: string) {
-  const header = sheet().getByRole("rowheader", { name: label });
-  return within(header.closest("tr")!);
+export function characteristicCell(label: string, row: string) {
+  const headers = sheet().getAllByRole("columnheader");
+  const index = headers.findIndex((header) => header.textContent === label) - 1;
+  expect(index).toBeGreaterThanOrEqual(0);
+  const rowHeader = sheet().getByRole("rowheader", { name: row });
+  return within(rowHeader.closest("tr")!).getAllByRole("cell")[index]!;
 }
 
 export function expectCharacteristicBaseline(label: string, baseline: number) {
-  expect(characteristicRow(label).getAllByRole("cell")[0]).toHaveProperty(
-    "textContent",
-    String(baseline),
-  );
+  expect(
+    characteristicCell(label, "Total").getAttribute("aria-description"),
+  ).toContain(`${label}: ${baseline} + `);
 }
 
 export function expectCharacteristic(
@@ -85,19 +87,27 @@ export function expectCharacteristic(
     total: number;
   },
 ) {
-  const row = characteristicRow(label);
-  const cells = row.getAllByRole("cell");
-  expect(cells[0]).toHaveProperty("textContent", String(expected.baseline));
-  expect(cells[1]).toHaveProperty("textContent", String(expected.generated));
+  const header = sheet().getByRole("columnheader", {
+    name: new RegExp(`^${label}(, Favored)?$`),
+  });
+  expect(
+    characteristicCell(label, "Total").getAttribute("aria-description"),
+  ).toBe(
+    `${label}: ${expected.baseline} + ${expected.generated} = ${expected.total} (baseline + generated)`,
+  );
   if (expected.favored)
-    expect(row.getByRole("img", { name: "Favored" })).toBeTruthy();
+    expect(within(header).getByRole("img", { name: "Favored" })).toBeTruthy();
   else {
-    expect(cells[2]).toHaveProperty("textContent", "");
-    expect(
-      within(cells[2]!).queryByRole("img", { name: "Favored" }),
-    ).toBeNull();
+    expect(within(header).queryByRole("img", { name: "Favored" })).toBeNull();
   }
-  expect(cells[3]).toHaveProperty("textContent", String(expected.total));
+  expect(characteristicCell(label, "Total")).toHaveProperty(
+    "textContent",
+    String(expected.total),
+  );
+  expect(characteristicCell(label, "Bonus")).toHaveProperty(
+    "textContent",
+    String(Math.floor(expected.total / 10) % 10),
+  );
 }
 
 export async function fillPointBuy(user: ReturnType<typeof userEvent.setup>) {

@@ -104,12 +104,19 @@ feedback. Invalid groups still lose their contributions independently. Pending o
 failed race changes suppress all generation effects except Luck's baseline; cancel
 restores them, and a successful change reapplies retained drafts to new baselines.
 
-The preview columns are Characteristic, Baseline, Generated, Favored, and Total.
-Baseline, Generated (`rolled` for both methods), and Favored come from Core; Total
-is presentation-only `baseline + rolled`. It applies no favored bonus or modifiers.
-Favored entries have an accessible check; other cells in that column are blank.
-Luck's default baseline remains visible even before race selection. No explanatory
-totals prose is required in the product UI.
+The preview always shows all eight characteristic columns, with Total and Bonus
+body rows. Core's `calculateCharacteristicScore` computes the unmodified
+creation total (`baseline + rolled`) and its tens-digit bonus; neither favored
+flags nor modifiers change those values. Generated is `rolled` for both methods.
+Mantine tooltips only on Total score cells disclose the baseline, generated
+contribution, and total through hover, keyboard focus, and touch. Those cells carry
+the persistent calculation description and are the table's only cell tab stops;
+column headings, favored stars, and Bonus cells do not trigger tooltips.
+Favored characteristics have a read-only star beside their column heading, labeled
+“Favored” for assistive technology; non-favored headings have no star.
+Luck's default baseline remains visible even before race selection. The
+table scrolls horizontally on narrow screens. No explanatory totals prose is
+required in the product UI.
 
 Only race and characteristic generation are implemented, not full character
 creation. Forge has no Finish action and no Foundry runtime integration; see

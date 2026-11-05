@@ -5,6 +5,7 @@ import { deferred } from "../../test/content";
 import { fixtureCatalog } from "./test/testCatalog";
 import {
   controlledReads,
+  expectCharacteristic,
   expectNavigationBlocked,
   expectRaceCanAdvance,
   renderForge,
@@ -301,9 +302,12 @@ describe("Character Forge asynchronous selections", () => {
     await sheet().findByText("Alchemy (Novice)");
     await selectRace("Argonian");
     expect(sheet().queryByText("Alchemy (Novice)")).toBeNull();
-    expect(
-      sheet().queryByRole("rowheader", { name: "Intelligence" }),
-    ).toBeNull();
+    expectCharacteristic("Intelligence", {
+      baseline: 0,
+      generated: 0,
+      favored: false,
+      total: 0,
+    });
     expect(pair.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(
       "checked",
       true,

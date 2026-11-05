@@ -1,13 +1,43 @@
-import { List, Stack, Table, Text, TextInput, Title } from "@mantine/core";
-import { IconCheck } from "@tabler/icons-react";
+import type { ReactElement } from "react";
+import {
+  List,
+  Stack,
+  Table,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
+} from "@mantine/core";
+import { IconStarFilled } from "@tabler/icons-react";
 import type { CharacterCreator } from "@wayshrine/core";
-import { SkillRank } from "@wayshrine/core";
+import {
+  calculateCharacteristicScore,
+  PcCharacteristic,
+  SkillRank,
+} from "@wayshrine/core";
 import { plainDescription, readableLabel } from "../labels";
 import { characteristicLabels } from "../steps/characteristics/characteristicLabels";
 
 const previewCharacteristicLabels = { ...characteristicLabels, lck: "Luck" };
 
 type Preview = ReturnType<CharacterCreator["getCharacterPreview"]>;
+
+function ScoreDetails({
+  calculation,
+  children,
+}: {
+  calculation: string;
+  children: ReactElement;
+}) {
+  return (
+    <Tooltip
+      label={calculation}
+      events={{ hover: true, focus: true, touch: true }}
+    >
+      {children}
+    </Tooltip>
+  );
+}
 
 function traitParameters(
   params: Readonly<Record<string, string | number>> | undefined,
@@ -30,10 +60,16 @@ export function CharacterSheet({
 }) {
   const race = preview.race;
   const description = plainDescription(race?.description ?? "");
-  // Hide only unused rows. Core owns generation contributions and favored flags.
-  const characteristics = Object.values(preview.characteristics).filter(
-    (value) => value.baseline !== 0 || value.rolled !== 0 || value.favored,
-  );
+  const characteristics = Object.values(PcCharacteristic).map((key) => {
+    const value = preview.characteristics[key];
+    const score = calculateCharacteristicScore(value);
+    return {
+      ...value,
+      ...score,
+      label: previewCharacteristicLabels[key],
+      calculation: `${previewCharacteristicLabels[key]}: ${value.baseline} + ${value.rolled} = ${score.total} (baseline + generated)`,
+    };
+  });
   return (
     <Stack>
       <TextInput
@@ -51,60 +87,81 @@ export function CharacterSheet({
       )}
       {description && <Text>{description}</Text>}
       <Title order={3}>Characteristics</Title>
-      {characteristics.length === 0 && <Text>No characteristics.</Text>}
-      {characteristics.length > 0 && (
-        <Table.ScrollContainer
-          minWidth={360}
-          type="native"
-          tabIndex={0}
-          aria-label="Characteristic table scrolling"
+      <Table.ScrollContainer
+        minWidth={760}
+        type="native"
+        tabIndex={0}
+        aria-label="Characteristic table scrolling"
+      >
+        <Table
+          aria-label="Sheet characteristics"
+          horizontalSpacing={6}
+          verticalSpacing={4}
+          fz="sm"
+          style={{ fontVariantNumeric: "tabular-nums" }}
         >
-          <Table
-            aria-label="Sheet characteristics"
-            horizontalSpacing={6}
-            verticalSpacing={4}
-            fz="sm"
-            style={{ fontVariantNumeric: "tabular-nums" }}
-          >
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th scope="col">Characteristic</Table.Th>
-                <Table.Th scope="col" ta="right">
-                  Baseline
-                </Table.Th>
-                <Table.Th scope="col" ta="right">
-                  Generated
-                </Table.Th>
-                <Table.Th scope="col" ta="center">
-                  Favored
-                </Table.Th>
-                <Table.Th scope="col" ta="right">
-                  Total
-                </Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th scope="col">Characteristic</Table.Th>
               {characteristics.map((value) => (
-                <Table.Tr key={value.characteristicKey}>
-                  <Table.Th scope="row" fw={500}>
-                    {previewCharacteristicLabels[value.characteristicKey]}
-                  </Table.Th>
-                  <Table.Td ta="right">{value.baseline}</Table.Td>
-                  <Table.Td ta="right">{value.rolled}</Table.Td>
-                  <Table.Td ta="center">
-                    {value.favored && (
-                      <IconCheck size={16} role="img" aria-label="Favored" />
-                    )}
-                  </Table.Td>
-                  <Table.Td ta="right" fw={600}>
-                    {value.baseline + value.rolled}
-                  </Table.Td>
-                </Table.Tr>
+                <Table.Th
+                  key={value.characteristicKey}
+                  scope="col"
+                  ta="center"
+                  aria-label={
+                    value.favored ? `${value.label}, Favored` : value.label
+                  }
+                >
+                  {value.label}
+                  {value.favored && (
+                    <IconStarFilled
+                      size={16}
+                      role="img"
+                      aria-label="Favored"
+                      style={{
+                        marginInlineStart: 4,
+                        verticalAlign: "middle",
+                      }}
+                    />
+                  )}
+                </Table.Th>
               ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      )}
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            <Table.Tr>
+              <Table.Th scope="row" fw={500}>
+                Total
+              </Table.Th>
+              {characteristics.map((value) => (
+                <ScoreDetails
+                  key={value.characteristicKey}
+                  calculation={value.calculation}
+                >
+                  <Table.Td
+                    ta="center"
+                    fw={600}
+                    tabIndex={0}
+                    aria-description={value.calculation}
+                  >
+                    {value.total}
+                  </Table.Td>
+                </ScoreDetails>
+              ))}
+            </Table.Tr>
+            <Table.Tr>
+              <Table.Th scope="row" fw={500}>
+                Bonus
+              </Table.Th>
+              {characteristics.map((value) => (
+                <Table.Td key={value.characteristicKey} ta="center">
+                  {value.bonus}
+                </Table.Td>
+              ))}
+            </Table.Tr>
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
       <Title order={3}>Traits</Title>
       {preview.traits.length === 0 && <Text>No traits.</Text>}
       <List>

@@ -120,9 +120,7 @@ describe("Character Forge race editing", () => {
     );
     expect(nextButton()).toHaveProperty("disabled", true);
     expect(screen.queryByRole("status", { name: "Loading race" })).toBeNull();
-    expect(
-      preview().queryByRole("rowheader", { name: "Intelligence" }),
-    ).toBeNull();
+    expectCharacteristicBaseline("Intelligence", 0);
     expect(
       screen.getByRole("button", { name: "Retry race selection" }),
     ).toBeTruthy();
@@ -196,7 +194,7 @@ describe("Character Forge race editing", () => {
     await openWizard();
     await screen.findByRole("combobox", { name: "Race" });
     expect(get).not.toHaveBeenCalled();
-    expect(preview().queryByRole("rowheader", { name: "Strength" })).toBeNull();
+    expectCharacteristicBaseline("Strength", 0);
     expect(preview().getByText("No race selected.")).toBeTruthy();
     expect(screen.queryByText(/No final statistics/)).toBeNull();
     await selectRace("Altmer");
@@ -370,9 +368,7 @@ describe("Character Forge race editing", () => {
     await screen.findByRole("button", { name: "Retry race selection" });
     await screen.findByRole("dialog", { name: "Something went wrong!" });
     await user.click(screen.getByRole("button", { name: "OK" }));
-    expect(
-      preview().queryByRole("rowheader", { name: "Intelligence" }),
-    ).toBeNull();
+    expectCharacteristicBaseline("Intelligence", 0);
     expect(screen.getByRole("checkbox", { name: "Alchemy" })).toHaveProperty(
       "disabled",
       true,

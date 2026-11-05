@@ -215,14 +215,23 @@ not fetch content or affect validation and remain available during content failu
 `components/CharacterSheet.tsx` renders Race, Characteristics, Traits, and Skills
 from the detached Core preview, without a competing preview view. The resume
 indicator belongs to the session's wizard launcher rather than the sheet itself.
-The responsive characteristic table has columns
-Characteristic, Baseline, Generated, Favored, and Total, in that order. Generated is
-Core's `rolled` field for either method. Total is only `baseline + rolled`: it adds
-neither a favored bonus nor modifiers and is not a final modified score. Favored
-entries show an accessible checkmark; non-favored cells are blank. Rows with any
-baseline, generated contribution, or favored flag are visible, so Luck's baseline
-row appears even without a race. The table does not require explanatory product
-prose. Traits retain keys/parameters and skills retain resolved ranks; unresolved
+The responsive characteristic table always shows all eight PC characteristics as
+columns, including before race selection or generation, with Total and Bonus
+body rows. Core's `calculateCharacteristicScore` calculates Total as only
+`baseline + rolled` and Bonus as the tens digit of that total (`floor(total / 10) % 10`).
+The helper is scoped to the unmodified creation score, not a final modified score:
+neither favored flags nor modifiers affect it. Generated is Core's `rolled` field
+for either generation method. Calculated results remain separate from stored inputs.
+Favored characteristics show a read-only star beside their column heading, labeled
+“Favored” for assistive technology; non-favored headings have no star.
+Only Total score cells trigger a Mantine tooltip showing
+`baseline + generated = total`. These cells are keyboard focusable and carry the
+same persistent accessible description; tooltips support hover, focus, and touch.
+Column headings (including favored stars) and Bonus cells do not trigger tooltips
+and are not additional keyboard tab stops.
+The native, keyboard-focusable scroll container preserves horizontal scrolling on
+narrow screens. The table does not require explanatory product prose.
+Traits retain keys/parameters and skills retain resolved ranks; unresolved
 labels fall back to readable keys and placeholder descriptions are omitted.
 
 Core registers only `race` then `characteristics`. Valid race answers enable Next;
@@ -235,7 +244,7 @@ offer a Finish action, or claim complete character creation.
 Integration tests use real Core creators, injectable catalogs, browser dice sources,
 and explicitly settled deferred reads, not timer sleeps or mocked rules.
 `test/testCatalog.ts` supplies content fixtures; `test/forgeTestHelpers.tsx` supplies
-rendering, row assertions, and controlled reads. Tests verify actual preview cells
+rendering, column/cell assertions, and controlled reads. Tests verify actual preview cells
 as well as detached drafts and command results.
 
 Coverage spans both generation methods, equal-total identity, whole-map edits,

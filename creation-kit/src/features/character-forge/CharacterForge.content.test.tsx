@@ -50,9 +50,7 @@ describe("Character Forge content validation", () => {
         ]),
       );
       expect(sheet().getByText("No race selected.")).toBeTruthy();
-      expect(
-        sheet().queryByRole("rowheader", { name: "Intelligence" }),
-      ).toBeNull();
+      expectCharacteristicBaseline("Intelligence", 0);
       expect(sheet().queryByText(/Magic Weakness/)).toBeNull();
       expectNavigationBlocked();
       await user.click(screen.getByRole("button", { name: "OK" }));

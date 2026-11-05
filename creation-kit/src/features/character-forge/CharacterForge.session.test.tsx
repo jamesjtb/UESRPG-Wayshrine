@@ -91,7 +91,13 @@ describe("Character Forge session lifetime", () => {
       favored: false,
       total: 30,
     });
-    expect(sheet().getAllByRole("rowheader")).toHaveLength(1);
+    expect(sheet().getAllByRole("columnheader")).toHaveLength(9);
+    expectCharacteristic("Strength", {
+      baseline: 0,
+      generated: 0,
+      favored: false,
+      total: 0,
+    });
     await act(async () => old.reject(new Error("old race unavailable")));
     await selectRace("Argonian");
     await sheet().findByText("Argonian");

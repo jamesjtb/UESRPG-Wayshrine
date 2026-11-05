@@ -65,7 +65,13 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   });
 
   function expectSuppressed() {
-    expect(sheet().getAllByRole("rowheader")).toHaveLength(1);
+    expect(sheet().getAllByRole("columnheader")).toHaveLength(9);
+    expectCharacteristic("Strength", {
+      baseline: 0,
+      generated: 0,
+      favored: false,
+      total: 0,
+    });
     expect(sheet().queryByRole("img", { name: "Favored" })).toBeNull();
     expectCharacteristic("Luck", {
       baseline: 30,

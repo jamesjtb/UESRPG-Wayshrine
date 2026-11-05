@@ -31,6 +31,7 @@ export {
   traitSchema,
 } from "./content/schemas";
 export { validateRaceContent } from "./content/validateRaceContent";
+export { calculateCharacteristicScore } from "./character/characteristicScore";
 export {
   calculateCharacteristicGeneration,
   validateCharacteristicGeneration,

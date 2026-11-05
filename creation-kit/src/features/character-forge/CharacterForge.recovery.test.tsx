@@ -30,12 +30,41 @@ it("dismisses race search and assignment menus with Escape before the wizard", a
     screen.getByRole("group", { name: "Rolled characteristics" }),
   );
   await user.click(pool.getByRole("button", { name: "Roll" }));
-  const tile = pool.getByRole("button", { name: /^Roll 1, total/ });
+  const tile = within(pool.getByRole("group", { name: "Roll 1" })).getByRole(
+    "button",
+    { name: /^Actions for result: \d+$/ },
+  );
   await user.click(tile);
   await user.keyboard("{ArrowDown}{Escape}");
   expect(screen.queryByRole("menu")).toBeNull();
   expect(screen.getByRole("dialog", { name: "Create Character" })).toBe(wizard);
   await waitFor(() => expect(document.activeElement).toBe(tile));
+  await user.keyboard("{Escape}");
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+it("closes only the result menu when Escape is pressed while focus is still on its trigger", async () => {
+  const user = userEvent.setup();
+  renderForge();
+  await selectRace("Argonian");
+  await sheet().findByText("Argonian");
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  const pool = within(
+    screen.getByRole("group", { name: "Rolled characteristics" }),
+  );
+  await user.click(pool.getByRole("button", { name: "Roll" }));
+  const trigger = within(pool.getByRole("group", { name: "Roll 1" })).getByRole(
+    "button",
+    { name: /^Actions for result: \d+$/ },
+  );
+  await user.click(trigger);
+  expect(screen.getByRole("menu")).toBeTruthy();
+  // Pin the pre-focus-trap state rather than relying on animation frame timing.
+  trigger.focus();
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("menu")).toBeNull();
+  expect(screen.getByRole("dialog", { name: "Create Character" })).toBeTruthy();
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
   await user.keyboard("{Escape}");
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 });

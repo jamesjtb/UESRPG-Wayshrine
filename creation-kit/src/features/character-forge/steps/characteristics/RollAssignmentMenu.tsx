@@ -1,4 +1,6 @@
-import { useLayoutEffect, useRef } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
+import { Menu, Stack, UnstyledButton } from "@mantine/core";
+import { IconDots } from "@tabler/icons-react";
 import { Characteristic } from "@wayshrine/core";
 import type {
   CharacteristicAssignments,
@@ -6,13 +8,16 @@ import type {
 } from "@wayshrine/core";
 import { characteristicLabels } from "./characteristicLabels";
 import { RollTile } from "./RollTile";
-import { AssignmentMenu } from "../../components/AssignmentMenu";
-import { rollTotal } from "./dice";
+import { rollBreakdown, rollTotal } from "./dice";
+import classes from "./RollAssignmentMenu.module.css";
 
 interface Props {
   roll: CharacteristicRoll;
   ordinal: number;
   assignments: CharacteristicAssignments;
+  selected: boolean;
+  canSelectReroll: boolean;
+  onToggleReroll: () => void;
   onAssign: (key: Characteristic) => void;
   onUnassign: () => void;
 }
@@ -21,61 +26,97 @@ export function RollAssignmentMenu({
   roll,
   ordinal,
   assignments,
+  selected,
+  canSelectReroll,
+  onToggleReroll,
   onAssign,
   onUnassign,
 }: Props) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [opened, setOpened] = useState(false);
   const assigned = Object.values(Characteristic).find(
     (key) => assignments[key] === roll.id,
   );
-  const tileRef = useRef<HTMLButtonElement>(null);
-  const focusAfterChange = useRef(false);
-
-  useLayoutEffect(() => {
-    if (!focusAfterChange.current) return;
-    tileRef.current?.focus();
-    focusAfterChange.current = false;
-  }, [assigned]);
-
   const available = Object.values(Characteristic).filter(
     (key) => assignments[key] === undefined,
   );
-  const options: { value: string; label: string }[] = available.map((key) => ({
-    value: key,
-    label: characteristicLabels[key],
-  }));
-  function selectOption(value: string) {
-    const key = Object.values(Characteristic).find(
-      (candidate) => candidate === value,
-    );
-    if (!key) return;
-    focusAfterChange.current = true;
-    onAssign(key);
-  }
+  const assignment = assigned ? characteristicLabels[assigned] : undefined;
+  let label = `Roll ${ordinal}, total ${rollTotal(roll)}`;
+  if (assignment) label += `, assigned ${assignment}`;
+  if (selected) label += ", selected for reroll";
+  let action = assignment;
+  if (selected) action = "Rerolling";
 
-  function unassignRoll() {
-    focusAfterChange.current = true;
-    onUnassign();
-  }
-
-  if (assigned) {
-    const label = characteristicLabels[assigned];
-    return (
-      <RollTile
-        ref={tileRef}
-        roll={roll}
-        label={`Roll ${ordinal}`}
-        assignment={label}
-        aria-label={`Roll ${ordinal}, total ${rollTotal(roll)}, assigned ${label}, unassign`}
-        onClick={unassignRoll}
-      />
-    );
+  function closeFromTrigger(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "Escape" || !opened) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setOpened(false);
   }
 
   return (
-    <AssignmentMenu
-      trigger={<RollTile ref={tileRef} roll={roll} label={`Roll ${ordinal}`} />}
-      options={options}
-      onSelect={selectOption}
-    />
+    <Stack
+      gap={0}
+      className={classes.pair}
+      role="group"
+      aria-label={`Roll ${ordinal}`}
+      data-selected={selected || undefined}
+    >
+      <RollTile
+        roll={roll}
+        label={`Roll ${ordinal}`}
+        className={classes.total}
+        aria-label={label}
+        aria-description={rollBreakdown(roll)}
+        data-roll-result
+        data-selected={selected || undefined}
+      />
+      <Menu
+        opened={opened}
+        onChange={setOpened}
+        position="bottom-start"
+        width={280}
+        withinPortal
+        returnFocus
+        onExitTransitionEnd={() => triggerRef.current?.focus()}
+        middlewares={{ flip: true, shift: { padding: 8, crossAxis: true } }}
+        styles={{ item: { minHeight: 44 } }}
+      >
+        <Menu.Target>
+          <UnstyledButton
+            ref={triggerRef}
+            className={classes.action}
+            aria-label={`Actions for result: ${rollTotal(roll)}`}
+            aria-description={label}
+            data-mantine-stop-propagation={opened || undefined}
+            onKeyDown={closeFromTrigger}
+          >
+            {action ?? <IconDots size={20} aria-hidden />}
+          </UnstyledButton>
+        </Menu.Target>
+        <Menu.Dropdown
+          style={{
+            maxWidth: "calc(100vw - 1rem)",
+            maxHeight: "calc(100dvh - 2rem)",
+            overflowY: "auto",
+          }}
+        >
+          <Menu.Item
+            disabled={!selected && !canSelectReroll}
+            onClick={onToggleReroll}
+          >
+            {selected ? "Don't reroll" : "Reroll"}
+          </Menu.Item>
+          {assigned && <Menu.Item onClick={onUnassign}>Unassign</Menu.Item>}
+          <Menu.Divider />
+          <Menu.Label>Assign To</Menu.Label>
+          {available.map((key) => (
+            <Menu.Item key={key} onClick={() => onAssign(key)}>
+              {characteristicLabels[key]}
+            </Menu.Item>
+          ))}
+        </Menu.Dropdown>
+      </Menu>
+    </Stack>
   );
 }

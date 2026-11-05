@@ -35,11 +35,13 @@ describe("useCharacterCreator command boundary", () => {
       "dismissError",
       "next",
       "previous",
+      "rerollCharacteristics",
       "setCharacteristicAllocations",
       "setCharacteristicAssignments",
       "setCharacteristicGenerationMethod",
       "setFavoredCharacteristics",
       "setName",
+      "setUnlimitedRerolls",
       "submitCharacteristicRolls",
       "submitLuckRoll",
       "view",
@@ -47,7 +49,9 @@ describe("useCharacterCreator command boundary", () => {
     expect(Object.keys(result.current.view!).sort()).toEqual([
       "errorOpened",
       "preview",
+      "rerollBatchSpent",
       "snapshot",
+      "unlimitedRerolls",
     ]);
   });
 
@@ -266,6 +270,16 @@ describe("useCharacterCreator command boundary", () => {
       prs: "prs",
     };
     act(() => {
+      const invalid = result.current.submitCharacteristicRolls([
+        { id: "bad-roll", dice: [0, 11] },
+      ]);
+      expect(invalid).toMatchObject({ ok: false });
+    });
+    expect(
+      result.current.view!.snapshot.characteristicGeneration.drafts.rolled
+        .rolls,
+    ).toEqual([{ id: "bad-roll", dice: [0, 11] }]);
+    act(() => {
       result.current.setFavoredCharacteristics(["str", "end"]);
       result.current.setCharacteristicGenerationMethod("rolled");
       result.current.submitCharacteristicRolls(rolls);
@@ -317,22 +331,7 @@ describe("useCharacterCreator command boundary", () => {
     expect(
       result.current.view!.snapshot.characteristicGeneration.drafts.rolled
         .assignments,
-    ).toEqual({});
-    act(() => {
-      const invalid = result.current.submitCharacteristicRolls([
-        { id: "bad-roll", dice: [0, 11] },
-      ]);
-      expect(invalid).toMatchObject({
-        ok: false,
-        issues: expect.arrayContaining([
-          expect.objectContaining({ field: "rolls", rollId: "bad-roll" }),
-        ]),
-      });
-    });
-    expect(
-      result.current.view!.snapshot.characteristicGeneration.drafts.rolled
-        .rolls,
-    ).toEqual([{ id: "bad-roll", dice: [0, 11] }]);
+    ).toEqual(assignments);
     act(() => {
       result.current.setFavoredCharacteristics(["str", "str"]);
       result.current.submitLuckRoll({ id: "bad-luck", dice: [0, 11] });

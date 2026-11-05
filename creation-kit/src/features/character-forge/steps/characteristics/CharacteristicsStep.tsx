@@ -23,6 +23,13 @@ interface Props {
   ) => void;
   rollDice: CharacteristicRoller;
   submitCharacteristicRolls: (rolls: readonly CharacteristicRoll[]) => void;
+  unlimitedRerolls: boolean;
+  rerollBatchSpent: boolean;
+  setUnlimitedRerolls: (enabled: boolean) => void;
+  rerollCharacteristics: (
+    ids: readonly string[],
+    rollDice: CharacteristicRoller,
+  ) => boolean;
   setCharacteristicAssignments: (
     assignments: CharacteristicAssignments,
   ) => void;
@@ -38,6 +45,10 @@ export function CharacteristicsStep({
   setCharacteristicGenerationMethod,
   rollDice,
   submitCharacteristicRolls,
+  unlimitedRerolls,
+  rerollBatchSpent,
+  setUnlimitedRerolls,
+  rerollCharacteristics,
   setCharacteristicAssignments,
   setCharacteristicAllocations,
   submitLuckRoll,
@@ -81,6 +92,9 @@ export function CharacteristicsStep({
           issues={generation.issues}
           rollDice={rollDice}
           submitCharacteristicRolls={submitCharacteristicRolls}
+          unlimitedRerolls={unlimitedRerolls}
+          rerollBatchSpent={rerollBatchSpent}
+          rerollCharacteristics={rerollCharacteristics}
           setCharacteristicAssignments={setCharacteristicAssignments}
         />
       )}
@@ -91,6 +105,11 @@ export function CharacteristicsStep({
           setCharacteristicAllocations={setCharacteristicAllocations}
         />
       )}
+      <Switch
+        label="Unlimited Rerolls"
+        checked={unlimitedRerolls}
+        onChange={(event) => setUnlimitedRerolls(event.currentTarget.checked)}
+      />
       <Switch
         label="Use Optional Point Buy Rules"
         checked={generation.drafts.method === "point-buy"}

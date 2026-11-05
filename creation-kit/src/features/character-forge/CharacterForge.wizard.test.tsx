@@ -107,7 +107,12 @@ describe("Character creation modal", () => {
         screen.getByRole("group", { name: "Rolled characteristics" }),
       );
       await user.click(pool.getByRole("button", { name: "Roll" }));
-      await user.click(pool.getByRole("button", { name: "Roll 1, total 10" }));
+      await user.click(
+        within(pool.getByRole("group", { name: "Roll 1" })).getByRole(
+          "button",
+          { name: "Actions for result: 10" },
+        ),
+      );
       await user.click(
         await screen.findByRole("menuitem", { name: "Strength" }),
       );
@@ -154,7 +159,7 @@ describe("Character creation modal", () => {
       );
       expect(
         screen.getByRole("button", {
-          name: "Roll 1, total 10, assigned Strength, unassign",
+          name: "Roll 1, total 10, assigned Strength",
         }),
       ).toBeTruthy();
       const after =

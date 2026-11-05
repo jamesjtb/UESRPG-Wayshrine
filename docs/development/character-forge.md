@@ -21,7 +21,7 @@ mobile sidebar rather than behind it.
   and disposes it during cleanup. StrictMode effect replay creates a new creator
   rather than reusing a disposed instance. Its interface exposes detached snapshots,
   preview data, error presentation state, and named commands. The creator, liveness
-  flag, request identities, and point-buy initialization flag stay private.
+  flag, request identities, point-buy initialization flag, and reroll policy stay private.
   Commands capture their originating session; retained callbacks and pending
   completions cannot affect a replacement session after catalog changes or unmount.
 - `CharacterForge.tsx` keeps the creator session and primary sheet outside the
@@ -79,8 +79,8 @@ only Mantine menu presentation: tile-anchored positioning with viewport adjustme
 scrolling when needed, touch-sized items, keyboard navigation, dismissal, and focus
 return. It renders labels only, not totals, checks, validation, or dice details.
 Custom triggers must forward their ref and button props to the focusable element.
-`RollTile.tsx` does this while composing the tooltip and menu ARIA attributes.
-Assignment menus use Mantine's exit-transition callback to restore focus to the
+The richer roll-specific action menu is independent rather than extending this
+flat option interface. Assignment menus use Mantine's exit-transition callback to restore focus to the
 trigger after dismissal, including when the modal's focus trap has reclaimed focus.
 
 ## Generation commands and drafts
@@ -94,8 +94,10 @@ The hook exposes all six synchronous generation commands with public Core types:
 - `setCharacteristicAllocations`
 - `submitLuckRoll`
 
-Each live command delegates to Core, refreshes the snapshot and preview, and returns
-the Core command result. Stale callbacks do nothing. A successful field command is
+Ordinary live field commands delegate to Core, refresh the snapshot and preview, and return
+the Core command result. Pool submission is initial-only after its first successful
+submission; subsequent replacements go through the session's selective reroll command.
+Stale callbacks do nothing. A successful field command is
 not evidence that the whole character is valid; use Core's generation completeness
 and wizard availability. Ordinary validation does not open the error modal.
 
@@ -103,8 +105,9 @@ Each new Creation Kit session selects rolled generation through Core's method
 command before publishing its first snapshot; Core's own defaults and rules remain
 unchanged. The “Use Optional Point Buy Rules” Mantine switch is off for rolled
 generation, whose controls appear immediately, and on for point buy. There is no
-separate generation-method heading or radio group. The switch follows the active
-rolled or point-buy controls and precedes the shared Luck section. Rolled and point-buy drafts remain
+separate generation-method heading or radio group. Both this switch and the adjacent
+“Unlimited Rerolls” switch follow the active rolled or point-buy controls and precede
+the shared Luck section. Rolled and point-buy drafts remain
 separate in Core, while favored selections and Luck are shared. Switching methods,
 Back/Next, and race changes retain these answers. Assignment and allocation edits
 submit whole replacement maps, including partial maps and explicit clears.
@@ -125,28 +128,82 @@ random-number source, defaulting to `Math.random`. Forge accepts an injected rol
 so tests exercise acquisition deterministically without mocking Core rules. Core
 never generates randomness.
 
-The pool button is “Roll” when empty and “Reroll” otherwise. One activation obtains
-seven rolls and submits the complete pool. Core clears all assignments on pool
-replacement. There are no automatic rolls, individual rerolls, or roll history.
-Luck has its own “Roll”/“Reroll” action and replaces only the Luck answer.
+The initial “Roll” action obtains seven rolls and submits the complete pool. It is
+then replaced by “Reroll (X of 3)”, disabled with no selection. Each result's
+integrated bottom action opens a menu to select up to three results for **one batch**.
+Using fewer than three forfeits the remainder. New results replace the selected
+results even when lower; there is no best-of comparison, undo, or roll history.
+The menu's “Reroll” item only selects a result: it never rolls dice, assigns, or
+unassigns a result. Only the batch button executes the reroll. Its normal-mode
+label includes the current selection count; unlimited mode labels it simply
+“Reroll”. There are no selection instructions or standalone counts. Selected
+tiles retain their highlighted border and background and accessible selected
+description. Once the normal batch is spent, the disabled button reads “Reroll
+Expended” instead of showing separate feedback text. Unlimited mode still reads
+“Reroll” and permits further batches regardless of the spent marker.
+Focus moves to the first acquired/replaced tile when
+an action removes or disables the active button. There is no whole-pool reroll
+button after the initial roll.
 
-Rounded `RollTile` buttons display totals and, for assigned pool rolls, a
-characteristic caption. IDs stay internal; equal totals remain distinct by ID and
-ordinal accessible name. Tooltips expose the individual faces and total, for
-example `2d10: 6 + 7 = 13`, with hover, focus, and touch events enabled. Pool taps
-perform the assignment/unassignment action, not a separate details toggle; the
-assignment menu contains no dice header. Luck tile activation toggles an inline
+“Unlimited Rerolls” defaults off. When enabled it permits repeated batches with up
+to all seven results selected. Turning it off after **any** successful batch,
+including an unlimited batch, leaves the normal batch spent. Merely toggling it
+without using a batch does not spend the allowance. The flag and spent marker
+belong to the private creator session, not the editor: method switches, race
+changes, Back/Next, and modal dismissal retain them. A new session resets them.
+Selection itself is an editor-local presentation draft. The menu's “Reroll”
+item is disabled at the cap or when the batch is spent; “Don't reroll”
+remains available, including if switching the option off makes the
+current selection exceed three. The batch button is disabled while over the cap.
+
+The session command checks current policy and selected IDs before acquiring dice,
+so retained callbacks cannot bypass changed limits or affect a replacement session.
+It validates the candidate pool through Core before submitting it and rejects
+invalid faces, duplicate IDs, or replacement IDs reused from the old pool without
+changing answers or spending the batch. If Core rejects a submitted replacement,
+the command restores the previous pool and assignments and leaves the batch unused.
+On success it submits the complete pool, then restores only assignments whose roll
+IDs were not selected. Untouched rolls retain their IDs, faces, positions, and
+assignments; rerolled results become unassigned. Core still never authorizes rerolls
+and still clears every assignment on pool submission. This host policy does not
+alter Core's contract.
+
+Luck is excluded from reroll selections and allowances. Its independent
+“Roll”/“Reroll” action remains unchanged and replaces only the Luck answer.
+
+Pool tiles integrate a total on top with a bottom menu trigger. The trigger shows
+“Rerolling” while selected, otherwise its assigned characteristic, otherwise an
+ellipsis icon. Selection takes visual priority but does not clear the assignment
+until the batch executes; removing the selection restores the assigned caption.
+The total and trigger are sibling buttons inside one rounded border, never nested
+interactive controls. The pool total reuses `RollTile`'s tooltip but no longer
+renders an assignment caption itself. IDs stay internal; equal totals remain
+distinct by ID and ordinal group/total name. Bottom triggers use the exact
+accessible label “Actions for result: <total>” (for example “Actions for result:
+13”), with assignment and selection exposed as an accessible description. Equal
+totals intentionally share that trigger name. Tooltips expose the faces and total, for
+example `2d10: 6 + 7 = 13`, with hover, focus, and touch events enabled. Pool tiles
+are informational: clicking or pressing a total never changes assignments or opens
+an action menu. Luck tile activation still toggles an inline
 breakdown and exposes its expanded state.
 
-`RollAssignmentMenu.tsx` is the roll-specific adapter. Activating an unassigned tile
-opens the shared menu with only unoccupied characteristic names. All occupied
-targets are omitted, so replacing an occupied destination requires unassigning its
-current roll first. Activating an assigned tile directly unassigns it by primary
-click, tap, or keyboard; its accessible name describes that action and it has no
-menu ARIA. Moving a roll therefore means unassigning it, then choosing a new target
-from its menu. Each assignment or unassignment submits one whole map. Focus returns
-to the tile when its interaction changes between direct action and menu trigger.
-Menu dismissal does not change answers; pool replacement discards open tile menus.
+`RollAssignmentMenu.tsx` owns each integrated tile. The horizontal
+Mantine group wraps whole tiles together on narrow screens. The bottom action
+opens a feature-local Mantine menu by keyboard, mouse, or touch. It contains the
+reroll selection toggle, “Unassign” only for an assigned roll, then a divider and
+“Assign To” section listing unoccupied characteristics. All occupied targets,
+including this roll's current target, are omitted. Choosing an available target
+directly moves the roll's existing assignment in one whole-map command. Replacing
+another roll at an occupied destination still requires explicitly unassigning that
+destination first. The menu has no dice header. Its viewport adjustment, scrolling,
+44px items, dismissal, and exit-transition focus return mirror the flat shared menu
+without changing that component or its other usages. Focus returns to the bottom trigger after
+menu dismissal or selection; dismissal does not change answers. An open trigger
+also handles Escape before focus enters the dropdown: its Mantine propagation
+marker prevents the wizard's capture-phase Escape handler from closing the wizard,
+and its own handler closes only the menu. Closed triggers do not intercept Escape.
+Pool replacement
+discards open action menus.
 
 ### Point-buy controls
 
@@ -253,7 +310,9 @@ rendering, column/cell assertions, and controlled reads. Tests verify actual pre
 as well as detached drafts and command results.
 
 Coverage spans both generation methods, equal-total identity, whole-map edits,
-reroll isolation, method/navigation retention including cleared allocations,
+selective-reroll caps, final replacements and unaffected assignment retention,
+unlimited batches and switch-off policy, invalid acquisition and stale commands,
+Luck isolation, method/navigation retention including cleared allocations,
 independent valid-group projection, race suppression/cancel/recalculation, and
 generation session isolation across route exit or catalog replacement. Hook tests
 cover invalid inputs that the UI prevents and all-step finish guards from either

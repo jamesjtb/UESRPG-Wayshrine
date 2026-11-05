@@ -38,7 +38,7 @@ export function CreationKitLayout({ children }: CreationKitLayoutProps) {
 
   return (
     <AppShell
-      layout="alt"
+      layout={desktop ? "alt" : "default"}
       header={{ height: 56 }}
       navbar={{
         width: collapsed ? 80 : 300,

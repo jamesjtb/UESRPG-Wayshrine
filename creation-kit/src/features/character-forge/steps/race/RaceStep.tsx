@@ -17,6 +17,7 @@ interface RaceStepProps {
   cancelRaceSelection: () => void;
   chooseRacialBonus: (id: string, selections: readonly string[]) => void;
   errorModalStackId?: string;
+  onErrorExit?: () => void;
 }
 
 export function RaceStep({
@@ -26,6 +27,7 @@ export function RaceStep({
   cancelRaceSelection,
   chooseRacialBonus,
   errorModalStackId,
+  onErrorExit,
 }: RaceStepProps) {
   const index = useContentSummaries(catalog, "race");
 
@@ -54,6 +56,7 @@ export function RaceStep({
             stackId={errorModalStackId}
             opened={!index.acknowledged}
             onClose={index.acknowledge}
+            onExitTransitionEnd={onErrorExit}
           />
           <Button variant="default" onClick={index.retry}>
             Retry races

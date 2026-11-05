@@ -129,6 +129,7 @@ function ForgeSession({
           size="xl"
           fullScreen={smallScreen}
           keepMounted
+          keepMountedMode="display-none"
         >
           {everOpened && (
             <Stack component="section" aria-label="Character editor">
@@ -146,6 +147,7 @@ function ForgeSession({
                   cancelRaceSelection={cancelRaceSelection}
                   chooseRacialBonus={chooseRacialBonus}
                   errorModalStackId="race-index-error"
+                  onErrorExit={returnToLauncher}
                 />
               )}
               {view.snapshot.currentStep === "characteristics" && (
@@ -177,6 +179,7 @@ function ForgeSession({
           stackId="creator-error"
           opened={view.errorOpened}
           onClose={dismissError}
+          onExitTransitionEnd={returnToLauncher}
         />
       </Modal.Stack>
     </>

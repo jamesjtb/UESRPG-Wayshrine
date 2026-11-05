@@ -186,6 +186,13 @@ describe("Creation Kit navigation", () => {
       }));
       window.history.replaceState(null, "", `/#${path}`);
       render(<App loadCatalog={loadTestCatalog} />);
+      // The alt layout lets the mobile navbar cover the header's close control.
+      expect(
+        screen
+          .getByRole("banner")
+          .closest(".mantine-AppShell-root")
+          ?.getAttribute("data-layout"),
+      ).toBe("default");
       expect(
         screen
           .getByText("Wayshrine Creation Kit")

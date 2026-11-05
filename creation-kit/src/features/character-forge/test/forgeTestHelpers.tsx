@@ -17,10 +17,11 @@ import type { CharacteristicRoller } from "../steps/characteristics/dice";
 export function renderForge(
   catalog = fixtureCatalog(),
   rollDice: CharacteristicRoller = rollCharacteristicDice,
+  env: "test" | "default" = "test",
 ) {
   return render(
     <StrictMode>
-      <MantineProvider env="test">
+      <MantineProvider env={env}>
         <ContentCatalogProvider loadCatalog={async () => catalog}>
           <ContentCatalogStatus />
           <CharacterForge rollDice={rollDice} />

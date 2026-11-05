@@ -8,6 +8,9 @@ snapshots rather than implementing a second rules or progression model.
 The canonical tool URL is `/character-sheet` (a hash route in the browser).
 `/character-forge` redirects with history replacement. Internal Forge feature,
 session, and page names remain in place to avoid an unrelated directory migration.
+The application shell retains its `alt` sidebar layout on desktop and uses Mantine's
+default layout on small screens, keeping the navigation toggle above the open
+mobile sidebar rather than behind it.
 
 ## Ownership and lifetime
 
@@ -35,11 +38,17 @@ session, and page names remain in place to avoid an unrelated directory migratio
 - Close control, Escape, and backdrop dismissal hide the wizard without disposing
   the creator, changing Core's current step, canceling commands, or resetting
   answers. Editors mount on first opening and remain mounted while hidden, retaining
-  presentation drafts and race-index loading/acknowledgment state. Pending creator
-  commands continue updating the sheet, and failures can still open the error modal.
+  presentation drafts and race-index loading/acknowledgment state. The wizard uses
+  Mantine's `keepMountedMode="display-none"`, not React Activity hiding: pending
+  race-index effects and their portaled error dialog must stay live while closed.
+  Pending creator commands continue updating the sheet, and failures can still open
+  the error modal.
   A feature-local Mantine `Modal.Stack` coordinates the wizard and existing creator
   and race-index errors; `ErrorModal` accepts an optional stack ID. This does not
   establish application-wide layering or message infrastructure.
+  Error exit transitions return focus to the launcher when the wizard is closed;
+  when open, Mantine restores the wizard's focus trap. `ErrorModal` exposes the
+  optional exit callback without owning Forge session or visibility state.
 - `hooks/useContentSummaries.ts` owns summary-list loading, failure acknowledgment,
   retry, and request liveness. Catalog adapters retain caching and deduplication.
   `steps/race/RaceStep.tsx` browses summaries rather than loading all definitions,
@@ -240,6 +249,12 @@ remain responsible for shared rules and calculations.
 Wizard tests cover initially closed presentation, unanswered first-opening resume,
 both steps and all three dismissal mechanisms, retained generation drafts and
 assignments, sheet updates while closed, and pending content success/failure.
+Recovery tests use real portals/transitions where hidden-editor effects and error
+focus return matter (Mantine test mode renders portals inline). They cover closed
+race-index failures, explicit retries and repeated failures, closed skill recovery,
+canceling resumed pending race changes, and nested Select/assignment-menu Escape
+isolation. DOM checks do not establish visual stacking or small-screen reachability;
+those require a real browser.
 
 `scripts/content-pipeline.test.ts` compiles YAML to temporary files under
 `/tmp/opencode`, then reads those files through the real browser catalog and creator.

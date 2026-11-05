@@ -61,6 +61,15 @@ Feature paths in these notes are relative to
 
 ## Shared presentation components
 
+`components/ToContinue.tsx` presents only supplied outstanding tasks, immediately
+below each step title. `userActions.ts` maps Core's race pending choices, content
+loads, and generation issue fields into ordered tasks; it does not validate answers
+or control Next. Race browsing failures/loading are supplied by the existing index
+hook. Characteristics also uses Core's race-step completeness to retain an earlier-step
+blocker even when generation is complete. Inline field feedback remains independent.
+The feature-local Mantine Accordion retains expansion during answer updates; changing
+steps unmounts the editor and resets expansion. Closing the wizard does not reset it.
+
 `components/LimitedCheckboxGroup.tsx` is a controlled presentation component: it
 accepts labels, options, selections, a limit, disabled state, and a callback, not a
 Core choice object. Both racial skills through `ChoiceGroupField` and favored

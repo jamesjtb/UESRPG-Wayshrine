@@ -1,8 +1,9 @@
 .frame {
   min-width: 0;
-  border: 1px solid var(--mantine-color-default-border);
+  border: 0;
   border-radius: var(--mantine-radius-sm);
-  color: var(--mantine-color-dimmed);
+  background: var(--mantine-color-gray-light);
+  color: var(--mantine-color-text);
   font-size: var(--mantine-font-size-sm);
   overflow-wrap: anywhere;
 }
@@ -21,6 +22,41 @@
 
 .control {
   border-radius: var(--mantine-radius-sm);
+}
+
+.control:hover {
+  background: var(--mantine-color-gray-light-hover);
+}
+
+.single {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-sm);
+}
+
+.single > span {
+  min-width: 0;
+}
+
+.warningIcon {
+  color: var(--mantine-color-orange-light-color);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.chevron {
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  margin-inline-start: var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-gray-light-hover);
+  color: inherit;
+}
+
+.frame :global(.mantine-Loader-root) {
+  --loader-color: var(--mantine-color-gray-light-color);
 }
 
 .label {

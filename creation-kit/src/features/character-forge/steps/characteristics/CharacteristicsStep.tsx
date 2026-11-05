@@ -15,9 +15,12 @@ import { PointBuyCharacteristics } from "./PointBuyCharacteristics";
 import { LuckRoll } from "./LuckRoll";
 import type { CharacteristicRoller } from "./dice";
 import { LimitedCheckboxGroup } from "../../components/LimitedCheckboxGroup";
+import { ToContinue } from "../../components/ToContinue";
+import { characteristicUserActions } from "../../userActions";
 
 interface Props {
   generation: CharacteristicGenerationSnapshot;
+  raceComplete: boolean;
   setFavoredCharacteristics: (favored: readonly Characteristic[]) => void;
   setCharacteristicGenerationMethod: (
     method: CharacteristicGenerationMethod,
@@ -40,6 +43,7 @@ interface Props {
 
 export function CharacteristicsStep({
   generation,
+  raceComplete,
   setFavoredCharacteristics,
   setCharacteristicGenerationMethod,
   rollDice,
@@ -72,6 +76,9 @@ export function CharacteristicsStep({
   return (
     <Stack>
       <Title order={2}>Generate Characteristics</Title>
+      <ToContinue
+        actions={characteristicUserActions(generation, raceComplete)}
+      />
       <LimitedCheckboxGroup
         label="Favored characteristics"
         description="Choose two"

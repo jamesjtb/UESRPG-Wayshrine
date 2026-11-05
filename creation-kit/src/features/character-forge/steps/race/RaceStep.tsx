@@ -9,6 +9,8 @@ import { ErrorModal } from "../../../../components/ErrorModal";
 import { isBlockingContentIssue } from "../../issues";
 import { LoadingIndicator } from "../../../../components/LoadingIndicator";
 import { useContentSummaries } from "../../hooks/useContentSummaries";
+import { ToContinue } from "../../components/ToContinue";
+import { raceUserActions } from "../../userActions";
 
 interface RaceStepProps {
   catalog: ContentCatalog;
@@ -30,6 +32,10 @@ export function RaceStep({
   onErrorExit,
 }: RaceStepProps) {
   const index = useContentSummaries(catalog, "race");
+  const indexStatus =
+    index.status === "ready" && index.entries.length === 0
+      ? "empty"
+      : index.status;
 
   const raceLoad = snapshot.contentLoads.find(
     (load) => load.operation.kind === "race",
@@ -49,6 +55,7 @@ export function RaceStep({
   return (
     <Stack>
       <Title order={2}>Select Race</Title>
+      <ToContinue actions={raceUserActions(snapshot, indexStatus)} />
       {index.status === "loading" && <LoadingIndicator label="Loading races" />}
       {index.status === "error" && (
         <Stack gap="xs">

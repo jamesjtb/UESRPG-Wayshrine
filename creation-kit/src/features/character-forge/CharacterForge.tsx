@@ -155,6 +155,9 @@ function ForgeSession({
               {view.snapshot.currentStep === "characteristics" && (
                 <CharacteristicsStep
                   generation={view.snapshot.characteristicGeneration}
+                  raceComplete={view.snapshot.steps.some(
+                    (step) => step.id === "race" && step.complete,
+                  )}
                   rollDice={rollDice}
                   submitCharacteristicRolls={submitCharacteristicRolls}
                   setUnlimitedCharacteristicRerolls={

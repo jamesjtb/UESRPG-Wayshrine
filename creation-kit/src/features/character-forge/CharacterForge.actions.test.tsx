@@ -4,6 +4,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { ContentCatalogProvider } from "../../app/ContentCatalogProvider";
+import { deferred } from "../../test/content";
 import { CharacterForge } from "./CharacterForge";
 import { fixtureCatalog } from "./test/testCatalog";
 import {
@@ -99,10 +100,65 @@ it("places pending racial choices below the title and removes only resolved grou
     ),
   );
   expect(screen.queryByText("Choose 1 racial skill")).toBeNull();
+  await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
+  expectActionsBelowTitle("Select Race", "Choose 2 racial skills");
+  expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+  await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
+  await waitFor(() =>
+    expect(screen.queryByText("Choose 2 racial skills")).toBeNull(),
+  );
   expect(
     screen.getByRole("heading", { name: "Select Race" }).nextElementSibling
       ?.tagName,
   ).not.toBe("FOOTER");
+});
+
+it("uses shared indicators until race browsing and selection settle successfully", async () => {
+  const catalog = fixtureCatalog();
+  const indexGate = deferred<void>();
+  const list = catalog.list.bind(catalog);
+  vi.spyOn(catalog, "list").mockImplementation(async (kind) => {
+    if (kind === "race") await indexGate.promise;
+    return list(kind);
+  });
+  const reads = controlledReads(catalog);
+  const raceGate = reads.hold("race", "argonian");
+  renderActionsForge(catalog);
+  await openWizard();
+  const title = screen.getByRole("heading", { name: "Select Race" });
+  const browsing = within(title.nextElementSibling! as HTMLElement).getByRole(
+    "status",
+    { name: "Loading available races" },
+  );
+  expect(browsing.querySelector(".mantine-Loader-root")).not.toBeNull();
+  await act(async () => indexGate.resolve());
+  expectActionsBelowTitle("Select Race", "Choose a race");
+  expect(
+    screen.queryByRole("status", { name: "Loading available races" }),
+  ).toBeNull();
+  await selectRace("Argonian");
+  const selection = within(title.nextElementSibling! as HTMLElement).getByRole(
+    "status",
+    { name: "Loading race selection" },
+  );
+  expect(selection.querySelector(".mantine-Loader-root")).not.toBeNull();
+  await act(async () => raceGate.resolve());
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
+      "disabled",
+      false,
+    ),
+  );
+  expect(
+    screen.queryByRole("status", { name: "Loading race selection" }),
+  ).toBeNull();
+  expect(screen.queryByText("Choose a race")).toBeNull();
+  expect(
+    title.nextElementSibling?.classList.contains("mantine-Paper-root"),
+  ).toBe(false);
 });
 
 it("shows race load/retry blockers below the title without replacing inline recovery controls", async () => {
@@ -213,6 +269,18 @@ it("updates rolled tasks from Core and resets expansion on step navigation", asy
   }
   expect(screen.queryByText("Assign all characteristic results")).toBeNull();
   expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
+  const firstResult = screen.getAllByRole("button", {
+    name: "Actions for result: 11",
+  })[0]!;
+  await user.click(firstResult);
+  await user.click(await screen.findByRole("menuitem", { name: "Unassign" }));
+  expectActionsBelowTitle(
+    "Generate Characteristics",
+    "Assign all characteristic results",
+  );
+  await user.click(firstResult);
+  await user.click(await screen.findByRole("menuitem", { name: "Strength" }));
+  expect(screen.queryByText("Assign all characteristic results")).toBeNull();
   // The last registered Core step still has no Next, regardless of this presentation.
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",

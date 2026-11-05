@@ -39,7 +39,10 @@
 }
 
 .warningIcon {
-  color: var(--mantine-color-orange-light-color);
+  color: light-dark(
+    var(--mantine-color-orange-8),
+    var(--mantine-color-orange-4)
+  );
   flex-shrink: 0;
   margin-top: 0.125rem;
 }

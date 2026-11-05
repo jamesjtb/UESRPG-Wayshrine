@@ -69,6 +69,9 @@ hook. Characteristics also uses Core's race-step completeness to retain an earli
 blocker even when generation is complete. Inline field feedback remains independent.
 The feature-local Mantine Accordion retains expansion during answer updates; changing
 steps unmounts the editor and resets expansion. Closing the wizard does not reset it.
+Pending tasks use the shared `LoadingIndicator` with accessible loading labels.
+The borderless presentation uses neutral colors except for its orange warning icon;
+the right-hand chevron stays centered within its rotating disclosure affordance.
 
 `components/LimitedCheckboxGroup.tsx` is a controlled presentation component: it
 accepts labels, options, selections, a limit, disabled state, and a callback, not a

@@ -1,4 +1,4 @@
-import { MantineProvider } from "@mantine/core";
+import { Button, MantineProvider, Switch } from "@mantine/core";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CharacterCreator } from "@wayshrine/core";
@@ -7,28 +7,55 @@ import { fixtureCatalog } from "../../test/testCatalog";
 import { createCharacteristicRoller } from "./dice";
 import { RolledCharacteristics } from "./RolledCharacteristics";
 import { useCharacterCreator } from "../../useCharacterCreator";
-import type { CharacteristicRoller } from "./dice";
+import { CharacteristicDraftPreview } from "./CharacteristicDraftPreview";
+import { assignDraftResult } from "../../test/forgeTestHelpers";
 
-function renderRolled(
-  random: () => number = () => 0.45,
-  injectedRoller?: CharacteristicRoller,
-) {
+function renderRolled(random: () => number = () => 0.45) {
   const catalog = fixtureCatalog();
-  const rollDice = injectedRoller ?? createCharacteristicRoller(random);
+  const rollDice = vi.fn(createCharacteristicRoller(random));
+  const snapshots = vi.spyOn(CharacterCreator.prototype, "getSnapshot");
   function Harness() {
     const creator = useCharacterCreator(catalog);
     if (!creator.view) return null;
     const generation = creator.view.snapshot.characteristicGeneration;
     return (
-      <RolledCharacteristics
-        draft={generation.drafts.rolled}
-        issues={generation.issues}
-        rollDice={rollDice}
-        submitCharacteristicRolls={creator.submitCharacteristicRolls}
-        rerolls={generation.rerolls}
-        rerollCharacteristics={creator.rerollCharacteristics}
-        setCharacteristicAssignments={creator.setCharacteristicAssignments}
-      />
+      <>
+        <CharacteristicDraftPreview
+          characteristics={creator.view.preview.characteristics}
+          raceUsable={creator.view.preview.race !== undefined}
+          generation={generation}
+          setFavoredCharacteristics={creator.setFavoredCharacteristics}
+          setCharacteristicAssignments={creator.setCharacteristicAssignments}
+        />
+        <RolledCharacteristics
+          draft={generation.drafts.rolled}
+          issues={generation.issues}
+          rollDice={rollDice}
+          submitCharacteristicRolls={creator.submitCharacteristicRolls}
+          rerolls={generation.rerolls}
+          rerollCharacteristics={creator.rerollCharacteristics}
+          onDiceAcquisitionError={creator.reportDiceAcquisitionFailure}
+        />
+        <Switch
+          label="Unlimited Rerolls"
+          checked={generation.rerolls.unlimited}
+          onChange={(event) =>
+            creator.setUnlimitedCharacteristicRerolls(
+              event.currentTarget.checked,
+            )
+          }
+        />
+        <Button
+          onClick={() =>
+            creator.rerollCharacteristics(
+              [generation.drafts.rolled.rolls[6]!.id],
+              rollDice,
+            )
+          }
+        >
+          Spend batch externally
+        </Button>
+      </>
     );
   }
   render(
@@ -36,204 +63,194 @@ function renderRolled(
       <Harness />
     </MantineProvider>,
   );
-  return userEvent.setup();
+  return {
+    user: userEvent.setup(),
+    rollDice,
+    generation: () =>
+      snapshots.mock.results.at(-1)!.value.characteristicGeneration,
+  };
 }
 
-it("offers separate keyboard/touch selections capped at three and one final batch, without a whole-pool reroll", async () => {
-  const user = renderRolled();
-  const initialRoll = screen.getByRole("button", { name: "Roll" });
-  const initialPool = screen.getByRole("group", {
-    name: "Characteristic rolls",
+function tile(ordinal: number) {
+  return within(
+    screen.getByRole("group", { name: `Roll ${ordinal}` }),
+  ).getByRole("button");
+}
+
+it("directly toggles by mouse, keyboard and touch, caps selection, and acquires dice only from the batch button", async () => {
+  const { user, rollDice, generation } = renderRolled();
+  const initial = screen.getByRole("button", {
+    name: "Make Characteristic Roll",
   });
-  expect(
-    initialRoll.compareDocumentPosition(initialPool) &
-      Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
-  await user.click(screen.getByRole("button", { name: "Roll" }));
-  expect(screen.queryByRole("button", { name: "Roll" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Reroll" })).toBeNull();
-  const reroll = screen.getByRole("button", { name: "Reroll (0 of 3)" });
-  const pool = screen.getByRole("group", { name: "Characteristic rolls" });
-  expect(
-    pool.compareDocumentPosition(reroll) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
-  expect(reroll).toHaveProperty("disabled", true);
-  expect(screen.queryByRole("status")).toBeNull();
-  expect(screen.queryByText(/Use ACTION/)).toBeNull();
-  expect(screen.queryByText(/\d of \d selected/)).toBeNull();
-  expect(screen.queryByRole("checkbox")).toBeNull();
-  for (let ordinal = 1; ordinal <= 7; ordinal += 1) {
-    const pair = within(screen.getByRole("group", { name: `Roll ${ordinal}` }));
-    expect(
-      pair
-        .getAllByRole("button")
-        .map((button) => button.getAttribute("aria-label")),
-    ).toEqual([`Roll ${ordinal}, total 10`, "Actions for result: 10"]);
-  }
-  const action = (ordinal: number) =>
-    within(screen.getByRole("group", { name: `Roll ${ordinal}` })).getByRole(
-      "button",
-      { name: "Actions for result: 10" },
-    );
-  action(1).focus();
-  await user.keyboard(" {ArrowDown}{Enter}");
-  expect(reroll.textContent).toBe("Reroll (1 of 3)");
+  expect(initial.hasAttribute("data-block")).toBe(true);
+  await user.click(initial);
+  expect(rollDice).toHaveBeenCalledTimes(7);
+  expect(document.activeElement).toBe(tile(1));
+  const before = generation();
+  expect(tile(1).getAttribute("aria-pressed")).toBe("false");
+  expect(tile(1).getAttribute("aria-haspopup")).toBeNull();
+  await user.click(tile(1));
+  expect(tile(1).getAttribute("aria-pressed")).toBe("true");
+  await user.click(tile(1));
+  expect(tile(1).getAttribute("aria-pressed")).toBe("false");
+  tile(1).focus();
+  await user.keyboard(" ");
   await user.pointer([
-    { keys: "[TouchA>]", target: action(2) },
+    { keys: "[TouchA>]", target: tile(2) },
     { keys: "[/TouchA]" },
   ]);
-  await user.pointer([
-    {
-      keys: "[TouchA>]",
-      target: screen.getByRole("menuitem", { name: "Reroll" }),
-    },
-    { keys: "[/TouchA]" },
-  ]);
-  await user.click(action(3));
-  await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
-  expect(reroll.textContent).toBe("Reroll (3 of 3)");
+  tile(3).focus();
+  await user.keyboard("{Enter}");
   expect(
-    screen.getByRole("group", { name: "Roll 1" }).hasAttribute("data-selected"),
-  ).toBe(true);
-  expect(
-    screen
-      .getByRole("button", { name: "Roll 1, total 10, selected for reroll" })
-      .hasAttribute("data-selected"),
-  ).toBe(true);
-  await user.click(action(4));
-  expect(screen.getByRole("menuitem", { name: "Reroll" })).toHaveProperty(
-    "disabled",
-    true,
-  );
-  await user.keyboard("{Escape}");
-  expect(reroll).toHaveProperty("disabled", false);
-  await user.click(action(1));
-  await user.click(screen.getByRole("menuitem", { name: "Don't reroll" }));
-  expect(reroll.textContent).toBe("Reroll (2 of 3)");
-  expect(
-    screen.getByRole("group", { name: "Roll 1" }).hasAttribute("data-selected"),
-  ).toBe(false);
-  // Selection does not perform the tile's assignment action.
-  expect(screen.queryByRole("menu")).toBeNull();
-  await user.click(action(4));
-  expect(screen.getByRole("menuitem", { name: "Reroll" })).toHaveProperty(
-    "disabled",
-    false,
-  );
-  expect(screen.queryByRole("menuitem", { name: "Unassign" })).toBeNull();
-  await user.click(screen.getByRole("menuitem", { name: "Strength" }));
-  await user.click(reroll);
-  expect(document.activeElement).toBe(
-    screen.getByRole("button", { name: "Roll 2, total 10" }),
-  );
-  expect(
-    screen.getByRole("button", {
-      name: "Roll 4, total 10, assigned Strength",
-    }),
-  ).toBeTruthy();
-  expect(reroll.textContent).toBe("Reroll Used");
-  await user.click(action(4));
-  expect(screen.getByRole("menuitem", { name: "Reroll" })).toHaveProperty(
-    "disabled",
-    true,
-  );
-  expect(screen.getByRole("menuitem", { name: "Unassign" })).toHaveProperty(
-    "disabled",
-    false,
-  );
-  await user.keyboard("{Escape}");
-  expect(
-    within(
-      screen.getByRole("group", { name: "Rolled characteristics" }),
-    ).getByRole("button", { name: "Reroll Used" }),
-  ).toHaveProperty("disabled", true);
-  expect(
-    screen.queryByText(
-      "Your reroll batch has been used. New results are final.",
-    ),
-  ).toBeNull();
-});
-
-it("integrates total and action without nested buttons, labels actions by value, and prioritizes reroll selection without clearing assignments", async () => {
-  let sample = 0;
-  const user = renderRolled(() => {
-    sample += 1;
-    return sample % 2 === 1 ? 0.5 : 0.6;
-  });
-  await user.click(screen.getByRole("button", { name: "Roll" }));
-  expect(
-    screen.getAllByRole("button", { name: "Actions for result: 13" }),
-  ).toHaveLength(7);
-  expect(screen.queryByText("ACTION")).toBeNull();
-  const pair = within(screen.getByRole("group", { name: "Roll 1" }));
-  const action = pair.getByRole("button", { name: "Actions for result: 13" });
-  expect(action.textContent).toBe("");
-  expect(action.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
-  const total = pair.getByRole("button", { name: "Roll 1, total 13" });
-  expect(total.textContent).toBe("13");
-  expect(total.getAttribute("aria-description")).toBe("2d10: 6 + 7 = 13");
-  for (const button of pair.getAllByRole("button")) {
-    expect(button.querySelector("button")).toBeNull();
-  }
-  await user.click(action);
-  await user.click(screen.getByRole("menuitem", { name: "Strength" }));
-  expect(action.textContent).toBe("Strength");
-  expect(total.textContent).toBe("13");
-  await user.click(action);
-  await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
-  expect(action.textContent).toBe("Rerolling");
-  expect(action.getAttribute("aria-description")).toBe(
-    "Roll 1, total 13, assigned Strength, selected for reroll",
-  );
-  await user.click(action);
-  await user.click(screen.getByRole("menuitem", { name: "Don't reroll" }));
-  expect(action.textContent).toBe("Strength");
-  await user.click(action);
-  await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
-  await user.click(screen.getByRole("button", { name: "Reroll (1 of 3)" }));
-  const replacement = within(screen.getByRole("group", { name: "Roll 1" }));
-  expect(
-    replacement.getByRole("button", { name: "Actions for result: 13" })
-      .textContent,
-  ).toBe("");
-  expect(
-    replacement.getByRole("button", { name: "Roll 1, total 13" }),
-  ).toBeTruthy();
-});
-
-it("keeps selection and accepted assignments on structured rejection, displays the issue, and retries successfully", async () => {
-  const rollDice = vi.fn(createCharacteristicRoller(() => 0.45));
-  const user = renderRolled(undefined, rollDice);
-  await user.click(screen.getByRole("button", { name: "Roll" }));
-  const action = within(
-    screen.getByRole("group", { name: "Roll 1" }),
-  ).getByRole("button", { name: "Actions for result: 10" });
-  await user.click(action);
-  await user.click(screen.getByRole("menuitem", { name: "Strength" }));
-  await user.click(action);
-  await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
-  rollDice.mockReturnValueOnce({ id: "invalid-replacement", dice: [0, 11] });
-  await user.click(screen.getByRole("button", { name: "Reroll (1 of 3)" }));
-  expect(screen.getByRole("status").textContent).toBe(
-    "Characteristic roll requires exactly two integer d10 faces (1–10).",
-  );
-  expect(action.textContent).toBe("Rerolling");
-  expect(
-    screen.getByRole("button", {
-      name: "Roll 1, total 10, assigned Strength, selected for reroll",
-    }),
-  ).toBeTruthy();
-  expect(
-    screen.getByRole("button", { name: "Reroll (1 of 3)" }),
+    screen.getByRole("button", { name: "Reroll (3 of 3)" }),
   ).toHaveProperty("disabled", false);
-  await user.click(screen.getByRole("button", { name: "Reroll (1 of 3)" }));
-  expect(screen.queryByRole("status")).toBeNull();
-  expect(screen.getByRole("button", { name: "Roll 1, total 10" })).toBeTruthy();
+  expect(tile(4).getAttribute("aria-disabled")).toBe("true");
+  expect(tile(1).getAttribute("aria-disabled")).toBe("false");
+  await user.click(tile(4));
+  expect(tile(4).getAttribute("aria-pressed")).toBe("false");
+  await user.click(tile(1));
+  expect(tile(4).getAttribute("aria-disabled")).toBe("false");
+  expect(rollDice).toHaveBeenCalledTimes(7);
+  expect(generation()).toEqual(before);
+  expect(screen.queryByRole("menu")).toBeNull();
+  await assignDraftResult(user, "Strength", 3);
+  expect(screen.queryByRole("group", { name: "Roll 4" })).toBeNull();
+  await user.click(screen.getByRole("button", { name: "Reroll (2 of 3)" }));
+  expect(rollDice).toHaveBeenCalledTimes(9);
+  expect(document.activeElement).toBe(tile(2));
+  expect(generation().drafts.rolled.assignments).toEqual({
+    str: before.drafts.rolled.rolls[3]!.id,
+  });
+  expect(generation().drafts.rolled.rolls[0]).toEqual(
+    before.drafts.rolled.rolls[0],
+  );
+  expect(generation().rerolls.batchSpent).toBe(true);
   expect(screen.getByRole("button", { name: "Reroll Used" })).toHaveProperty(
     "disabled",
     true,
   );
+  for (const button of within(
+    screen.getByRole("group", { name: "Characteristic rolls" }),
+  ).getAllByRole("button")) {
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+  }
+  await user.click(tile(1));
+  tile(1).focus();
+  await user.keyboard("{Enter} ");
+  expect(tile(1).getAttribute("aria-pressed")).toBe("false");
   expect(rollDice).toHaveBeenCalledTimes(9);
+});
+
+it("clears selection when assignment hides a result and does not restore it when unassigned", async () => {
+  const { user, rollDice, generation } = renderRolled();
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
+  await user.click(tile(1));
+  await assignDraftResult(user, "Strength", 0);
+  expect(screen.queryByRole("group", { name: "Roll 1" })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Reroll (0 of 3)" }),
+  ).toHaveProperty("disabled", true);
+  await user.click(
+    screen.getByRole("button", { name: "Rolled result for Strength" }),
+  );
+  await user.click(screen.getByRole("menuitem", { name: "Unassign" }));
+  expect(tile(1).getAttribute("aria-pressed")).toBe("false");
+  expect(generation().rerolls.batchSpent).toBe(false);
+  expect(rollDice).toHaveBeenCalledTimes(7);
+});
+
+it("keeps selected results deselectable when unlimited is disabled above the cap and obeys spent Core policy", async () => {
+  const { user, generation } = renderRolled();
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
+  const unlimited = screen.getByRole("switch", { name: "Unlimited Rerolls" });
+  await user.click(unlimited);
+  for (let i = 1; i <= 7; i++) await user.click(tile(i));
+  await user.click(unlimited);
+  expect(
+    screen.getByRole("button", { name: "Reroll (7 of 3)" }),
+  ).toHaveProperty("disabled", true);
+  for (let i = 1; i <= 7; i++)
+    expect(tile(i).getAttribute("aria-disabled")).toBe("false");
+  for (let i = 4; i <= 7; i++) await user.click(tile(i));
+  expect(tile(4).getAttribute("aria-disabled")).toBe("true");
+  await user.click(screen.getByRole("button", { name: "Reroll (3 of 3)" }));
+  expect(generation().rerolls.batchSpent).toBe(true);
+  expect(tile(1).getAttribute("aria-disabled")).toBe("true");
+  await user.click(unlimited);
+  await user.click(tile(1));
+  await user.click(screen.getByRole("button", { name: "Reroll" }));
+  await user.click(unlimited);
+  expect(generation().rerolls.batchSpent).toBe(true);
+  expect(tile(1).getAttribute("aria-disabled")).toBe("true");
+});
+
+it("keeps a selected result deselectable even if another command spends the Core allowance", async () => {
+  const { user, generation } = renderRolled();
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
+  await user.click(tile(1));
+  await user.click(
+    screen.getByRole("button", { name: "Spend batch externally" }),
+  );
+  expect(generation().rerolls.available).toBe(false);
+  expect(tile(1).getAttribute("aria-pressed")).toBe("true");
+  expect(tile(1).getAttribute("aria-disabled")).toBe("false");
+  expect(tile(2).getAttribute("aria-disabled")).toBe("true");
+  await user.click(tile(1));
+  expect(tile(1).getAttribute("aria-pressed")).toBe("false");
+  expect(tile(1).getAttribute("aria-disabled")).toBe("true");
+});
+
+it("retains selection and accepted dice on a Core rejection and focuses the replacement after retry", async () => {
+  const { user, rollDice, generation } = renderRolled();
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
+  const before = generation();
+  await user.click(tile(1));
+  rollDice.mockReturnValueOnce({ id: "invalid", dice: [0, 11] });
+  await user.click(screen.getByRole("button", { name: "Reroll (1 of 3)" }));
+  expect(screen.getByRole("status").textContent).toContain(
+    "two integer d10 faces",
+  );
+  expect(tile(1).getAttribute("aria-pressed")).toBe("true");
+  expect(generation()).toEqual(before);
+  await user.click(screen.getByRole("button", { name: "Reroll (1 of 3)" }));
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(tile(1).getAttribute("aria-pressed")).toBe("false");
+  expect(document.activeElement).toBe(tile(1));
+  expect(rollDice).toHaveBeenCalledTimes(9);
+});
+
+it("keeps equal totals accessible by ordinal with dice tooltips and no nested controls", async () => {
+  const { user } = renderRolled(() => 0.6);
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
+  for (let i = 1; i <= 7; i++)
+    expect(screen.getByRole("button", { name: `Roll ${i}, total 14` })).toBe(
+      tile(i),
+    );
+  expect(tile(1).getAttribute("aria-description")).toContain(
+    "2d10: 7 + 7 = 14",
+  );
+  await user.hover(tile(1));
+  expect((await screen.findByRole("tooltip")).textContent).toBe(
+    "2d10: 7 + 7 = 14",
+  );
+  expect(tile(1).querySelector("button")).toBeNull();
+  await user.click(tile(1));
+  expect(tile(1).textContent).toBe("14Rerolling");
+  expect(tile(1).getAttribute("aria-description")).toContain(
+    "Selected for reroll",
+  );
+  expect(screen.queryByRole("menu")).toBeNull();
 });
 
 it("still displays count and dice issues for a nonempty invalid roll pool", () => {
@@ -249,11 +266,9 @@ it("still displays count and dice issues for a nonempty invalid roll pool", () =
         rollDice={createCharacteristicRoller(() => 0.45)}
         rerolls={generation.rerolls}
         rerollCharacteristics={() => undefined}
+        onDiceAcquisitionError={vi.fn()}
         submitCharacteristicRolls={(rolls) =>
           creator.submitCharacteristicRolls(rolls)
-        }
-        setCharacteristicAssignments={(assignments) =>
-          creator.setCharacteristicAssignments(assignments)
         }
       />
     </MantineProvider>,

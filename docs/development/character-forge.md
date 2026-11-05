@@ -75,16 +75,15 @@ the right-hand chevron stays centered within its rotating disclosure affordance.
 
 `components/LimitedCheckboxGroup.tsx` is a controlled presentation component: it
 accepts labels, options, selections, a limit, disabled state, and a callback, not a
-Core choice object. Both racial skills through `ChoiceGroupField` and favored
-characteristics through `CharacteristicsStep` render it. At or above the limit,
+Core choice object. Racial skills through `ChoiceGroupField` render it. At or above the limit,
 only unselected options are disabled. Selected answers, including externally
 supplied over-limit answers, remain removable unless the whole field is disabled.
 This convenience guard does not replace Core validation.
 
 `ChoiceGroupField.tsx` retains the bold “Choose N” wording, scoped loading, visible
 feedback, and optional retry. `steps/race/RacialSkillChoices.tsx` adapts Core race
-choices, loads, labels, and commands. Favored characteristics use the seven non-Luck
-options with the static description “Choose two”.
+choices, loads, labels, and commands. Favored characteristics instead use the
+generation draft table's star toggles, described below.
 
 `components/AssignmentMenu.tsx` is domain-free and feature-local. It accepts a
 trigger element, simple `{ value, label }` options, and `onSelect(value)`. It owns
@@ -92,7 +91,7 @@ only Mantine menu presentation: tile-anchored positioning with viewport adjustme
 scrolling when needed, touch-sized items, keyboard navigation, dismissal, and focus
 return. It renders labels only, not totals, checks, validation, or dice details.
 Custom triggers must forward their ref and button props to the focusable element.
-The richer roll-specific action menu is independent rather than extending this
+The table's characteristic and Luck menus are independent rather than extending this
 flat option interface. Assignment menus use Mantine's exit-transition callback to restore focus to the
 trigger after dismissal, including when the modal's focus trap has reclaimed focus.
 
@@ -127,8 +126,16 @@ command before publishing its first snapshot; Core's own defaults and rules rema
 unchanged. The “Use Optional Point Buy Rules” Mantine switch is off for rolled
 generation, whose controls appear immediately, and on for point buy. There is no
 separate generation-method heading or radio group. Both this switch and the adjacent
-“Unlimited Rerolls” switch follow the active rolled or point-buy controls, including
-the integrated Luck control. Rolled and point-buy drafts remain
+“Unlimited Rerolls” switch live inside a feature-local Mantine “Options” accordion,
+after the active rolled or point-buy controls and initial Luck acquisition when needed.
+Options starts collapsed; its accessible disclosure retains expansion during
+generation updates and method changes while the step stays mounted. It reuses
+`ToContinue.module.css`'s borderless neutral frame, hover background and boxed
+chevron, retaining Mantine's keyboard-focus outline without adding a shadow.
+Closing the wizard also preserves expansion because the editor stays mounted. Leaving the step
+resets only the accordion's expansion, not Core answers. The panel contains only
+the two switches; validation and command feedback remain outside it. Luck rerolling
+is in its table cell. Rolled and point-buy drafts remain
 separate in Core, while favored selections and Luck are shared. Switching methods,
 Back/Next, and race changes retain these answers. Assignment and allocation edits
 submit whole replacement maps, including partial maps and explicit clears.
@@ -143,29 +150,111 @@ does not make generation complete.
 
 ### Browser dice and roll assignments
 
+`steps/characteristics/CharacteristicDraftPreview.tsx` appears beside rolled controls
+and above point-buy controls. Its eight characteristic rows show Baseline, Rolled, Total,
+and Favored columns, without a visible caption or Bonus column. The hook's existing detached Core preview supplies racial baselines
+directly, including Luck's 30; baselines are never inferred by subtracting generated
+values from scores. The preview's usable race also controls suppression during pending
+or failed race changes. The draft table does not fetch content or retain creator state.
+
+This editor-local draft preview is presentation-only: valid individual assigned
+rolls or allocations appear immediately, even when the full assignment map or point
+budget is incomplete. Core's structured field/characteristic issues exclude invalid
+supplied values, displayed as “Invalid”; missing contributions display an em dash
+in informational cells or a down chevron in menu triggers, distinct from an explicit
+point-buy zero. An invalid roll pool supplies no draft dice.
+Totals use only available numeric contributions with Core's
+`calculateCharacteristicScore`. Neither this table nor its partial arithmetic changes
+Core validation, completeness, navigation guards, or the persistent sheet's atomic
+generation-group projection.
+
+The Favored column has seven accessible pressed-state star buttons and no Luck control.
+At two selections only unselected stars are disabled; selected stars remain removable.
+Each toggle submits characteristic keys through Core's existing favored command,
+independent of assignments, rerolls, and generation method.
+
+In rolled generation only, the seven non-Luck Rolled cells are menu buttons.
+Empty menu triggers show a decorative down chevron instead of an em dash;
+triggers displaying a value show only the value, without a chevron, including Luck.
+Noninteractive cells retain ordinary values or em dashes, without chevrons.
+Full accessible trigger names and Mantine's expanded/menu semantics are unchanged;
+the icons are hidden from assistive technology.
+`steps/characteristics/RolledContributionMenu.tsx` lists only unassigned accepted pool results
+with only `(die1 + die2) total` visible. Accessible labels additionally include
+the result's original pool ordinal and “Unassigned” status. Occupied trigger
+descriptions identify their assigned result. Equal totals therefore remain
+distinguishable without visible extra labels or exposing internal IDs.
+Selecting an unassigned result for an empty cell submits the whole replacement
+map through `setCharacteristicAssignments`. Both the list and selection boundary
+exclude assigned roll IDs, never totals. An occupied cell offers only “Unassign”;
+replacement always requires explicitly clearing the destination first. Clearing
+removes only that characteristic's key. Assigned ordinary results disappear from
+the dice panel and all assignment pickers. Reusing an assigned result requires
+unassigning its source first; that restores it to available pickers and returns
+its tile in original pool order. These are whole-map presentation edits, not
+validation or Core policy.
+
+Empty pools show “Make characteristic roll first”; invalid initial pools are not selectable.
+Menus use viewport-adjusted Mantine positioning, scrolling, 44px items, keyboard
+navigation and focus return to the cell. Escape closes an open cell menu without
+closing the wizard. Pool replacement remounts cell menus so obsolete options do
+not survive a reroll. Luck is never assignable; its independent table action is
+described below. Point-buy allocation cells and favored-star behavior are unchanged.
+Assigning or clearing a result updates
+the partial draft arithmetic immediately without changing Core's atomic main-sheet
+projection.
+
+The preview uses one transposed table at every screen size: eight Str–Lck rows with
+Characteristic, Base, Rolled, Total, and Favored column headings when its own
+named inline-size container is at least 26rem wide. Below that width, only the first
+and last headings shorten to Char. and Fav. CSS switches text spans, not tables;
+the full accessible column names remain constant and both visual variants are
+hidden from assistive technology. The wide first column receives 26% of table width
+to fit its full label; narrow columns retain equal widths. This depends on the
+preview's actual available width, including the 65% rolled-panel split, not the
+viewport. Baseline's visible Base label and the Rolled/Total headings do not change.
+Rolled names the generation
+contribution in both methods, including point-buy allocations. The five-column table uses Mantine's
+`layout="fixed"` at full available width with no minimum-width scroll container.
+Abbreviations and numeric cells do not wrap or clip. Full characteristic/statistic
+names remain in accessible labels and abbreviation titles; star buttons retain full
+characteristic labels. There are no alternative hidden tables, container-query
+orientation switches, or JS viewport inference. JSDOM tests check the unique markup,
+semantic names, draft values, and interactions. Real-browser checks should resize the
+table's available width across the 26rem header threshold and down to 280px, and check narrow viewports separately, asserting
+unwrapped headings, seven unique star controls, and no horizontal overflow.
+
+Native `disabled` still prevents interaction at the selection limit. The ActionIcon
+class overrides only the disabled background to transparent with both `:disabled`
+and `[data-disabled]`, following the documented
+[disabled styling pattern](https://mantine.dev/core/action-icon/#customize-disabled-styles).
+The [Table layout and spacing APIs](https://mantine.dev/core/table/) keep this
+configuration independent of the persistent sheet's scrollable Total/Bonus table.
+
 `steps/characteristics/dice.ts` supplies the small browser acquisition seam.
 `createCharacteristicRoller(random)` creates identified 2d10 rolls from an injectable
 random-number source, defaulting to `Math.random`. Forge accepts an injected roller,
 so tests exercise acquisition deterministically without mocking Core rules. Core
 never generates randomness.
 
-The initial rolled “Roll” action obtains seven rolls and Luck and submits the pool
+The initial rolled “Make Characteristic Roll” button fills the dice panel's available
+width, like Reroll, and obtains seven rolls and Luck. It submits the pool
 and shared Luck answer through their Core commands. It obtains Luck only when no
 shared answer exists, so switching from point buy cannot silently replace Luck.
 Point buy's initial “Roll” obtains only Luck and never changes allocations. The
 rolled pool action is
 then replaced by “Reroll (X of 3)”, disabled with no selection. The initial action is
 shown until Core reports an accepted pool, so invalid initial drafts remain repairable.
-Each result's
-integrated bottom action opens a menu to select up to three results for **one batch**.
+Each unassigned pool result's whole tile directly toggles selection for **one batch**
+of up to three results. Click again to deselect; keyboard and touch work identically.
 Using fewer than three forfeits the remainder. New results replace the selected
 results even when lower; there is no best-of comparison, undo, or roll history.
-The menu's “Reroll” item only selects a result: it never rolls dice, assigns, or
-unassigns a result. Only the batch button executes the reroll. Its normal-mode
+Toggling a tile never rolls dice, assigns, or unassigns a result. Only the batch
+button executes the reroll. Its normal-mode
 label includes the current selection count; unlimited mode labels it simply
 “Reroll”. There are no selection instructions or standalone counts. Selected
-tiles retain their highlighted border and background and accessible selected
-description. Once the normal batch is spent, the disabled button reads “Reroll
+tiles use a filled blue background, white text, a highlighted border, a “Rerolling”
+caption and `aria-pressed="true"`. Once the normal batch is spent, the disabled button reads “Reroll
 Used” instead of showing separate feedback text. Unlimited mode still reads
 “Reroll” and permits further batches regardless of the spent marker.
 Focus moves to the first acquired/replaced tile when
@@ -173,15 +262,23 @@ an action removes or disables the active button. There is no whole-pool reroll
 button after the initial roll.
 
 “Unlimited Rerolls” defaults off. When enabled it permits repeated batches with up
-to all seven shared results plus Luck selected. Turning it off after **any** successful shared-pool batch,
+to all seven shared results selected. Luck is rerolled separately from its table cell.
+Turning it off after **any** successful shared-pool batch,
 including an unlimited batch, leaves the normal batch spent. Merely toggling it
 without using a batch does not spend the allowance. The flag and spent marker
 belong to Core's creator session, not the hook or editor: method switches, race
 changes, Back/Next, and modal dismissal retain them. A new session resets them.
-Selection itself is an editor-local presentation draft. The menu's “Reroll”
-item is disabled at the cap or when the batch is spent; “Don't reroll”
-remains available, including if switching the option off makes the
-current selection exceed three. The batch button is disabled while over the cap.
+Selection itself is an editor-local presentation draft. Assigning a selected roll
+clears that roll's local selection when its tile disappears. It cannot remain a
+hidden batch target or reappear selected after unassigning; no Core reroll policy
+or allowance is changed by this presentation cleanup. Unselected tiles are disabled
+at the cap or when Core makes rerolls unavailable. Selected tiles remain deselectable,
+including when the allowance becomes unavailable or disabling unlimited makes the
+selection exceed three. The batch button is disabled while over the cap. Tiles use
+guarded `aria-disabled` activation rather than native disabled buttons: they remain
+focusable for dice inspection and focus return after a spent batch, but unavailable
+tiles cannot be selected by mouse, touch or keyboard. The batch button uses native
+disabled behavior.
 
 Controls derive initialization, unlimited/spent labels, availability, and selection
 caps from `characteristicGeneration.rerolls`. React owns only the selected-ID draft,
@@ -199,95 +296,76 @@ technical-error modal only for the still-live originating session; partial acqui
 is never submitted. Untouched rolls retain their IDs, faces, positions, and assignments;
 rerolled results become unassigned through Core's atomic command.
 
-Luck is the final child in the rolled or point-buy group. Each editor establishes
-its own named inline-size container; layout depends on that container's width, not
-the viewport. There are exactly two layouts: all eight items in one fluid,
-non-wrapping row, or all eight in one centered vertical stack. Partial wrapping
-is not used. Wide rows retain growing, non-shrinking items and 6px gaps. The rolled
-minimum is 4.5rem; point buy sets `--characteristic-tile-min-width: 8rem` so Luck
-and allocation cards share the same inner minimum there. Luck additionally reserves
-8px inline padding, a 1px vertical divider and 6px leading margin. Tile contents
-fill their outer wrapper. Wide rows have no maximum-width caps.
+Initial pool acquisition (including missing Luck) and initial Luck-only acquisition
+use the same session-guarded dice-failure reporter as selective rerolls. An acquisition
+exception opens the existing technical-error modal, leaves the draft unsubmitted,
+and permits retry. Retained reporters from replaced/disposed sessions do nothing.
 
-The complete-row thresholds include eight tile minima, seven 6px gaps and Luck's
-15px separator space: `36rem + 57px` for rolled and `64rem + 57px` for point buy
-(633px and 1081px with a 16px root font). The row remains horizontal exactly at
-its threshold and switches entirely to a stack below it. The editor styles and
-Luck's named-container queries must stay aligned when minima or gaps change.
+Rolled generation uses a feature-local named inline-size container and two columns
+sharing available width 65:35 after the gap: the draft table on
+the left and a dice panel on the right, separated by a vertical border. Grid stretch
+matches their heights; the Roll/Reroll button is first in the panel, aligned with the
+table header. Unassigned ordinary results use a two-column grid with 6px gaps. Below 40rem of
+available editor width, the panel stacks below the table with a horizontal border.
+There is still only one table and one panel; CSS, not JavaScript viewport inference,
+controls their layout. The result grid remains two columns on phones.
+
+Point buy retains its own named inline-size container and its seven-card row
+or centered-stack layout. Wide rows retain growing, non-shrinking items and 6px gaps.
+Point buy sets `--characteristic-tile-min-width: 8rem` for its allocation cards.
+Card contents fill their outer wrapper.
+Wide rows have no maximum-width caps.
+
+The point-buy complete-row threshold includes seven tile minima and six 6px gaps:
+`56rem + 36px` (932px with a 16px root font).
+The row remains horizontal exactly at
+its threshold and switches entirely to a stack below it.
 The existing modal width is unchanged; point buy therefore stacks even on a wide
-viewport unless its own container can supply the complete 1081px row.
+viewport unless its own container can supply the complete 932px row.
 
-Stacks use 12px gaps and centered outer wrappers with `width: min(100%, 220px)`.
-This narrows the actual rolled, Luck and point-buy tiles rather than merely padding
-a full-width row. Luck's horizontal divider shares that same capped wrapper width
-and center alignment. The row itself has no side padding; editor container widths,
+Point-buy stacks use 12px gaps and centered outer wrappers with `width: min(100%, 220px)`.
+This narrows the actual point-buy cards rather than merely padding
+a full-width row. The row itself has no side padding; editor container widths,
 thresholds and uncapped wide layouts remain independent of the stacked tile cap.
-Rolled/Luck tiles add 8px frame padding, a 3rem minimum total
-height and a 44px action strip with 8px vertical/4px inline padding, keeping the
-compact fonts but presenting full tiles rather than thin bars. Luck's vertical
-divider and inline spacing are replaced by a horizontal divider, 4px top margin
-and 12px top padding. Its answer, locked assignment, actions and final position
-are unchanged by layout transitions.
-Luck reuses `RollAssignmentMenu` and its tile styles with a locked “Luck” assignment,
-no separate heading, and no Assign To or Unassign menu actions. Its total is
-informational, like ordinary totals; the bottom action shows “Luck” or “Rerolling”.
-The menu selects Luck only while Core's shared unlimited flag is enabled. Rolled
-mode submits pool selections and selected Luck through the same batch button;
-point buy uses the same selection menu and a shared-style Reroll button below its
-row. Luck-only rerolls work without an initialized shared pool and do not spend the
-normal allowance. Mixed batches spend it only because they include pool results.
-No unselected Luck is acquired or changed. Turning unlimited off clears the local
-Luck selection while retaining ordinary selections under their existing cap rules.
-Method changes also clear Luck's presentation selection, not its shared answer.
-Core validates every selected replacement and policy before mutating either group,
-so invalid Luck or pool dice, policy changes, and acquisition failures cannot cause
-partial success. `submitLuckRoll` independently rejects replacement of an accepted
-valid Luck roll without unlimited. Invalid initial drafts remain correctable.
-The rolled editor still has one initial Roll for the pool and Luck, not a second
-independent initial Luck button.
 
-The wide rolled/Luck presentation shares a 4.5rem minimum width, 2.5rem minimum total
-height, 1.375rem result font, and 38px minimum assignment/menu strip. Strips retain
-12px labels and permit wrapping longer characteristic names. Four-pixel total/vertical
-strip padding and 2px inline strip padding reduce empty space; Luck
-retains a separate divider with 6px leading space and 8px padding. Menu items remain
-44px tall. These are presentation
-dimensions only, not generation rules; validation text can expand a tile/card.
+Neither result panel contains a Luck tile or Luck divider. Luck appears in the
+draft table only. With an existing valid Luck roll and Core's unlimited flag on,
+`LuckContributionMenu.tsx` makes its Rolled cell a menu trigger in either method.
+Its single “Reroll” action immediately calls the existing host adapter as
+`rerollCharacteristics([], rollDice, true)`. It never selects Luck, joins an ordinary
+batch, changes ordinary selected IDs or spends the normal batch allowance. Luck-only
+rerolls also work in point buy without an initialized shared pool. With unlimited
+off (or missing/invalid Luck), the table cell is informational, with no reroll menu.
+The trigger's accessible description retains the dice breakdown; menu focus and
+Escape behavior match the assignment pickers.
 
-Pool tiles integrate a total on top with a bottom menu trigger. The trigger shows
-“Rerolling” while selected, otherwise its assigned characteristic, otherwise an
-ellipsis icon. Selection takes visual priority but does not clear the assignment
-until the batch executes; removing the selection restores the assigned caption.
-The total and trigger are sibling buttons inside one rounded border, never nested
-interactive controls. The pool total reuses `RollTile`'s tooltip but no longer
-renders an assignment caption itself. IDs stay internal; equal totals remain
-distinct by ID and ordinal group/total name. Bottom triggers use the exact
-accessible label “Actions for result: <total>” (for example “Actions for result:
-13”), with assignment and selection exposed as an accessible description. Equal
-totals intentionally share that trigger name. Tooltips expose the faces and total, for
-example `2d10: 6 + 7 = 13`, with hover, focus, and touch events enabled. Pool tiles
-are informational: clicking or pressing a total never changes assignments or opens
-an action menu. Luck uses the same informational total and tooltip rather than an
-inline expanding breakdown. Its action trigger is named “Actions for Luck”; its
-accessible total label includes the fixed assignment and selected state.
+`LuckRoll.tsx` now owns only initial acquisition and invalid-draft feedback, outside
+the result panels. Point buy retains its initial “Roll” button until valid Luck is
+accepted. Rolled mode still obtains missing Luck with “Make Characteristic Roll”; after
+pool initialization a missing/invalid Luck draft can be repaired with the same
+initial-acquisition control. Accepted Luck has no extra result display or batch
+button. Invalid supplied Luck retains Core's inline field feedback.
 
-`RollAssignmentMenu.tsx` owns each integrated tile. `RolledCharacteristics` places
-the tiles in a Mantine Box with the container-driven row/stack layout. The bottom action
-opens a feature-local Mantine menu by keyboard, mouse, or touch. It contains the
-reroll selection toggle, “Unassign” only for an assigned roll, then a divider and
-“Assign To” section listing unoccupied characteristics. All occupied targets,
-including this roll's current target, are omitted. Choosing an available target
-directly moves the roll's existing assignment in one whole-map command. Replacing
-another roll at an occupied destination still requires explicitly unassigning that
-destination first. The menu has no dice header. Its viewport adjustment, scrolling,
-44px items, dismissal, and exit-transition focus return mirror the flat shared menu
-without changing that component or its other usages. Focus returns to the bottom trigger after
-menu dismissal or selection; dismissal does not change answers. An open trigger
-also handles Escape before focus enters the dropdown: its Mantine propagation
-marker prevents the wizard's capture-phase Escape handler from closing the wizard,
-and its own handler closes only the menu. Closed triggers do not intercept Escape.
-Pool replacement
-discards open action menus.
+Independent Luck command rejections appear in the step's “Luck reroll feedback”
+group; accepted values, ordinary selection and allowance remain intact. Acquisition
+exceptions go through the hook's existing technical-error seam and error modal.
+Core remains responsible for replacement validation and policy; its mixed-batch API
+is unchanged even though this editor no longer uses it.
+
+`RerollTile.tsx` owns each ordinary result's single toggle button, reusing `RollTile`'s
+hover/focus/touch dice tooltip. There are no result action menus, separate total
+buttons, action strips or nested controls. Assigned results live only in the table
+until explicitly unassigned. The old roll-assignment menu and unused unassign
+callback/map-removal helper are removed; the right panel owns no assignment commands.
+
+Equal totals remain distinct by internal roll ID and original pool ordinal. Toggle
+names include both ordinal and total, for example “Roll 1, total 13”; a persistent
+accessible description contains the dice breakdown and selection state, while
+`aria-pressed` exposes the toggle state independently of its tooltip. Tooltips show
+the faces and total, for example `2d10: 6 + 7 = 13`. `RolledCharacteristics` retains
+the two-column grid, selected-ID cleanup and focus to the first acquired/replaced
+tile, including after the normal allowance is spent. Assignment and independent
+Luck menus remain in the table with their existing Escape isolation and focus return.
 
 ### Point-buy controls
 
@@ -301,8 +379,7 @@ draft.
 Wide point-buy cards use 8rem minimum widths, 3px padding, 2px label/control gaps,
 12px labels, 20px values and 32px controls. Stacked cards use the centered 220px cap, with
 12px padding, 8px label/control gaps, and 44px controls; fonts stay unchanged.
-Both layouts retain the same rounded border style as rolled/Luck controls without
-making Luck an allocation card.
+Both layouts retain the same rounded border style as ordinary rolled controls.
 
 The UI does not submit negative allocations: typed minus signs are ignored, so
 typing `-5` enters `5`; a negative numeric paste resets the allocation to zero.
@@ -400,6 +477,13 @@ rendering, column/cell assertions, and controlled reads. Tests verify actual pre
 as well as detached drafts and command results.
 
 Coverage spans both generation methods, equal-total identity, whole-map edits,
+partial draft table values versus atomic main-sheet projection, missing versus explicit
+zero contributions, invalid supplied values, equal-total picker identities and
+accessible identities, assigned-ID omission with equal totals, explicit source and
+destination clear-before-reuse behavior,
+cell-menu keyboard/touch navigation and focus return, favored-star limits and key retention,
+default-collapsed Options disclosure, mounted expansion retention and hidden-switch
+answer retention across generation updates and wizard dismissal,
 snapshot-driven selection controls, deterministic selective replacements and unaffected
 assignment retention, option rendering and retention, rejected-command selection/retry,
 acquisition exceptions and stale commands,
@@ -420,11 +504,16 @@ canceling resumed pending race changes, and nested Select/assignment-menu Escape
 isolation. DOM checks do not establish visual stacking or small-screen reachability;
 those require a real browser.
 
-Row/stack layout checks also need a real browser: hold the viewport fixed while
-resizing each editor container to its complete-row threshold and one pixel below.
-Assert eight items in one row versus eight centered, capped stacked items, unchanged
-answer values/fonts, expanded stacked padding/controls, and Luck's divider switching
-from vertical to horizontal. Size the editor container directly during threshold
+Layout checks also need a real browser: rolled generation must show equal-height
+65:35 table/panel columns (after the gap), with the Roll/Reroll button aligned to the table header at or
+above 40rem, then stack below that threshold with a horizontal divider. Assert one
+button per unassigned pool result, two result columns and no overflow on phones.
+Check hidden assigned tiles returning in pool order, concise visible picker labels,
+and independent table Luck rerolls without losing an ordinary selection. For point buy,
+resize its container to its complete-row threshold and one pixel below; assert seven
+cards in one row versus seven centered, capped stacked cards, unchanged answer
+values/fonts and expanded stacked controls. Neither panel may contain a Luck tile or divider.
+Size the editor container directly during threshold
 probes: a modal scrollbar can otherwise reduce its available width. Test narrow
 screens separately for reachability and horizontal overflow. JSDOM does not compute
 container-query layout geometry.

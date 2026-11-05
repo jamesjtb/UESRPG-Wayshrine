@@ -10,6 +10,7 @@ import {
   openWizard,
   expectCharacteristic,
   fillPointBuy,
+  expandOptions,
   renderForge,
   selectRace,
   sheet,
@@ -42,6 +43,7 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   );
   await openWizard();
   await user.click(screen.getByRole("button", { name: "Next" }));
+  await expandOptions(user);
   await fillPointBuy(user);
   const drafts =
     snapshots.mock.results.at(-1)!.value.characteristicGeneration.drafts;
@@ -133,6 +135,7 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
   await sheet().findByText("Alchemy (Novice)");
   await user.click(screen.getByRole("button", { name: "Next" }));
+  await expandOptions(user);
   expect(
     screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
   ).toHaveProperty("checked", true);
@@ -142,12 +145,12 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   expect(
     screen.getByRole("textbox", { name: "Character name" }),
   ).toHaveProperty("value", "Keira");
-  expect(
-    within(screen.getByRole("group", { name: "Luck roll" })).getByRole(
-      "button",
-      { name: "Luck roll, total 10, assigned Luck" },
-    ),
-  ).toBeTruthy();
+  expectCharacteristic("Luck", {
+    baseline: 30,
+    generated: 10,
+    favored: false,
+    total: 40,
+  });
   expect(
     snapshots.mock.results.at(-1)!.value.characteristicGeneration.drafts,
   ).toEqual(drafts);

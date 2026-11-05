@@ -65,6 +65,7 @@ function ForgeSession({
     submitCharacteristicRolls,
     setUnlimitedCharacteristicRerolls,
     rerollCharacteristics,
+    reportDiceAcquisitionFailure,
     setCharacteristicAssignments,
     setCharacteristicAllocations,
     submitLuckRoll,
@@ -155,6 +156,8 @@ function ForgeSession({
               {view.snapshot.currentStep === "characteristics" && (
                 <CharacteristicsStep
                   generation={view.snapshot.characteristicGeneration}
+                  characteristics={view.preview.characteristics}
+                  raceUsable={view.preview.race !== undefined}
                   raceComplete={view.snapshot.steps.some(
                     (step) => step.id === "race" && step.complete,
                   )}
@@ -164,6 +167,7 @@ function ForgeSession({
                     setUnlimitedCharacteristicRerolls
                   }
                   rerollCharacteristics={rerollCharacteristics}
+                  onDiceAcquisitionError={reportDiceAcquisitionFailure}
                   setCharacteristicAssignments={setCharacteristicAssignments}
                   setCharacteristicAllocations={setCharacteristicAllocations}
                   submitLuckRoll={submitLuckRoll}

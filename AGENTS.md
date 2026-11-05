@@ -10,3 +10,19 @@
   docs/development/; keep progress reports and test counts in conversation.
 - Report checks actually run and distinguish pre-existing failures.
   Leave unrelated changes untouched.
+
+## Scope and verification
+
+- Keep feedback passes scoped to the requested change. Report unrelated
+  discoveries and wait for approval before fixing them.
+- Match verification to the change:
+  - Copy, icons, or cosmetic changes: affected tests and formatting checks.
+  - Layout changes: affected tests and targeted browser checks.
+  - Behavior changes: relevant integration tests and typechecks.
+  - Phase completion: full relevant suites and consolidated browser checks.
+- Repeat full suites or browser matrices during feedback only when regression
+  risk or shared behavior warrants it; otherwise defer them to phase completion.
+- Document durable behavior and architecture, rather than wording, spacing,
+  or icon adjustments.
+- Report checks run and checks deferred; keep reporting within the authorized
+  scope rather than expanding work for report completeness.

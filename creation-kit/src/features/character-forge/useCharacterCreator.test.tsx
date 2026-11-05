@@ -35,6 +35,7 @@ describe("useCharacterCreator command boundary", () => {
       "dismissError",
       "next",
       "previous",
+      "reportDiceAcquisitionFailure",
       "rerollCharacteristics",
       "setCharacteristicAllocations",
       "setCharacteristicAssignments",

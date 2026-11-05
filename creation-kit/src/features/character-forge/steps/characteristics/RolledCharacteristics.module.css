@@ -1,35 +1,26 @@
 .container {
-  container: rolled-characteristics / inline-size;
+  min-width: 0;
+  padding-inline-start: var(--mantine-spacing-md);
+  border-inline-start: 1px solid var(--mantine-color-default-border);
 }
 
 .row {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
   gap: 6px;
+  min-width: 0;
 }
 
 .result {
-  flex: 1 0 4.5rem;
-  min-width: 4.5rem;
+  min-width: 0;
 }
 
-/* Eight 4.5rem tiles, seven 6px gaps, and Luck's 15px separator space. */
-@container rolled-characteristics (width < calc(36rem + 57px)) {
-  .row {
-    --roll-tile-padding: 8px;
-    --roll-total-height: 3rem;
-    --roll-action-height: 44px;
-    --roll-action-padding: 8px 4px;
-
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .result {
-    flex: none;
-    width: min(100%, 220px);
-    min-width: 0;
+@container characteristic-generation (width < 40rem) {
+  .container {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+    padding-block-start: var(--mantine-spacing-md);
+    border-block-start: 1px solid var(--mantine-color-default-border);
   }
 }

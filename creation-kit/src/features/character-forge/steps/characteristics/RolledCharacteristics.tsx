@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { Box, Button, Group, Stack, Text } from "@mantine/core";
+import { Box, Button, Stack, Text } from "@mantine/core";
 import { Characteristic } from "@wayshrine/core";
 import type {
-  CharacteristicAssignments,
   CharacteristicGenerationDrafts,
   CharacteristicGenerationIssue,
   CharacteristicGenerationCommandResult,
@@ -11,46 +9,39 @@ import type {
   CharacteristicRoll,
 } from "@wayshrine/core";
 import { GenerationIssues } from "./GenerationIssues";
-import { RollAssignmentMenu } from "./RollAssignmentMenu";
+import { RerollTile } from "./RerollTile";
 import type { CharacteristicRoller } from "./dice";
 import { characteristicLabels } from "./characteristicLabels";
 import classes from "./RolledCharacteristics.module.css";
 
 interface Props {
-  luckSelected?: boolean;
-  children?: ReactNode;
   draft: CharacteristicGenerationDrafts["rolled"];
   issues: readonly CharacteristicGenerationIssue[];
   rollDice: CharacteristicRoller;
+  onDiceAcquisitionError: (error: unknown) => void;
   submitCharacteristicRolls: (rolls: readonly CharacteristicRoll[]) => void;
   rerolls: CharacteristicRerollSnapshot;
   rerollCharacteristics: (
     ids: readonly string[],
     rollDice: CharacteristicRoller,
   ) => CharacteristicGenerationCommandResult | undefined;
-  setCharacteristicAssignments: (
-    assignments: CharacteristicAssignments,
-  ) => void;
 }
 
-function withoutRoll(assignments: CharacteristicAssignments, rollId: string) {
-  const next = { ...assignments };
-  for (const key of Object.values(Characteristic)) {
-    if (next[key] === rollId) delete next[key];
-  }
-  return next;
+function isVisibleRoll(draft: Props["draft"], id: string) {
+  return (
+    draft.rolls.some((roll) => roll.id === id) &&
+    !Object.values(draft.assignments).includes(id)
+  );
 }
 
 export function RolledCharacteristics({
-  luckSelected = false,
-  children,
   draft,
   issues,
   rollDice,
+  onDiceAcquisitionError,
   submitCharacteristicRolls,
   rerolls,
   rerollCharacteristics,
-  setCharacteristicAssignments,
 }: Props) {
   const [selected, setSelected] = useState<readonly string[]>([]);
   const [commandIssues, setCommandIssues] = useState<
@@ -60,22 +51,22 @@ export function RolledCharacteristics({
   const pendingFocus = useRef<number | undefined>(undefined);
   useEffect(() => {
     if (pendingFocus.current === undefined) return;
-    if (pendingFocus.current === -1) {
-      poolRef.current
-        ?.querySelector<HTMLButtonElement>('[aria-label^="Luck roll, total"]')
-        ?.focus();
-    } else {
-      poolRef.current
-        ?.querySelectorAll<HTMLButtonElement>("[data-roll-result]")
-        [pendingFocus.current]?.focus();
-    }
+    poolRef.current
+      ?.querySelector<HTMLButtonElement>(
+        `[aria-label="Roll ${pendingFocus.current + 1}"] [data-roll-result]`,
+      )
+      ?.focus();
     pendingFocus.current = undefined;
-  }, [draft.rolls, luckSelected]);
+  }, [draft.rolls]);
+  useEffect(() => {
+    setSelected((current) => {
+      const visible = current.filter((id) => isVisibleRoll(draft, id));
+      return visible.length === current.length ? current : visible;
+    });
+  }, [draft.rolls, draft.assignments]);
   const limit = rerolls.maxBatchSize;
   const canReroll = rerolls.available;
-  const selection = selected.filter((id) =>
-    draft.rolls.some((roll) => roll.id === id),
-  );
+  const selection = selected.filter((id) => isVisibleRoll(draft, id));
   let rerollLabel = `Reroll (${selection.length} of 3)`;
   if (rerolls.batchSpent) rerollLabel = "Reroll Used";
   if (rerolls.unlimited) rerollLabel = "Reroll";
@@ -113,21 +104,15 @@ export function RolledCharacteristics({
   );
 
   function rollPool() {
-    const rolls: CharacteristicRoll[] = [];
-    for (let index = 0; index < 7; index += 1) rolls.push(rollDice());
-    pendingFocus.current = 0;
-    submitCharacteristicRolls(rolls);
-  }
-
-  function assignRoll(rollId: string, key: Characteristic) {
-    if (!draft.rolls.some((roll) => roll.id === rollId)) return;
-    const assignments = withoutRoll(draft.assignments, rollId);
-    assignments[key] = rollId;
-    setCharacteristicAssignments(assignments);
-  }
-
-  function unassignRoll(rollId: string) {
-    setCharacteristicAssignments(withoutRoll(draft.assignments, rollId));
+    try {
+      const rolls: CharacteristicRoll[] = [];
+      for (let index = 0; index < 7; index += 1) rolls.push(rollDice());
+      pendingFocus.current = 0;
+      submitCharacteristicRolls(rolls);
+    } catch (error) {
+      pendingFocus.current = undefined;
+      onDiceAcquisitionError(error);
+    }
   }
 
   return (
@@ -138,11 +123,20 @@ export function RolledCharacteristics({
       aria-label="Rolled characteristics"
     >
       {!rerolls.initialized && (
-        <Group align="center" gap="sm">
-          <Button size="sm" onClick={rollPool}>
-            Roll
-          </Button>
-        </Group>
+        <Button size="sm" fullWidth onClick={rollPool}>
+          Make Characteristic Roll
+        </Button>
+      )}
+      {rerolls.initialized && (
+        <Button
+          size="sm"
+          onClick={rerollSelected}
+          disabled={
+            !canReroll || selection.length === 0 || selection.length > limit
+          }
+        >
+          {rerollLabel}
+        </Button>
       )}
       <GenerationIssues issues={rollIssues} field="rolls" />
       <Box
@@ -152,42 +146,30 @@ export function RolledCharacteristics({
         role="group"
         aria-label="Characteristic rolls"
       >
-        {draft.rolls.map((roll, index) => (
-          <Stack gap={4} className={classes.result} key={roll.id}>
-            <RollAssignmentMenu
-              roll={roll}
-              ordinal={index + 1}
-              assignments={draft.assignments}
-              selected={selection.includes(roll.id)}
-              canSelectReroll={canReroll && selection.length < limit}
-              onToggleReroll={() =>
-                selectRoll(roll.id, !selection.includes(roll.id))
-              }
-              onAssign={(key) => assignRoll(roll.id, key)}
-              onUnassign={() => unassignRoll(roll.id)}
-            />
-            <GenerationIssues
-              issues={rollIssues}
-              field="rolls"
-              rollId={roll.id}
-            />
-          </Stack>
-        ))}
-        {children}
+        {draft.rolls.map((roll, index) => {
+          if (Object.values(draft.assignments).includes(roll.id)) return null;
+          return (
+            <Stack gap={4} className={classes.result} key={roll.id}>
+              <RerollTile
+                roll={roll}
+                ordinal={index + 1}
+                selected={selection.includes(roll.id)}
+                canSelect={canReroll && selection.length < limit}
+                onToggle={() =>
+                  selectRoll(roll.id, !selection.includes(roll.id))
+                }
+              />
+              <GenerationIssues
+                issues={rollIssues}
+                field="rolls"
+                rollId={roll.id}
+              />
+            </Stack>
+          );
+        })}
       </Box>
-      {(rerolls.initialized || luckSelected) && (
+      {commandIssues.length > 0 && (
         <Stack gap="xs">
-          <Button
-            size="sm"
-            onClick={rerollSelected}
-            disabled={
-              (!canReroll && !luckSelected) ||
-              (selection.length === 0 && !luckSelected) ||
-              selection.length > limit
-            }
-          >
-            {rerollLabel}
-          </Button>
           {commandIssues.map((issue, index) => (
             <Text size="sm" role="status" key={index}>
               {issue.message}

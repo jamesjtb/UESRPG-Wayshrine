@@ -6,6 +6,7 @@ import {
   controlledReads,
   expectCharacteristic,
   fillPointBuy,
+  expandOptions,
   openWizard,
   renderForge,
   selectRace,
@@ -106,16 +107,10 @@ describe("Character creation modal", () => {
       const pool = within(
         screen.getByRole("group", { name: "Rolled characteristics" }),
       );
-      await user.click(pool.getByRole("button", { name: "Roll" }));
       await user.click(
-        within(pool.getByRole("group", { name: "Roll 1" })).getByRole(
-          "button",
-          { name: "Actions for result: 10" },
-        ),
+        pool.getByRole("button", { name: "Make Characteristic Roll" }),
       );
-      await user.click(
-        await screen.findByRole("menuitem", { name: "Strength" }),
-      );
+      await assignDraftResult(user, "Strength", 0);
       await fillPointBuy(user);
       const before = snapshots.mock.results.at(-1)!.value;
       // Core can finish its registered subset, not the full creation sequence.
@@ -150,18 +145,19 @@ describe("Character creation modal", () => {
       expect(
         screen.getByRole("textbox", { name: "Strength points" }),
       ).toHaveProperty("value", "20");
-      expect(screen.getByRole("checkbox", { name: "Strength" })).toHaveProperty(
-        "checked",
-        true,
-      );
+      expect(
+        screen
+          .getByRole("button", { name: "Favor Strength" })
+          .getAttribute("aria-pressed"),
+      ).toBe("true");
       await user.click(
         screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
       );
       expect(
-        screen.getByRole("button", {
-          name: "Roll 1, total 10, assigned Strength",
-        }),
-      ).toBeTruthy();
+        screen
+          .getByRole("button", { name: "Rolled result for Strength" })
+          .getAttribute("aria-description"),
+      ).toContain("Result 1: 10 (5 + 5) — Strength");
       const after =
         snapshots.mock.results.at(-1)!.value.characteristicGeneration.drafts;
       expect(after.rolled).toEqual(
@@ -186,6 +182,7 @@ describe("Character creation modal", () => {
     await selectRace("Argonian");
     await sheet().findByText("Argonian");
     await user.click(screen.getByRole("button", { name: "Next" }));
+    await expandOptions(user);
     await user.click(
       screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
     );
@@ -303,3 +300,4 @@ describe("Character creation modal", () => {
     await screen.findByRole("checkbox", { name: "Alchemy" });
   });
 });
+import { assignDraftResult } from "./test/forgeTestHelpers";

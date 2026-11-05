@@ -110,7 +110,15 @@ export function expectCharacteristic(
   );
 }
 
+export async function expandOptions(user: ReturnType<typeof userEvent.setup>) {
+  const options = screen.getByRole("button", { name: "Options" });
+  if (options.getAttribute("aria-expanded") !== "true")
+    await user.click(options);
+  await screen.findByRole("switch", { name: "Unlimited Rerolls" });
+}
+
 export async function fillPointBuy(user: ReturnType<typeof userEvent.setup>) {
+  await expandOptions(user);
   await user.click(
     screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
   );
@@ -128,10 +136,11 @@ export async function fillPointBuy(user: ReturnType<typeof userEvent.setup>) {
     await user.clear(input);
     await user.type(input, String(amount));
   }
-  await user.click(screen.getByRole("checkbox", { name: "Strength" }));
-  await user.click(screen.getByRole("checkbox", { name: "Endurance" }));
-  const luck = within(screen.getByRole("group", { name: "Luck roll" }));
-  const initialRoll = luck.queryByRole("button", { name: "Roll" });
+  await user.click(screen.getByRole("button", { name: "Favor Strength" }));
+  await user.click(screen.getByRole("button", { name: "Favor Endurance" }));
+  const luck = screen.queryByRole("group", { name: "Luck roll" });
+  const initialRoll =
+    luck && within(luck).queryByRole("button", { name: "Roll" });
   if (initialRoll) await user.click(initialRoll);
 }
 
@@ -153,6 +162,19 @@ export function controlledReads(catalog: ContentCatalog) {
   }
 
   return { get, hold };
+}
+
+export async function assignDraftResult(
+  user: ReturnType<typeof userEvent.setup>,
+  characteristic: string,
+  index: number,
+) {
+  await user.click(
+    screen.getByRole("button", { name: `Rolled result for ${characteristic}` }),
+  );
+  await user.click(
+    screen.getByRole("menuitem", { name: new RegExp(`^Result ${index + 1}:`) }),
+  );
 }
 
 export function expectNavigationBlocked() {

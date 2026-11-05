@@ -14,6 +14,7 @@ import {
   openWizard,
   expectCharacteristic,
   fillPointBuy,
+  expandOptions,
   selectRace,
   sheet,
 } from "./test/forgeTestHelpers";
@@ -62,6 +63,7 @@ describe("Character Forge session lifetime", () => {
     );
     await openWizard();
     await user.click(screen.getByRole("button", { name: "Next" }));
+    await expandOptions(user);
     await fillPointBuy(user);
     expectCharacteristic("Strength", {
       baseline: 25,
@@ -114,10 +116,12 @@ describe("Character Forge session lifetime", () => {
       total: 30,
     });
     await user.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByRole("checkbox", { name: "Strength" })).toHaveProperty(
-      "checked",
-      false,
-    );
+    await expandOptions(user);
+    expect(
+      screen
+        .getByRole("button", { name: "Favor Strength" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
     expect(
       screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
     ).toHaveProperty("checked", false);

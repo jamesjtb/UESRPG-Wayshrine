@@ -6,6 +6,7 @@ import { createCharacteristicRoller } from "./steps/characteristics/dice";
 import { characteristicLabels } from "./steps/characteristics/characteristicLabels";
 import {
   controlledReads,
+  expandOptions,
   renderForge,
   selectRace,
   sheet,
@@ -26,6 +27,7 @@ async function startGeneration(random: () => number) {
   await act(async () => race.resolve());
   await sheet().findByText("Argonian");
   await user.click(screen.getByRole("button", { name: "Next" }));
+  await expandOptions(user);
 
   function snapshot() {
     return snapshots.mock.results.at(-1)!.value;
@@ -35,35 +37,30 @@ async function startGeneration(random: () => number) {
 }
 
 function poolTile(index: number) {
-  return screen.getByRole("button", {
-    name: new RegExp(`^Roll ${index + 1}, total `),
-  });
+  return poolAction(index);
 }
 
 function poolAction(index: number) {
   return within(
     screen.getByRole("group", { name: `Roll ${index + 1}` }),
-  ).getByRole("button", { name: /^Actions for result: \d+$/ });
+  ).getByRole("button", { name: /^Roll \d+, total \d+$/ });
 }
 
-async function toggleReroll(user: User, index: number, selected = false) {
+async function toggleReroll(user: User, index: number) {
   await user.click(poolAction(index));
-  await user.click(
-    screen.getByRole("menuitem", {
-      name: selected ? "Don't reroll" : "Reroll",
-    }),
-  );
 }
 
 function poolRollButton(name: "Roll" | "Reroll" = "Roll") {
   const pool = within(
     screen.getByRole("group", { name: "Rolled characteristics" }),
   );
-  const luck = screen.getByRole("group", { name: "Luck roll" });
   const buttons = pool.getAllByRole("button", {
-    name: name === "Reroll" ? /^Reroll(?: \(\d of 3\)| Used)?$/ : name,
+    name:
+      name === "Reroll"
+        ? /^Reroll(?: \(\d of 3\)| Used)?$/
+        : "Make Characteristic Roll",
   });
-  return buttons.find((button) => !luck.contains(button))!;
+  return buttons[0]!;
 }
 
 function luckRollButton(name: "Roll" | "Reroll" = "Roll") {
@@ -75,8 +72,7 @@ function luckRollButton(name: "Roll" | "Reroll" = "Roll") {
 }
 
 async function chooseRoll(user: User, label: string, index: number) {
-  await user.click(poolAction(index));
-  await user.click(menuCharacteristic(label));
+  await assignDraftResult(user, label, index);
 }
 
 function menuCharacteristic(label: string) {
@@ -84,9 +80,19 @@ function menuCharacteristic(label: string) {
 }
 
 async function unassignRoll(user: User, index: number) {
-  await user.click(poolAction(index));
+  await user.click(assignedCell(index));
   await user.click(screen.getByRole("menuitem", { name: "Unassign" }));
   expect(screen.queryByRole("menu")).toBeNull();
+}
+
+function assignedCell(index: number) {
+  return screen
+    .getAllByRole("button", { name: /^Rolled result for / })
+    .find((button) =>
+      button
+        .getAttribute("aria-description")
+        ?.startsWith(`Result ${index + 1}:`),
+    )!;
 }
 
 async function assignPool(user: User) {
@@ -97,8 +103,8 @@ async function assignPool(user: User) {
 }
 
 async function favorStrengthAndEndurance(user: User) {
-  await user.click(screen.getByRole("checkbox", { name: "Strength" }));
-  await user.click(screen.getByRole("checkbox", { name: "Endurance" }));
+  await user.click(screen.getByRole("button", { name: "Favor Strength" }));
+  await user.click(screen.getByRole("button", { name: "Favor Endurance" }));
 }
 
 async function enterPoints(user: User, label: string, value: string) {
@@ -126,7 +132,7 @@ describe("Character Forge generation inputs", () => {
     await user.click(unlimited);
     expect(poolRollButton("Reroll")).toHaveProperty("disabled", true);
     expect(poolRollButton("Reroll").textContent).toBe("Reroll (4 of 3)");
-    await toggleReroll(user, 0, true);
+    await toggleReroll(user, 0);
     expect(poolRollButton("Reroll")).toHaveProperty("disabled", false);
     await user.click(poolRollButton("Reroll"));
     expect(random).toHaveBeenCalledTimes(22);
@@ -165,6 +171,7 @@ describe("Character Forge generation inputs", () => {
     );
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
+    await expandOptions(user);
     expect(unlimited()).toHaveProperty("checked", true);
     await user.click(unlimited());
     await user.click(
@@ -172,11 +179,7 @@ describe("Character Forge generation inputs", () => {
     );
     expect(poolRollButton("Reroll")).toHaveProperty("disabled", true);
     await user.click(poolAction(0));
-    expect(screen.getByRole("menuitem", { name: "Reroll" })).toHaveProperty(
-      "disabled",
-      true,
-    );
-    await user.keyboard("{Escape}");
+    expect(poolAction(0).getAttribute("aria-disabled")).toBe("true");
     expect(snapshot().characteristicGeneration.drafts.rolled.rolls).toEqual(
       rolls,
     );
@@ -234,9 +237,9 @@ describe("Character Forge generation inputs", () => {
     const pool = within(
       screen.getByRole("group", { name: "Characteristic rolls" }),
     );
-    expect(pool.getAllByRole("button")).toHaveLength(16);
-    expect(pool.getByRole("button", { name: "Roll 1, total 11" })).toBeTruthy();
-    expect(pool.getByRole("button", { name: "Roll 2, total 11" })).toBeTruthy();
+    expect(pool.getAllByRole("button")).toHaveLength(7);
+    expect(poolTile(0).getAttribute("aria-label")).toBe("Roll 1, total 11");
+    expect(poolTile(1).getAttribute("aria-label")).toBe("Roll 2, total 11");
     expect(screen.queryByText(/roll-\d/)).toBeNull();
     expect(screen.queryByText("1 + 10")).toBeNull();
     await chooseRoll(user, "Strength", 0);
@@ -244,18 +247,10 @@ describe("Character Forge generation inputs", () => {
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({ str: "roll-1", end: "roll-2" });
-    expect(
-      pool
-        .getByRole("button", {
-          name: "Roll 1, total 11, assigned Strength",
-        })
-        .getAttribute("aria-haspopup"),
-    ).toBeNull();
-    expect(
-      pool.getByRole("button", {
-        name: "Roll 2, total 11, assigned Endurance",
-      }),
-    ).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Roll 1" })).toBeNull();
+    expect(assignedCell(1).getAttribute("aria-description")).toContain(
+      "Endurance",
+    );
     const labels = Object.values(characteristicLabels);
     for (let index = 2; index < labels.length; index += 1) {
       await chooseRoll(user, labels[index]!, index);
@@ -285,9 +280,10 @@ describe("Character Forge generation inputs", () => {
     const assignments =
       snapshot().characteristicGeneration.drafts.rolled.assignments;
     for (let index = 0; index < 7; index += 1) {
-      expect(poolTile(index).getAttribute("aria-label")).toMatch(/, assigned /);
-      expect(poolTile(index).getAttribute("aria-haspopup")).toBeNull();
-      expect(poolTile(index).getAttribute("aria-expanded")).toBeNull();
+      expect(assignedCell(index).getAttribute("aria-haspopup")).toBe("menu");
+      expect(
+        screen.queryByRole("group", { name: `Roll ${index + 1}` }),
+      ).toBeNull();
     }
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
@@ -317,12 +313,9 @@ describe("Character Forge generation inputs", () => {
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual(partial);
     await user.click(poolAction(0));
-    expect(menuCharacteristic("Strength").textContent).toBe("Strength");
-    expect(
-      screen.getAllByRole("menuitem").map((item) => item.textContent),
-    ).toEqual(["Reroll", "Strength"]);
+    expect(poolAction(0).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByRole("menu")).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Endurance" })).toBeNull();
-    await user.keyboard("{Escape}");
     expect(snapshot().canFinish).toBe(false);
     await chooseRoll(user, "Strength", 0);
     expect(snapshot().characteristicGeneration.complete).toBe(true);
@@ -353,8 +346,7 @@ describe("Character Forge generation inputs", () => {
     const keys = Object.keys(remaining);
     const initialSubmissions = assignments.mock.calls.length;
     for (let index = 0; index < 7; index += 1) {
-      expect(poolTile(index).getAttribute("aria-label")).toMatch(/, assigned /);
-      expect(poolTile(index).getAttribute("aria-haspopup")).toBeNull();
+      expect(assignedCell(index).getAttribute("aria-haspopup")).toBe("menu");
       await unassignRoll(user, index);
       delete remaining[keys[index]!];
       expect(assignments).toHaveBeenCalledTimes(initialSubmissions + index + 1);
@@ -383,18 +375,7 @@ describe("Character Forge generation inputs", () => {
     await favorStrengthAndEndurance(user);
     await user.click(poolRollButton());
     await assignPool(user);
-    const luckGroup = within(screen.getByRole("group", { name: "Luck roll" }));
-    expect(luckGroup.queryByText("Luck baseline: 30.")).toBeNull();
-    expect(
-      luckGroup.queryByText(
-        "Luck uses a separate 2d10 roll with either method.",
-      ),
-    ).toBeNull();
-    expect(
-      luckGroup.getByRole("button", {
-        name: "Luck roll, total 10, assigned Luck",
-      }),
-    ).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Luck roll" })).toBeNull();
     await user.click(
       screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
     );
@@ -410,19 +391,17 @@ describe("Character Forge generation inputs", () => {
       favored: true,
       total: 35,
     });
-    expect(poolTile(0).getAttribute("aria-label")).toBe(
-      "Roll 1, total 10, assigned Strength",
-    );
+    expect(assignedCell(0).textContent).toBe("10");
     expect(
       screen.queryByText(
         "Rerolling replaces all seven rolls and clears every assignment.",
       ),
     ).toBeNull();
     for (let index = 1; index <= 3; index += 1) {
+      await unassignRoll(user, index - 1);
       await toggleReroll(user, index - 1);
     }
-    await user.click(poolAction(0));
-    expect(poolAction(0)).toHaveProperty("ariaExpanded", "true");
+    expect(poolAction(0).getAttribute("aria-pressed")).toBe("true");
     await user.click(poolRollButton("Reroll"));
     expect(random).toHaveBeenCalledTimes(22);
     const drafts = snapshot().characteristicGeneration.drafts;
@@ -447,7 +426,7 @@ describe("Character Forge generation inputs", () => {
     );
     expect(screen.queryByRole("menu")).toBeNull();
     for (let index = 0; index < 3; index += 1)
-      expect(poolAction(index)).toHaveProperty("ariaExpanded", "false");
+      expect(poolAction(index).getAttribute("aria-pressed")).toBe("false");
     expect(poolRollButton("Reroll")).toHaveProperty("disabled", true);
     expect(snapshot().answers).toEqual(before.answers);
     expect(snapshot().canFinish).toBe(false);
@@ -461,20 +440,21 @@ describe("Character Forge generation inputs", () => {
       total: 35,
     });
     const beforeLuck = snapshot().characteristicGeneration.drafts;
-    expect(luckRollButton("Reroll")).toHaveProperty("disabled", true);
+    expect(
+      screen.queryByRole("button", { name: "Rolled result for Luck" }),
+    ).toBeNull();
     await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
-    await user.click(screen.getByRole("button", { name: "Actions for Luck" }));
+    await user.click(
+      screen.getByRole("button", { name: "Rolled result for Luck" }),
+    );
     await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
-    await user.click(luckRollButton("Reroll"));
     expect(random).toHaveBeenCalledTimes(24);
     expect(snapshot().characteristicGeneration.drafts).toEqual({
       ...beforeLuck,
       luck: { id: "roll-12", dice: [5, 5] },
     });
     expect(
-      luckGroup.getByRole("button", {
-        name: "Luck roll, total 10, assigned Luck",
-      }),
+      screen.getByRole("button", { name: "Rolled result for Luck" }),
     ).toBeTruthy();
     expect(snapshot().canFinish).toBe(true);
     await user.click(
@@ -488,6 +468,7 @@ describe("Character Forge generation inputs", () => {
     ).toHaveProperty("value", "10");
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
+    await expandOptions(user);
     expect(
       screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
     ).toHaveProperty("checked", true);
@@ -506,9 +487,7 @@ describe("Character Forge generation inputs", () => {
     await user.click(
       screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
     );
-    expect(poolTile(0).getAttribute("aria-label")).toBe(
-      "Roll 1, total 10, assigned Strength",
-    );
+    expect(assignedCell(0).textContent).toBe("10");
     expectCharacteristic("Strength", {
       baseline: 25,
       generated: 10,
@@ -528,7 +507,7 @@ describe("Character Forge generation inputs", () => {
     expect(console.error).not.toHaveBeenCalled();
   });
 
-  it("moves a roll directly to an unoccupied target and keeps occupied targets excluded until explicitly unassigned", async () => {
+  it("requires explicit source and destination clearing before reusing a result", async () => {
     const assignments = vi.spyOn(
       CharacterCreator.prototype,
       "setCharacteristicAssignments",
@@ -536,18 +515,18 @@ describe("Character Forge generation inputs", () => {
     const { user, snapshot } = await startGeneration(() => 0.45);
     await user.click(poolRollButton());
     await user.click(poolTile(0));
-    await user.keyboard("{Enter} ");
+    expect(poolTile(0).getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByRole("menu")).toBeNull();
     expect(assignments).not.toHaveBeenCalled();
-    await user.click(poolAction(0));
-    expect(poolAction(0)).toHaveProperty("ariaExpanded", "true");
+    await user.click(
+      screen.getByRole("button", { name: "Rolled result for Strength" }),
+    );
     expect(assignments).not.toHaveBeenCalled();
-    await user.click(menuCharacteristic("Strength"));
+    await user.click(screen.getByRole("menuitem", { name: /^Result 1:/ }));
     expect(assignments).toHaveBeenCalledExactlyOnceWith({ str: "roll-1" });
-    expect(poolTile(0).getAttribute("aria-expanded")).toBeNull();
-    expect(poolTile(0).getAttribute("aria-haspopup")).toBeNull();
-    expect(poolTile(0).getAttribute("aria-label")).toMatch(
-      /, assigned Strength$/,
+    expect(screen.queryByRole("group", { name: "Roll 1" })).toBeNull();
+    expect(assignedCell(0).getAttribute("aria-description")).toContain(
+      "Strength",
     );
     await chooseRoll(user, "Endurance", 1);
     expect(assignments).toHaveBeenCalledTimes(2);
@@ -556,14 +535,20 @@ describe("Character Forge generation inputs", () => {
       end: "roll-2",
     });
 
-    await user.click(poolAction(0));
+    await user.click(assignedCell(0));
     expect(screen.getByRole("menuitem", { name: "Unassign" })).toBeTruthy();
-    expect(screen.getByText("Assign To")).toBeTruthy();
+    expect(screen.queryByText("Assign To")).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Strength" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Endurance" })).toBeNull();
     expect(assignments).toHaveBeenCalledTimes(2);
-    await user.click(menuCharacteristic("Agility"));
+    expect(
+      screen.getAllByRole("menuitem").map((item) => item.textContent),
+    ).toEqual(["Unassign"]);
+    await user.click(screen.getByRole("menuitem", { name: "Unassign" }));
     expect(assignments).toHaveBeenCalledTimes(3);
+    expect(assignments).toHaveBeenLastCalledWith({ end: "roll-2" });
+    await chooseRoll(user, "Agility", 0);
+    expect(assignments).toHaveBeenCalledTimes(4);
     expect(assignments).toHaveBeenLastCalledWith({
       end: "roll-2",
       ag: "roll-1",
@@ -571,60 +556,68 @@ describe("Character Forge generation inputs", () => {
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({ end: "roll-2", ag: "roll-1" });
-    expect(poolTile(0).getAttribute("aria-label")).toBe(
-      "Roll 1, total 10, assigned Agility",
+    expect(assignedCell(0).getAttribute("aria-description")).toContain(
+      "Agility",
     );
-    expect(poolTile(1).getAttribute("aria-label")).toBe(
-      "Roll 2, total 10, assigned Endurance",
+    expect(assignedCell(1).getAttribute("aria-description")).toContain(
+      "Endurance",
     );
     await chooseRoll(user, "Strength", 2);
-    expect(assignments).toHaveBeenCalledTimes(4);
+    expect(assignments).toHaveBeenCalledTimes(5);
     expect(assignments).toHaveBeenLastCalledWith({
       end: "roll-2",
       ag: "roll-1",
       str: "roll-3",
     });
-    await user.click(poolAction(3));
-    expect(screen.queryByRole("menuitem", { name: "Strength" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Endurance" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Agility" })).toBeNull();
-    await user.keyboard("{Escape}");
-    expect(assignments).toHaveBeenCalledTimes(4);
-    await unassignRoll(user, 2);
+    await user.click(
+      screen.getByRole("button", { name: "Rolled result for Strength" }),
+    );
+    expect(
+      screen.getAllByRole("menuitem").map((item) => item.textContent),
+    ).toEqual(["Unassign"]);
+    expect(screen.queryByRole("menuitem", { name: /^Result / })).toBeNull();
     expect(assignments).toHaveBeenCalledTimes(5);
+    await user.click(screen.getByRole("menuitem", { name: "Unassign" }));
+    expect(assignments).toHaveBeenCalledTimes(6);
     expect(assignments).toHaveBeenLastCalledWith({
       end: "roll-2",
       ag: "roll-1",
     });
     await unassignRoll(user, 1);
-    expect(assignments).toHaveBeenCalledTimes(6);
+    expect(assignments).toHaveBeenCalledTimes(7);
     expect(assignments).toHaveBeenLastCalledWith({ ag: "roll-1" });
     await chooseRoll(user, "Strength", 1);
-    expect(assignments).toHaveBeenCalledTimes(7);
+    expect(assignments).toHaveBeenCalledTimes(8);
     expect(assignments).toHaveBeenLastCalledWith({
       ag: "roll-1",
       str: "roll-2",
     });
     expect(poolTile(2).getAttribute("aria-label")).toBe("Roll 3, total 10");
-    await user.click(poolAction(2));
-    expect(menuCharacteristic("Endurance")).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: "Strength" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Agility" })).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: "Rolled result for Endurance" }),
+    );
+    expect(
+      screen.queryByRole("menuitem", { name: /^Result [12]:/ }),
+    ).toBeNull();
+    expect(screen.getByRole("menuitem", { name: /^Result 3:/ })).toBeTruthy();
     await user.keyboard("{Escape}");
     await unassignRoll(user, 0);
-    expect(assignments).toHaveBeenCalledTimes(8);
+    expect(assignments).toHaveBeenCalledTimes(9);
     expect(assignments).toHaveBeenLastCalledWith({ str: "roll-2" });
 
-    await user.click(poolAction(2));
+    await user.click(
+      screen.getByRole("button", { name: "Rolled result for Endurance" }),
+    );
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
+    await expandOptions(user);
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({ str: "roll-2" });
-    expect(poolTile(1).getAttribute("aria-label")).toBe(
-      "Roll 2, total 10, assigned Strength",
+    expect(assignedCell(1).getAttribute("aria-description")).toContain(
+      "Strength",
     );
-    expect(poolAction(2)).toHaveProperty("ariaExpanded", "false");
+    expect(poolAction(2).getAttribute("aria-haspopup")).toBeNull();
     expect(
       screen.getByRole("region", { name: "Character editor" }).textContent,
     ).not.toMatch(/roll-\d/);
@@ -640,61 +633,61 @@ describe("Character Forge generation inputs", () => {
       "2d10: 5 + 5 = 10",
     );
     await user.tab();
-    expect(document.activeElement).toBe(poolAction(0));
+    expect(document.activeElement).toBe(poolAction(1));
+    const strength = screen.getByRole("button", {
+      name: "Rolled result for Strength",
+    });
+    strength.focus();
     await user.keyboard("{Enter}");
-    expect(poolAction(0)).toHaveProperty("ariaExpanded", "true");
-    expect(poolAction(0).getAttribute("aria-haspopup")).toBe("menu");
-    expect(poolAction(0).getAttribute("aria-controls")).toBe(
-      screen.getByRole("menu", { name: "Actions for result: 10" }).id,
+    expect(strength).toHaveProperty("ariaExpanded", "true");
+    expect(strength.getAttribute("aria-haspopup")).toBe("menu");
+    expect(strength.getAttribute("aria-controls")).toBe(
+      screen.getByRole("menu", { name: "Rolled result for Strength" }).id,
     );
     await user.keyboard("{ArrowDown}");
-    expect(document.activeElement).toBe(menuCharacteristic("Reroll"));
+    expect(document.activeElement).toBe(
+      screen.getByRole("menuitem", { name: /^Result 1:/ }),
+    );
     await user.keyboard("{ArrowDown}");
-    expect(document.activeElement).toBe(menuCharacteristic("Strength"));
-    await user.keyboard("{ArrowDown}");
-    expect(document.activeElement).toBe(menuCharacteristic("Endurance"));
+    expect(document.activeElement).toBe(
+      screen.getByRole("menuitem", { name: /^Result 2:/ }),
+    );
     await user.keyboard("{ArrowUp}{Enter}");
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({ str: "roll-1" });
-    await waitFor(() => expect(document.activeElement).toBe(poolAction(0)));
-    expect(poolTile(0).getAttribute("aria-label")).toMatch(
-      /, assigned Strength$/,
+    await waitFor(() => expect(document.activeElement).toBe(strength));
+    expect(assignedCell(0).getAttribute("aria-description")).toContain(
+      "Strength",
     );
-    expect(poolTile(0).getAttribute("aria-haspopup")).toBeNull();
-    await user.keyboard(" {ArrowDown}{ArrowDown}{Enter}");
+    await user.keyboard(" {ArrowDown}{Enter}");
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({});
     expect(screen.queryByRole("menu")).toBeNull();
-    await waitFor(() => expect(document.activeElement).toBe(poolAction(0)));
-    await user.keyboard("{Enter}{ArrowDown}{ArrowDown}{Enter}");
+    await waitFor(() => expect(document.activeElement).toBe(strength));
+    await user.keyboard("{Enter}{ArrowDown}{Enter}");
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({ str: "roll-1" });
-    await waitFor(() => expect(document.activeElement).toBe(poolAction(0)));
+    await waitFor(() => expect(document.activeElement).toBe(strength));
+    const enduranceCell = screen.getByRole("button", {
+      name: "Rolled result for Endurance",
+    });
     await user.pointer([
-      { keys: "[TouchA>]", target: poolAction(1) },
+      { keys: "[TouchA>]", target: enduranceCell },
       { keys: "[/TouchA]" },
     ]);
-    expect(poolAction(1)).toHaveProperty("ariaExpanded", "true");
+    expect(enduranceCell).toHaveProperty("ariaExpanded", "true");
     const menu = within(
-      screen.getByRole("menu", { name: "Actions for result: 10" }),
+      screen.getByRole("menu", { name: "Rolled result for Endurance" }),
     );
     expect(menu.queryByText(/2d10/)).toBeNull();
     expect(
       menu.getAllByRole("menuitem").map((item) => item.textContent),
-    ).toEqual([
-      "Reroll",
-      "Endurance",
-      "Agility",
-      "Intelligence",
-      "Willpower",
-      "Perception",
-      "Personality",
-    ]);
+    ).toEqual(Array(6).fill("(5 + 5) 10"));
     expect(menu.queryByRole("menuitem", { name: "Strength" })).toBeNull();
-    const endurance = menuCharacteristic("Endurance");
+    const endurance = screen.getByRole("menuitem", { name: /^Result 2:/ });
     await user.pointer([
       { keys: "[TouchA>]", target: endurance },
       { keys: "[/TouchA]" },
@@ -704,7 +697,7 @@ describe("Character Forge generation inputs", () => {
     ).toEqual({ str: "roll-1", end: "roll-2" });
     expect(screen.queryByRole("menu")).toBeNull();
     await user.pointer([
-      { keys: "[TouchA>]", target: poolAction(1) },
+      { keys: "[TouchA>]", target: enduranceCell },
       { keys: "[/TouchA]" },
     ]);
     await user.pointer([
@@ -716,41 +709,29 @@ describe("Character Forge generation inputs", () => {
     ).toEqual({ str: "roll-1" });
     expect(screen.queryByRole("menu")).toBeNull();
     await user.pointer([
-      { keys: "[TouchA>]", target: poolAction(1) },
+      { keys: "[TouchA>]", target: enduranceCell },
       { keys: "[/TouchA]" },
     ]);
-    expect(menuCharacteristic("Endurance")).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /^Result 2:/ })).toBeTruthy();
     await user.pointer([
-      { keys: "[TouchA>]", target: menuCharacteristic("Endurance") },
+      {
+        keys: "[TouchA>]",
+        target: screen.getByRole("menuitem", { name: /^Result 2:/ }),
+      },
       { keys: "[/TouchA]" },
     ]);
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({ str: "roll-1", end: "roll-2" });
-    expect(poolTile(1).getAttribute("aria-expanded")).toBeNull();
-    const luck = within(screen.getByRole("group", { name: "Luck roll" }));
-    const luckTile = luck.getByRole("button", {
-      name: "Luck roll, total 10, assigned Luck",
-    });
-    expect(luckTile.getAttribute("aria-expanded")).toBeNull();
-    await user.pointer([
-      { keys: "[TouchB>]", target: luckTile },
-      { keys: "[/TouchB]" },
-    ]);
-    expect(screen.queryByRole("menu")).toBeNull();
-    await user.pointer([
-      { keys: "[TouchC>]", target: luckTile },
-      { keys: "[/TouchC]" },
-    ]);
-    expect(luckTile.getAttribute("aria-expanded")).toBeNull();
+    expect(enduranceCell.getAttribute("aria-expanded")).toBe("false");
     expect(
-      luck.queryByText("2d10: 5 + 5 = 10", { selector: '[role="status"]' }),
+      screen.queryByRole("button", { name: "Rolled result for Luck" }),
     ).toBeNull();
     expect(random).toHaveBeenCalledTimes(16);
     expect(console.error).not.toHaveBeenCalled();
   });
 
-  it("dismisses menus with Escape or an outside click without changing answers and returns focus to the integrated action", async () => {
+  it("dismisses assignment pickers with Escape or an outside click without changing answers and returns focus to the cell", async () => {
     const assignments = vi.spyOn(
       CharacterCreator.prototype,
       "setCharacteristicAssignments",
@@ -758,11 +739,14 @@ describe("Character Forge generation inputs", () => {
     const { user, snapshot } = await startGeneration(() => 0.45);
     await user.click(poolRollButton());
     const before = snapshot().characteristicGeneration.drafts;
-    await user.click(poolAction(0));
+    const strength = screen.getByRole("button", {
+      name: "Rolled result for Strength",
+    });
+    await user.click(strength);
     expect(
-      screen.getByRole("menu", { name: "Actions for result: 10" }),
+      screen.getByRole("menu", { name: "Rolled result for Strength" }),
     ).toBeTruthy();
-    expect(screen.getAllByRole("menuitem")).toHaveLength(8);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(7);
     expect(screen.queryByRole("menuitem", { name: "Unassign" })).toBeNull();
     expect(
       screen.queryByRole("group", { name: "Roll assignment validation" }),
@@ -787,14 +771,17 @@ describe("Character Forge generation inputs", () => {
     expect(within(screen.getByRole("menu")).queryByRole("status")).toBeNull();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).toBeNull();
-    await waitFor(() => expect(document.activeElement).toBe(poolAction(0)));
-    expect(poolAction(0)).toHaveProperty("ariaExpanded", "false");
-    await user.click(poolAction(1));
+    await waitFor(() => expect(document.activeElement).toBe(strength));
+    expect(strength).toHaveProperty("ariaExpanded", "false");
+    const endurance = screen.getByRole("button", {
+      name: "Rolled result for Endurance",
+    });
+    await user.click(endurance);
     await user.click(
       screen.getByRole("heading", { name: "Generate Characteristics" }),
     );
     expect(screen.queryByRole("menu")).toBeNull();
-    await waitFor(() => expect(document.activeElement).toBe(poolAction(1)));
+    await waitFor(() => expect(document.activeElement).toBe(endurance));
     expect(snapshot().characteristicGeneration.drafts).toEqual(before);
     expect(assignments).not.toHaveBeenCalled();
   });
@@ -983,7 +970,7 @@ describe("Character Forge generation inputs", () => {
       favored: false,
       total: 40,
     });
-    await user.click(screen.getByRole("checkbox", { name: "Endurance" }));
+    await user.click(screen.getByRole("button", { name: "Favor Endurance" }));
     expectCharacteristic("Strength", {
       baseline: 25,
       generated: 20,
@@ -1003,7 +990,7 @@ describe("Character Forge generation inputs", () => {
       total: 40,
     });
     expect(snapshot().canFinish).toBe(false);
-    await user.click(screen.getByRole("checkbox", { name: "Endurance" }));
+    await user.click(screen.getByRole("button", { name: "Favor Endurance" }));
     await enterPoints(user, "Personality", "");
     expect(
       snapshot().characteristicGeneration.drafts.pointBuy.allocations,
@@ -1066,6 +1053,7 @@ describe("Character Forge generation inputs", () => {
     }
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
+    await expandOptions(user);
     expect(
       screen.getByRole("textbox", { name: "Strength points" }),
     ).toHaveProperty("value", "1.5");
@@ -1119,3 +1107,4 @@ describe("Character Forge generation inputs", () => {
     expect(console.error).not.toHaveBeenCalled();
   });
 });
+import { assignDraftResult } from "./test/forgeTestHelpers";

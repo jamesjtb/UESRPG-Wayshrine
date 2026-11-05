@@ -1,5 +1,4 @@
 import { Box, Stack, Text } from "@mantine/core";
-import type { ReactNode } from "react";
 import { Characteristic } from "@wayshrine/core";
 import type {
   CharacteristicAllocations,
@@ -10,7 +9,6 @@ import { GenerationIssues } from "./GenerationIssues";
 import classes from "./PointBuyCharacteristics.module.css";
 
 interface Props {
-  children?: ReactNode;
   allocations: CharacteristicAllocations;
   issues: readonly CharacteristicGenerationIssue[];
   setCharacteristicAllocations: (
@@ -19,7 +17,6 @@ interface Props {
 }
 
 export function PointBuyCharacteristics({
-  children,
   allocations,
   issues,
   setCharacteristicAllocations,
@@ -64,7 +61,6 @@ export function PointBuyCharacteristics({
             onChange={(value) => changeAllocation(key, value)}
           />
         ))}
-        {children}
       </Box>
     </Stack>
   );

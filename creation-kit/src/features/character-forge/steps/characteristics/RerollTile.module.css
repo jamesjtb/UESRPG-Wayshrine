@@ -1,0 +1,21 @@
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 64px;
+  padding: 4px;
+}
+
+.tile[data-selected],
+.tile[data-selected]:hover {
+  border-color: var(--mantine-color-blue-8);
+  background: var(--mantine-color-blue-8);
+  color: var(--mantine-color-white);
+}
+
+.tile[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

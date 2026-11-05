@@ -2,27 +2,34 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CharacterCreator } from "@wayshrine/core";
 import { expect, it, vi } from "vitest";
-import { renderForge, selectRace, sheet } from "./test/forgeTestHelpers";
+import {
+  expandOptions,
+  renderForge,
+  selectRace,
+  sheet,
+} from "./test/forgeTestHelpers";
 
-it("places Luck at the end of the active row and the switches after the flow", async () => {
+it("keeps generation controls before Options and Luck out of the result rows", async () => {
   const user = userEvent.setup();
   renderForge();
   await selectRace("Argonian");
   await sheet().findByText("Argonian");
   await user.click(screen.getByRole("button", { name: "Next" }));
+  await expandOptions(user);
   const methodSwitch = screen.getByRole("switch", {
     name: "Use Optional Point Buy Rules",
+  });
+  const draftTable = screen.getByRole("table", {
+    name: "Characteristic draft preview",
   });
 
   function expectSwitchAfter(flowEnd: Element) {
     expect(
-      flowEnd.compareDocumentPosition(methodSwitch) &
+      draftTable.compareDocumentPosition(flowEnd) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      screen
-        .getByRole("group", { name: "Luck roll" })
-        .compareDocumentPosition(methodSwitch) &
+      flowEnd.compareDocumentPosition(methodSwitch) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   }
@@ -59,12 +66,14 @@ it("switches editors through Core navigation while retaining the session, name a
     screen.getByRole("region", { name: "Character editor" }),
   );
   await user.click(screen.getByRole("button", { name: "Next" }));
+  await expandOptions(user);
   expect(
     editor.getByRole("heading", { name: "Generate Characteristics" }),
   ).toBeTruthy();
   expect(editor.queryByRole("combobox", { name: "Race" })).toBeNull();
-  expect(editor.getAllByRole("checkbox")).toHaveLength(7);
-  expect(editor.queryByRole("checkbox", { name: "Luck" })).toBeNull();
+  expect(editor.getAllByRole("button", { name: /^Favor / })).toHaveLength(7);
+  expect(editor.queryByRole("checkbox")).toBeNull();
+  expect(editor.queryByRole("button", { name: "Favor Luck" })).toBeNull();
   expect(
     editor.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
   ).toHaveProperty("checked", false);
@@ -81,41 +90,45 @@ it("switches editors through Core navigation while retaining the session, name a
     editor.queryByText(/Luck requires|Luck uses a separate|Luck baseline:/),
   ).toBeNull();
   expect(editor.queryByRole("heading", { name: "Luck" })).toBeNull();
-  expect(editor.getByRole("button", { name: "Roll" })).toBeTruthy();
   expect(
-    within(editor.getByRole("group", { name: "Luck roll" })).queryByRole(
-      "button",
-    ),
-  ).toBeNull();
+    editor.getByRole("button", { name: "Make Characteristic Roll" }),
+  ).toBeTruthy();
+  expect(editor.queryByRole("group", { name: "Luck roll" })).toBeNull();
   expect(
     editor.queryByText("Choose exactly two favored characteristics."),
   ).toBeNull();
-  expect(editor.getByText("Choose two")).toBeTruthy();
-  await user.click(editor.getByRole("checkbox", { name: "Strength" }));
-  await user.click(editor.getByRole("checkbox", { name: "Endurance" }));
+  expect(
+    editor.queryByText("Draft preview · Choose two favored characteristics"),
+  ).toBeNull();
+  await user.click(editor.getByRole("button", { name: "Favor Strength" }));
+  await user.click(editor.getByRole("button", { name: "Favor Endurance" }));
   expect(setFavored.mock.results.at(-1)?.value.ok).toBe(true);
   expect(
     editor.queryByText("Choose exactly two favored characteristics."),
   ).toBeNull();
-  for (const checkbox of editor.getAllByRole<HTMLInputElement>("checkbox")) {
-    expect(checkbox).toHaveProperty("disabled", !checkbox.checked);
+  for (const button of editor.getAllByRole("button", { name: /^Favor / })) {
+    expect(button).toHaveProperty(
+      "disabled",
+      button.getAttribute("aria-pressed") !== "true",
+    );
   }
   const submissions = setFavored.mock.calls.length;
-  await user.click(editor.getByRole("checkbox", { name: "Agility" }));
+  await user.click(editor.getByRole("button", { name: "Favor Agility" }));
   expect(
     editor.queryByText("Choose exactly two favored characteristics."),
   ).toBeNull();
   expect(setFavored).toHaveBeenCalledTimes(submissions);
   expect(setFavored.mock.calls.at(-1)).toEqual([["str", "end"]]);
-  expect(editor.getByRole("checkbox", { name: "Agility" })).toHaveProperty(
-    "checked",
-    false,
-  );
-  await user.click(editor.getByRole("checkbox", { name: "Endurance" }));
-  for (const checkbox of editor.getAllByRole("checkbox")) {
-    expect(checkbox).toHaveProperty("disabled", false);
+  expect(
+    editor
+      .getByRole("button", { name: "Favor Agility" })
+      .getAttribute("aria-pressed"),
+  ).toBe("false");
+  await user.click(editor.getByRole("button", { name: "Favor Endurance" }));
+  for (const button of editor.getAllByRole("button", { name: /^Favor / })) {
+    expect(button).toHaveProperty("disabled", false);
   }
-  await user.click(editor.getByRole("checkbox", { name: "Agility" }));
+  await user.click(editor.getByRole("button", { name: "Favor Agility" }));
   expect(setFavored.mock.calls.at(-1)).toEqual([["str", "ag"]]);
   expect(setFavored.mock.results.at(-1)?.value.ok).toBe(true);
   await user.click(
@@ -145,18 +158,22 @@ it("switches editors through Core navigation while retaining the session, name a
     true,
   );
   await user.click(screen.getByRole("button", { name: "Next" }));
-  expect(editor.getByRole("checkbox", { name: "Strength" })).toHaveProperty(
-    "checked",
-    true,
-  );
-  expect(editor.getByRole("checkbox", { name: "Agility" })).toHaveProperty(
-    "checked",
-    true,
-  );
-  expect(editor.getByRole("checkbox", { name: "Endurance" })).toHaveProperty(
-    "checked",
-    false,
-  );
+  await expandOptions(user);
+  expect(
+    editor
+      .getByRole("button", { name: "Favor Strength" })
+      .getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(
+    editor
+      .getByRole("button", { name: "Favor Agility" })
+      .getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(
+    editor
+      .getByRole("button", { name: "Favor Endurance" })
+      .getAttribute("aria-pressed"),
+  ).toBe("false");
   expect(
     editor.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
   ).toHaveProperty("checked", true);
@@ -166,7 +183,7 @@ it("switches editors through Core navigation while retaining the session, name a
   expect(
     within(
       editor.getByRole("group", { name: "Rolled characteristics" }),
-    ).getByRole("button", { name: "Roll" }),
+    ).getByRole("button", { name: "Make Characteristic Roll" }),
   ).toBeTruthy();
   expect(
     editor.queryByText("Choose a roll to assign a characteristic."),

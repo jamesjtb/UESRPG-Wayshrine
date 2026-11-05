@@ -16,3 +16,13 @@
   validation inline. Hide development-status messages from product UI.
 - Test Forge behavior with real Core creators, injectable catalogs, and
   explicitly settled deferred reads—not sleeps or mocked rules.
+
+## UI feedback
+
+- For layout feedback, reproduce the reported condition and a relevant boundary;
+  defer broad browser matrices to phase completion.
+- Batch related supplied feedback into one pass. Keep delegation narrowly
+  scoped; reuse sessions when useful, and start fresh when accumulated history
+  outweighs the context needed for the task.
+- Reuse existing test helpers and browser tooling rather than adding new
+  infrastructure for small changes.

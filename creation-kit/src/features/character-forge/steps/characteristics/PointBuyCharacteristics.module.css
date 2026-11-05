@@ -53,14 +53,9 @@
   border: 0;
 }
 
-/* Eight 8rem tiles, seven 6px gaps, and Luck's 15px separator space. */
-@container point-buy-characteristics (width < calc(64rem + 57px)) {
+/* Seven 8rem allocation cards and six 6px gaps. */
+@container point-buy-characteristics (width < calc(56rem + 36px)) {
   .grid {
-    --roll-tile-padding: 8px;
-    --roll-total-height: 3rem;
-    --roll-action-height: 44px;
-    --roll-action-padding: 8px 4px;
-
     flex-direction: column;
     align-items: center;
     gap: 12px;

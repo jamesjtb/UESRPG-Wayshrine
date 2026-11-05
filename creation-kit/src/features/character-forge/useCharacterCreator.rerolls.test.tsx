@@ -249,6 +249,21 @@ it("reports acquisition exceptions through the existing error modal without publ
   log.mockRestore();
 });
 
+it("ignores acquisition-error reporters retained from a replaced or unmounted session", () => {
+  const { result, rerender, unmount } = setup();
+  const staleReporter = result.current.reportDiceAcquisitionFailure;
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  rerender({ catalog: fixtureCatalog() });
+  const fresh = result.current.view;
+  act(() => staleReporter(new Error("obsolete acquisition")));
+  expect(result.current.view).toBe(fresh);
+  expect(result.current.view!.errorOpened).toBe(false);
+  const unmountedReporter = result.current.reportDiceAcquisitionFailure;
+  unmount();
+  act(() => unmountedReporter(new Error("unmounted acquisition")));
+  expect(log).not.toHaveBeenCalled();
+});
+
 it("stops acquisition and ignores errors if the originating session is disposed during acquisition", () => {
   const { result, unmount, rollDice } = setup();
   const reroll = result.current.rerollCharacteristics;

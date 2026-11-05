@@ -1,0 +1,16 @@
+.container {
+  container: characteristic-generation / inline-size;
+}
+
+.rolled {
+  display: grid;
+  grid-template-columns: minmax(0, 65fr) minmax(0, 35fr);
+  align-items: stretch;
+  gap: var(--mantine-spacing-md);
+}
+
+@container characteristic-generation (width < 40rem) {
+  .rolled {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

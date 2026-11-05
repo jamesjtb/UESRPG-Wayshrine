@@ -217,8 +217,8 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
     "Assign all characteristic results",
     "Roll Luck",
   ]);
-  await user.click(screen.getByRole("checkbox", { name: "Strength" }));
-  await user.click(screen.getByRole("checkbox", { name: "Endurance" }));
+  await user.click(screen.getByRole("button", { name: "Favor Strength" }));
+  await user.click(screen.getByRole("button", { name: "Favor Endurance" }));
   expect(
     screen.getByRole("button", {
       name: "Complete the following to continue 3 remaining",
@@ -227,7 +227,7 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   await user.click(
     within(
       screen.getByRole("group", { name: "Rolled characteristics" }),
-    ).getByRole("button", { name: "Roll" }),
+    ).getByRole("button", { name: "Make Characteristic Roll" }),
   );
   expectActionsBelowTitle(
     "Generate Characteristics",
@@ -251,24 +251,20 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
     "Personality",
   ];
   for (const [index, label] of labels.entries()) {
-    await user.click(
-      screen.getAllByRole("button", { name: "Actions for result: 11" })[index]!,
-    );
-    await user.click(await screen.findByRole("menuitem", { name: label }));
+    await assignDraftResult(user, label, index);
   }
   expect(screen.queryByText("Assign all characteristic results")).toBeNull();
   expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
-  const firstResult = screen.getAllByRole("button", {
-    name: "Actions for result: 11",
-  })[0]!;
+  const firstResult = screen.getByRole("button", {
+    name: "Rolled result for Strength",
+  });
   await user.click(firstResult);
   await user.click(await screen.findByRole("menuitem", { name: "Unassign" }));
   expectActionsBelowTitle(
     "Generate Characteristics",
     "Assign all characteristic results",
   );
-  await user.click(firstResult);
-  await user.click(await screen.findByRole("menuitem", { name: "Strength" }));
+  await assignDraftResult(user, "Strength", 0);
   expect(screen.queryByText("Assign all characteristic results")).toBeNull();
   // The last registered Core step still has no Next, regardless of this presentation.
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
@@ -308,3 +304,4 @@ it("groups point-buy tasks, retains inline numeric feedback, and hides completed
   await user.type(strength, "20");
   expect(screen.queryByText("Allocate characteristic points")).toBeNull();
 });
+import { assignDraftResult } from "./test/forgeTestHelpers";

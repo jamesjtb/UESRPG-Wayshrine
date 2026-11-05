@@ -11,6 +11,7 @@ import {
   sheet,
 } from "./test/forgeTestHelpers";
 import { fixtureCatalog } from "./test/testCatalog";
+import { createCharacteristicRoller } from "./steps/characteristics/dice";
 
 it("dismisses race search and assignment menus with Escape before the wizard", async () => {
   const user = userEvent.setup();
@@ -29,11 +30,12 @@ it("dismisses race search and assignment menus with Escape before the wizard", a
   const pool = within(
     screen.getByRole("group", { name: "Rolled characteristics" }),
   );
-  await user.click(pool.getByRole("button", { name: "Roll" }));
-  const tile = within(pool.getByRole("group", { name: "Roll 1" })).getByRole(
-    "button",
-    { name: /^Actions for result: \d+$/ },
+  await user.click(
+    pool.getByRole("button", { name: "Make Characteristic Roll" }),
   );
+  const tile = screen.getByRole("button", {
+    name: "Rolled result for Strength",
+  });
   await user.click(tile);
   await user.keyboard("{ArrowDown}{Escape}");
   expect(screen.queryByRole("menu")).toBeNull();
@@ -43,7 +45,7 @@ it("dismisses race search and assignment menus with Escape before the wizard", a
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 });
 
-it("closes only the result menu when Escape is pressed while focus is still on its trigger", async () => {
+it("closes only the assignment picker when Escape is pressed while focus is still on its trigger", async () => {
   const user = userEvent.setup();
   renderForge();
   await selectRace("Argonian");
@@ -52,11 +54,12 @@ it("closes only the result menu when Escape is pressed while focus is still on i
   const pool = within(
     screen.getByRole("group", { name: "Rolled characteristics" }),
   );
-  await user.click(pool.getByRole("button", { name: "Roll" }));
-  const trigger = within(pool.getByRole("group", { name: "Roll 1" })).getByRole(
-    "button",
-    { name: /^Actions for result: \d+$/ },
+  await user.click(
+    pool.getByRole("button", { name: "Make Characteristic Roll" }),
   );
+  const trigger = screen.getByRole("button", {
+    name: "Rolled result for Strength",
+  });
   await user.click(trigger);
   expect(screen.getByRole("menu")).toBeTruthy();
   // Pin the pre-focus-trap state rather than relying on animation frame timing.
@@ -67,6 +70,47 @@ it("closes only the result menu when Escape is pressed while focus is still on i
   await waitFor(() => expect(document.activeElement).toBe(trigger));
   await user.keyboard("{Escape}");
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+it("restores rolled cell focus after assignment, clear and Escape without closing the wizard", async () => {
+  const user = userEvent.setup();
+  renderForge(
+    fixtureCatalog(),
+    createCharacteristicRoller(() => 0.45),
+  );
+  await selectRace("Argonian");
+  await sheet().findByText("Argonian");
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
+  const cell = screen.getByRole("button", {
+    name: "Rolled result for Strength",
+  });
+  cell.focus();
+  await user.keyboard("{Enter}");
+  await screen.findByRole("menu");
+  // Exercise Escape before the dropdown focus trap takes over.
+  cell.focus();
+  await user.keyboard("{Escape}");
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(cell));
+  expect(screen.getByRole("dialog", { name: "Create Character" })).toBeTruthy();
+  await user.keyboard("{Enter}{ArrowDown}{Enter}");
+  await waitFor(() => expect(cell.textContent).toBe("10"));
+  await waitFor(() => expect(document.activeElement).toBe(cell));
+  await user.keyboard("{Enter}{ArrowDown}{Enter}");
+  await waitFor(() => expect(cell.textContent).toBe(""));
+  expect(
+    cell
+      .querySelector(".tabler-icon-chevron-down")
+      ?.getAttribute("aria-hidden"),
+  ).toBe("true");
+  await waitFor(() => expect(document.activeElement).toBe(cell));
+  await user.keyboard("{Enter}{ArrowDown}{Escape}");
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(cell));
+  expect(screen.getByRole("dialog", { name: "Create Character" })).toBeTruthy();
 });
 
 it("acknowledges a race-index failure while closed and retries only on request", async () => {

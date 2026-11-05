@@ -149,6 +149,13 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     return result;
   }
 
+  function reportDiceAcquisitionFailure(error: unknown) {
+    if (!session?.live) return;
+    console.error("Characteristic dice acquisition failed.", error);
+    session.errorOpened = true;
+    refresh();
+  }
+
   function rerollCharacteristics(
     ids: readonly string[],
     rollDice: CharacteristicRoller,
@@ -165,10 +172,7 @@ export function useCharacterCreator(catalog: ContentCatalog) {
       if (rerollLuck) luckReplacement = rollDice();
       if (!session.live) return;
     } catch (error) {
-      if (!session.live) return;
-      console.error("Characteristic dice acquisition failed.", error);
-      session.errorOpened = true;
-      refresh();
+      reportDiceAcquisitionFailure(error);
       return;
     }
     const result = session.creator.rerollCharacteristics(
@@ -239,6 +243,7 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     submitCharacteristicRolls,
     setUnlimitedCharacteristicRerolls,
     rerollCharacteristics,
+    reportDiceAcquisitionFailure,
     setCharacteristicAssignments,
     setCharacteristicAllocations,
     submitLuckRoll,

@@ -3,146 +3,184 @@ import userEvent from "@testing-library/user-event";
 import { CharacterCreator } from "@wayshrine/core";
 import { expect, it, vi } from "vitest";
 import { createCharacteristicRoller } from "./steps/characteristics/dice";
-import { renderForge, selectRace, sheet } from "./test/forgeTestHelpers";
+import {
+  assignDraftResult,
+  expandOptions,
+  renderForge,
+  selectRace,
+  sheet,
+} from "./test/forgeTestHelpers";
 
 async function startLuck() {
   const user = userEvent.setup();
   const random = vi.fn(() => 0.45);
+  const rollDice = vi.fn(createCharacteristicRoller(random));
   const snapshots = vi.spyOn(CharacterCreator.prototype, "getSnapshot");
-  renderForge(undefined, createCharacteristicRoller(random));
+  renderForge(undefined, rollDice);
   await selectRace("Argonian");
   await sheet().findByText("Argonian");
   await user.click(screen.getByRole("button", { name: "Next" }));
+  await expandOptions(user);
   function generation() {
     return snapshots.mock.results.at(-1)!.value.characteristicGeneration;
   }
-  async function selectLuck() {
-    await user.click(screen.getByRole("button", { name: "Actions for Luck" }));
+  async function rerollLuck() {
+    await user.click(
+      screen.getByRole("button", { name: "Rolled result for Luck" }),
+    );
     await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
   }
-  return { user, random, generation, selectLuck };
+  async function selectOrdinary() {
+    await user.click(
+      within(screen.getByRole("group", { name: "Roll 1" })).getByRole("button"),
+    );
+  }
+  return { user, random, rollDice, generation, rerollLuck, selectOrdinary };
 }
 
-it("selects Luck with ordinary results for one atomic action, then permits Luck-only rerolls without spending another batch", async () => {
-  const { user, random, generation, selectLuck } = await startLuck();
-  await user.click(screen.getByRole("button", { name: "Roll" }));
-  expect(random).toHaveBeenCalledTimes(16);
-  const before = generation();
-  expect(screen.queryByRole("heading", { name: "Luck" })).toBeNull();
-  await user.click(screen.getByRole("button", { name: "Actions for Luck" }));
-  expect(screen.getByRole("menuitem", { name: "Reroll" })).toHaveProperty(
-    "disabled",
-    true,
-  );
-  expect(screen.queryByRole("menuitem", { name: "Unassign" })).toBeNull();
-  expect(screen.queryByText("Assign To")).toBeNull();
-  await user.keyboard("{Escape}");
-  const unlimited = screen.getByRole("switch", { name: "Unlimited Rerolls" });
-  await user.click(unlimited);
-  await selectLuck();
-  const firstRoll = within(screen.getByRole("group", { name: "Roll 1" }));
+it("rerolls table Luck immediately, preserving ordinary selections, pool and allowance", async () => {
+  const { user, random, generation, rerollLuck, selectOrdinary } =
+    await startLuck();
   await user.click(
-    firstRoll.getByRole("button", { name: "Actions for result: 10" }),
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
   );
-  await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
+  expect(random).toHaveBeenCalledTimes(16);
+  expect(screen.queryByRole("group", { name: "Luck roll" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Rolled result for Luck" }),
+  ).toBeNull();
+  expect(
+    screen.getByRole("group", { name: "Characteristic rolls" }).children,
+  ).toHaveLength(7);
+  await selectOrdinary();
+  await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
+  const before = generation();
+  await rerollLuck();
+  expect(random).toHaveBeenCalledTimes(18);
+  expect(generation().drafts.rolled).toEqual(before.drafts.rolled);
+  expect(generation().rerolls).toEqual(before.rerolls);
+  expect(generation().drafts.luck!.id).toBe("roll-9");
+  expect(screen.getByRole("button", { name: "Reroll" })).toHaveProperty(
+    "disabled",
+    false,
+  );
+  expect(
+    screen.getByRole("group", { name: "Roll 1" }).hasAttribute("data-selected"),
+  ).toBe(true);
   await user.click(screen.getByRole("button", { name: "Reroll" }));
   expect(random).toHaveBeenCalledTimes(20);
-  expect(generation().drafts.rolled.rolls[0]!.id).toBe("roll-9");
-  expect(generation().drafts.luck!.id).toBe("roll-10");
-  expect(generation().drafts.rolled.rolls.slice(1)).toEqual(
-    before.drafts.rolled.rolls.slice(1),
-  );
-  const pool = generation().drafts.rolled;
-  await selectLuck();
-  await user.click(screen.getByRole("button", { name: "Reroll" }));
-  expect(generation().drafts.rolled).toEqual(pool);
-  expect(generation().drafts.luck!.id).toBe("roll-11");
-  await selectLuck();
-  await user.click(unlimited);
+  expect(generation().drafts.rolled.rolls[0]!.id).toBe("roll-10");
+  expect(generation().drafts.luck!.id).toBe("roll-9");
+  expect(generation().rerolls.batchSpent).toBe(true);
+  const spent = generation();
+  await rerollLuck();
+  expect(generation().rerolls).toEqual(spent.rerolls);
+  expect(generation().drafts.rolled).toEqual(spent.drafts.rolled);
+  await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
   expect(
-    screen.getByRole("button", { name: "Actions for Luck" }).textContent,
-  ).toBe("Luck");
+    screen.queryByRole("button", { name: "Rolled result for Luck" }),
+  ).toBeNull();
   expect(screen.getByRole("button", { name: "Reroll Used" })).toHaveProperty(
     "disabled",
     true,
   );
-  expect(random).toHaveBeenCalledTimes(22);
-  await user.click(unlimited);
-  expect(screen.getByRole("button", { name: "Reroll" })).toHaveProperty(
-    "disabled",
-    true,
-  );
 });
 
-it("drops only Luck from a mixed selection when unlimited is disabled, then rerolls the ordinary selection normally", async () => {
-  const { user, random, generation, selectLuck } = await startLuck();
-  await user.click(screen.getByRole("button", { name: "Roll" }));
-  const luck = generation().drafts.luck;
-  const unlimited = screen.getByRole("switch", { name: "Unlimited Rerolls" });
-  await user.click(unlimited);
-  await selectLuck();
+it("clears hidden ordinary selections on assignment and returns unassigned results in pool order", async () => {
+  const { user, generation, selectOrdinary } = await startLuck();
   await user.click(
-    within(screen.getByRole("group", { name: "Roll 1" })).getByRole("button", {
-      name: "Actions for result: 10",
-    }),
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
   );
-  await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
-  await user.click(unlimited);
+  await selectOrdinary();
+  await assignDraftResult(user, "Strength", 0);
+  expect(screen.queryByRole("group", { name: "Roll 1" })).toBeNull();
   expect(
-    screen.getByRole("button", { name: "Actions for Luck" }).textContent,
-  ).toBe("Luck");
-  const action = screen.getByRole("button", { name: "Reroll (1 of 3)" });
-  expect(action).toHaveProperty("disabled", false);
-  await user.click(action);
-  expect(random).toHaveBeenCalledTimes(18);
-  expect(generation().drafts.luck).toEqual(luck);
-  expect(generation().rerolls.batchSpent).toBe(true);
+    screen.getByRole("button", { name: "Reroll (0 of 3)" }),
+  ).toHaveProperty("disabled", true);
+  expect(generation().rerolls.batchSpent).toBe(false);
+  await user.click(
+    screen.getByRole("button", { name: "Rolled result for Strength" }),
+  );
+  await user.click(screen.getByRole("menuitem", { name: "Unassign" }));
+  await assignDraftResult(user, "Endurance", 0);
+  expect(generation().drafts.rolled.assignments).toEqual({ end: "roll-1" });
+  await user.click(
+    screen.getByRole("button", { name: "Rolled result for Endurance" }),
+  );
+  await user.click(screen.getByRole("menuitem", { name: "Unassign" }));
+  const pool = screen.getByRole("group", { name: "Characteristic rolls" });
+  expect(
+    [...pool.children].map((element) =>
+      element.querySelector('[role="group"]')?.getAttribute("aria-label"),
+    ),
+  ).toEqual(Array.from({ length: 7 }, (_, i) => `Roll ${i + 1}`));
+  expect(
+    screen.getByRole("group", { name: "Roll 1" }).hasAttribute("data-selected"),
+  ).toBe(false);
+  expect(
+    screen.getByRole("button", { name: "Reroll (0 of 3)" }),
+  ).toHaveProperty("disabled", true);
 });
 
-it("uses the same Luck selection and action in point buy, retaining allocations, shared Luck and the initial combined-roll behavior", async () => {
-  const { user, random, generation, selectLuck } = await startLuck();
+it("acquires initial Luck in point buy and rerolls it from the table without a result tile or batch button", async () => {
+  const { user, random, generation, rerollLuck } = await startLuck();
   const method = screen.getByRole("switch", {
     name: "Use Optional Point Buy Rules",
   });
-  const unlimited = screen.getByRole("switch", { name: "Unlimited Rerolls" });
   await user.click(method);
   const points = screen.getByRole("textbox", { name: "Strength points" });
   await user.clear(points);
   await user.type(points, "12");
   await user.click(screen.getByRole("button", { name: "Roll" }));
   expect(random).toHaveBeenCalledTimes(2);
-  const row = screen.getByRole("group", { name: "Point-buy characteristics" });
-  expect(row.lastElementChild).toBe(
-    screen.getByRole("group", { name: "Luck roll" }),
-  );
-  expect(screen.getByRole("button", { name: "Reroll" })).toHaveProperty(
-    "disabled",
-    true,
-  );
-  await user.click(unlimited);
-  await selectLuck();
-  await user.click(unlimited);
-  expect(screen.getByRole("button", { name: "Reroll" })).toHaveProperty(
-    "disabled",
-    true,
-  );
-  await user.click(unlimited);
-  await selectLuck();
-  await user.click(screen.getByRole("button", { name: "Reroll" }));
+  expect(
+    screen.getByRole("group", { name: "Point-buy characteristics" }).children,
+  ).toHaveLength(7);
+  expect(screen.queryByRole("group", { name: "Luck roll" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Reroll" })).toBeNull();
+  await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
+  const before = generation();
+  await rerollLuck();
   expect(random).toHaveBeenCalledTimes(4);
   expect(points).toHaveProperty("value", "12");
-  expect(generation().rerolls.batchSpent).toBe(false);
+  expect(generation().rerolls).toEqual(before.rerolls);
+  expect(generation().drafts.pointBuy).toEqual(before.drafts.pointBuy);
   const luck = generation().drafts.luck;
   await user.click(method);
-  await user.click(screen.getByRole("button", { name: "Roll" }));
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
   expect(random).toHaveBeenCalledTimes(18);
   expect(generation().drafts.luck).toEqual(luck);
+});
+
+it("shows rejected Luck commands inline and acquisition failures through the existing error seam", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const { user, rollDice, generation, rerollLuck, selectOrdinary } =
+    await startLuck();
+  await user.click(
+    screen.getByRole("button", { name: "Make Characteristic Roll" }),
+  );
+  await selectOrdinary();
+  await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
+  const before = generation();
+  rollDice.mockReturnValueOnce({ id: "invalid", dice: [0, 11] });
+  await rerollLuck();
   expect(
-    screen.getByRole("group", { name: "Characteristic rolls" })
-      .lastElementChild,
-  ).toBe(screen.getByRole("group", { name: "Luck roll" }));
-  await user.click(method);
+    screen.getByRole("group", { name: "Luck reroll feedback" }).textContent,
+  ).toContain("Luck requires exactly two integer d10 faces");
+  expect(generation()).toEqual(before);
+  rollDice.mockImplementationOnce(() => {
+    throw new Error("dice service offline");
+  });
+  await rerollLuck();
   expect(
-    screen.getByRole("textbox", { name: "Strength points" }),
-  ).toHaveProperty("value", "12");
+    await screen.findByRole("dialog", { name: "Something went wrong!" }),
+  ).toBeTruthy();
+  expect(console.error).toHaveBeenCalled();
+  expect(generation()).toEqual(before);
+  await user.click(screen.getByRole("button", { name: "OK" }));
+  expect(
+    screen.getByRole("group", { name: "Roll 1" }).hasAttribute("data-selected"),
+  ).toBe(true);
 });

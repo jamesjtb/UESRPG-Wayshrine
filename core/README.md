@@ -169,7 +169,7 @@ function enableUnlimited(creator: CharacterCreator) {
 
 Normally one batch of one to three results is allowed; unused slots are forfeited.
 Unlimited defaults off and permits repeated batches of up to seven. **Every successful
-batch spends the normal allowance**, even while unlimited is on; disabling unlimited
+pool batch spends the normal allowance**, even while unlimited is on; disabling unlimited
 never restores it. Targets must be unique current shared-pool IDs, never Luck.
 Replacement IDs must be distinct and cannot reuse any current pool ID, including
 another selected target. Equal totals are allowed. Only selected results lose their
@@ -181,7 +181,19 @@ results may be rerolled. Rejections never change drafts, previews, or allowance.
 requires a live creator, rolled method, accepted initial pool, and an unspent batch
 or unlimited mode. Maximum batch size is zero when unavailable, otherwise three or
 seven. Policy survives method/race/navigation changes; a new creator starts fresh.
-Luck replacement is independent and does not spend this allowance.
+Luck replacement is independent and does not spend this allowance. After a valid
+Luck roll is accepted, `submitLuckRoll` rejects replacements unless unlimited is
+enabled, in either method. Rejection has `code: "reroll-unavailable"` and
+`field: "luck"` and leaves the answer unchanged. Invalid initial Luck drafts remain
+correctable without unlimited. Method changes retain the shared Luck answer.
+
+To reroll selected pool results and Luck together, pass an optional Luck replacement
+as `rerollCharacteristics(replacements, luckReplacement)`. Both groups are validated
+before either changes; an invalid group rejects the whole command. Luck requires
+unlimited and an existing Luck answer. The seven-result unlimited cap counts only
+shared-pool replacements. `rerollCharacteristics([], luckReplacement)` rerolls only
+Luck, works in either method without an initialized pool, and does not spend the
+normal allowance. Omit the second argument to leave Luck unchanged.
 
 #### Point-buy flow
 

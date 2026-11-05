@@ -131,7 +131,8 @@ export async function fillPointBuy(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("checkbox", { name: "Strength" }));
   await user.click(screen.getByRole("checkbox", { name: "Endurance" }));
   const luck = within(screen.getByRole("group", { name: "Luck roll" }));
-  await user.click(luck.getByRole("button", { name: "Roll" }));
+  const initialRoll = luck.queryByRole("button", { name: "Roll" });
+  if (initialRoll) await user.click(initialRoll);
 }
 
 /** Each gate holds exactly one matching read; tests explicitly settle every gate. */

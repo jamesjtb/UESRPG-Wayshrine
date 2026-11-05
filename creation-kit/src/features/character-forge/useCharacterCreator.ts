@@ -152,14 +152,18 @@ export function useCharacterCreator(catalog: ContentCatalog) {
   function rerollCharacteristics(
     ids: readonly string[],
     rollDice: CharacteristicRoller,
+    rerollLuck = false,
   ) {
     if (!session?.live) return;
     const replacements: CharacteristicRerollReplacement[] = [];
+    let luckReplacement: CharacteristicRoll | undefined;
     try {
       for (const targetRollId of ids) {
         replacements.push({ targetRollId, replacement: rollDice() });
         if (!session.live) return;
       }
+      if (rerollLuck) luckReplacement = rollDice();
+      if (!session.live) return;
     } catch (error) {
       if (!session.live) return;
       console.error("Characteristic dice acquisition failed.", error);
@@ -167,7 +171,10 @@ export function useCharacterCreator(catalog: ContentCatalog) {
       refresh();
       return;
     }
-    const result = session.creator.rerollCharacteristics(replacements);
+    const result = session.creator.rerollCharacteristics(
+      replacements,
+      luckReplacement,
+    );
     refresh();
     return result;
   }

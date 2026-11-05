@@ -145,7 +145,7 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   expect(
     within(screen.getByRole("group", { name: "Luck roll" })).getByRole(
       "button",
-      { name: "Luck roll, total 10" },
+      { name: "Luck roll, total 10, assigned Luck" },
     ),
   ).toBeTruthy();
   expect(

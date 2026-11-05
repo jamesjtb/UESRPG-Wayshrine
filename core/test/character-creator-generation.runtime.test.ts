@@ -300,6 +300,7 @@ describe("CharacterCreator generation drafts", () => {
   it("replaces only Luck without clearing shared dice, assignments, allocations or favored selections", () => {
     const { creator } = setup();
     populate(creator);
+    creator.setUnlimitedCharacteristicRerolls(true);
     const before = creator.getSnapshot().characteristicGeneration.drafts;
     creator.submitLuckRoll({ id: "new-luck", dice: [1, 2] });
     expect(creator.getSnapshot().characteristicGeneration.drafts).toEqual({
@@ -312,6 +313,7 @@ describe("CharacterCreator generation drafts", () => {
   it("retains invalid edits visibly and supports correction without speculative effects", () => {
     const { creator } = setup();
     populate(creator);
+    creator.setUnlimitedCharacteristicRerolls(true);
     creator.setFavoredCharacteristics([Characteristic.Str, Characteristic.Str]);
     creator.submitLuckRoll({ id: "bad-luck", dice: [1.5, 11] });
     creator.setCharacteristicGenerationMethod("point-buy");
@@ -391,6 +393,7 @@ describe("CharacterCreator generation drafts", () => {
   it("detaches snapshots, active answers, drafts and command issue objects", () => {
     const { creator } = setup();
     populate(creator);
+    creator.setUnlimitedCharacteristicRerolls(true);
     const submissionIssues = issues(
       creator.submitLuckRoll({ id: "luck", dice: [0, 1] }),
     );
@@ -625,6 +628,7 @@ describe("CharacterCreator generation drafts", () => {
     });
     expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(9);
     creator.setFavoredCharacteristics([Characteristic.Str, Characteristic.Int]);
+    creator.setUnlimitedCharacteristicRerolls(true);
     creator.submitLuckRoll({ id: "luck", dice: [NaN, 1] });
     expect(creator.getCharacterPreview().characteristics.str).toMatchObject({
       rolled: 10,

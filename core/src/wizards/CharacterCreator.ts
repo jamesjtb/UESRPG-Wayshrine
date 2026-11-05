@@ -169,8 +169,17 @@ export default class CharacterCreator {
   /** Validate the entire batch before replacing results or spending the allowance. */
   rerollCharacteristics(
     replacements: readonly CharacteristicRerollReplacement[],
+    luckReplacement?: CharacteristicRoll,
   ): CharacteristicGenerationCommandResult {
     if (this.disposed) return this.generationDisposedResult();
+    if (luckReplacement) {
+      const issues = this.luckReplacementIssues(luckReplacement);
+      if (issues.length > 0) return { ok: false, issues };
+    }
+    if (replacements.length === 0 && luckReplacement) {
+      this.generation.luck = copyRoll(luckReplacement);
+      return { ok: true, value: undefined };
+    }
     if (this.generation.method !== "rolled")
       return this.rerollRejection(
         "generation-method",
@@ -210,8 +219,33 @@ export default class CharacterCreator {
       if (byTarget.has(assignments[key]!)) delete assignments[key];
     }
     this.generation.rolled = { rolls, assignments };
+    if (luckReplacement) this.generation.luck = copyRoll(luckReplacement);
     this.characteristicRerollBatchSpent = true;
     return { ok: true, value: undefined };
+  }
+
+  private luckReplacementIssues(
+    roll: CharacteristicRoll,
+  ): CharacteristicGenerationIssue[] {
+    if (!this.unlimitedCharacteristicRerolls) {
+      return [
+        {
+          code: "reroll-unavailable",
+          field: "luck",
+          message: "Enable Unlimited Rerolls to reroll Luck.",
+        },
+      ];
+    }
+    if (!this.generation.luck) {
+      return [
+        {
+          code: "reroll-target",
+          field: "luck",
+          message: "Roll Luck before selecting it for reroll.",
+        },
+      ];
+    }
+    return validateRoll(roll, "luck");
   }
 
   private characteristicReplacementIssues(
@@ -305,6 +339,22 @@ export default class CharacterCreator {
     roll: CharacteristicRoll,
   ): CharacteristicGenerationCommandResult {
     if (this.disposed) return this.generationDisposedResult();
+    if (
+      this.generation.luck &&
+      validateRoll(this.generation.luck, "luck").length === 0 &&
+      !this.unlimitedCharacteristicRerolls
+    ) {
+      return {
+        ok: false,
+        issues: [
+          {
+            code: "reroll-unavailable",
+            field: "luck",
+            message: "Enable Unlimited Rerolls to reroll Luck.",
+          },
+        ],
+      };
+    }
     this.generation.luck = copyRoll(roll);
     return this.generationSubmissionResult("luck");
   }

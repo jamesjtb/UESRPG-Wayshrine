@@ -25,6 +25,73 @@ function setup() {
   return { ...hook, rollDice, rolls, assignments, drafts };
 }
 
+it("acquires selected Luck with the pool and leaves both unchanged when either replacement is invalid", () => {
+  const { result, drafts, rollDice } = setup();
+  act(() => result.current.setUnlimitedCharacteristicRerolls(true));
+  const before = drafts();
+  rollDice.mockReturnValueOnce({ id: "valid-pool", dice: [2, 2] });
+  rollDice.mockReturnValueOnce({ id: "bad-luck", dice: [0, 2] });
+  act(() => {
+    expect(
+      result.current.rerollCharacteristics(["roll-1"], rollDice, true),
+    ).toMatchObject({
+      ok: false,
+      issues: [{ field: "luck", code: "invalid-dice" }],
+    });
+  });
+  expect(drafts()).toEqual(before);
+  act(() => {
+    expect(
+      result.current.rerollCharacteristics(["roll-1"], rollDice, true)?.ok,
+    ).toBe(true);
+  });
+  expect(drafts().rolled.rolls[0]!.id).toBe("roll-8");
+  expect(drafts().luck!.id).toBe("roll-9");
+});
+
+it("checks current Core policy if unlimited is disabled during mixed dice acquisition", () => {
+  const { result, drafts } = setup();
+  act(() => result.current.setUnlimitedCharacteristicRerolls(true));
+  const before = drafts();
+  let calls = 0;
+  function acquire() {
+    calls += 1;
+    result.current.setUnlimitedCharacteristicRerolls(false);
+    return { id: `new-${calls}`, dice: [2, 2] };
+  }
+  act(() => {
+    expect(
+      result.current.rerollCharacteristics(["roll-1"], acquire, true),
+    ).toMatchObject({
+      ok: false,
+      issues: [{ field: "luck", code: "reroll-unavailable" }],
+    });
+  });
+  expect(drafts()).toEqual(before);
+  expect(
+    result.current.view!.snapshot.characteristicGeneration.rerolls.batchSpent,
+  ).toBe(false);
+});
+
+it("does not submit partially acquired mixed dice when Luck acquisition throws", () => {
+  const { result, drafts, rollDice } = setup();
+  const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  act(() => result.current.setUnlimitedCharacteristicRerolls(true));
+  const before = drafts();
+  rollDice.mockReturnValueOnce({ id: "valid-pool", dice: [2, 2] });
+  rollDice.mockImplementationOnce(() => {
+    throw new Error("Luck dice unavailable");
+  });
+  act(() => {
+    expect(
+      result.current.rerollCharacteristics(["roll-1"], rollDice, true),
+    ).toBeUndefined();
+  });
+  expect(drafts()).toEqual(before);
+  expect(result.current.view!.errorOpened).toBe(true);
+  expect(error).toHaveBeenCalledOnce();
+});
+
 it("acquires one replacement per selected target and publishes Core's selective replacement and assignments", () => {
   const { result, rollDice, rolls, assignments, drafts } = setup();
   rollDice.mockReturnValueOnce({ id: "lower-result", dice: [1, 1] });

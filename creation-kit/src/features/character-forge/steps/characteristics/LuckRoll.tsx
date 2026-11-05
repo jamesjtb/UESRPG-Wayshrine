@@ -1,56 +1,66 @@
-import { useState } from "react";
-import { Button, Group, Stack, Text, Title } from "@mantine/core";
+import { Button, Stack } from "@mantine/core";
 import type {
   CharacteristicGenerationIssue,
   CharacteristicRoll,
 } from "@wayshrine/core";
 import { GenerationIssues } from "./GenerationIssues";
-import { rollBreakdown } from "./dice";
-import { RollTile } from "./RollTile";
+import { RollAssignmentMenu } from "./RollAssignmentMenu";
 import type { CharacteristicRoller } from "./dice";
+import classes from "./LuckRoll.module.css";
 
 interface Props {
   roll: CharacteristicRoll | undefined;
   issues: readonly CharacteristicGenerationIssue[];
   rollDice: CharacteristicRoller;
   submitLuckRoll: (roll: CharacteristicRoll) => void;
+  unlimited: boolean;
+  selected: boolean;
+  onToggleReroll: () => void;
+  showInitialAction?: boolean;
 }
 
-export function LuckRoll({ roll, issues, rollDice, submitLuckRoll }: Props) {
-  const [detailsOpened, setDetailsOpened] = useState(false);
+function keepLuckAssignment() {}
 
-  function showIssue(issue: CharacteristicGenerationIssue) {
-    if (roll !== undefined || issue.field !== "luck") return true;
-    return issue.code !== "roll-identity" && issue.code !== "invalid-dice";
-  }
-
-  const visibleIssues = issues.filter(showIssue);
-
+export function LuckRoll({
+  roll,
+  issues,
+  rollDice,
+  submitLuckRoll,
+  unlimited,
+  selected,
+  onToggleReroll,
+  showInitialAction = true,
+}: Props) {
+  const visibleIssues = issues.filter(
+    (issue) => issue.field === "luck" && roll !== undefined,
+  );
   function rollLuck() {
-    setDetailsOpened(false);
     submitLuckRoll(rollDice());
   }
-
   return (
-    <Stack gap="xs" role="group" aria-label="Luck roll">
-      <Title order={3}>Luck</Title>
-      <Group gap="sm">
-        {roll && (
-          <RollTile
-            roll={roll}
-            label="Luck roll"
-            aria-expanded={detailsOpened}
-            onClick={() => setDetailsOpened(!detailsOpened)}
-          />
-        )}
-        <Button size="sm" variant="light" onClick={rollLuck}>
-          {roll ? "Reroll" : "Roll"}
+    <Stack
+      className={classes.luck}
+      gap="xs"
+      role="group"
+      aria-label="Luck roll"
+    >
+      {roll && (
+        <RollAssignmentMenu
+          roll={roll}
+          ordinal={8}
+          assignments={{}}
+          lockedAssignment="Luck"
+          selected={selected}
+          canSelectReroll={unlimited}
+          onToggleReroll={onToggleReroll}
+          onAssign={keepLuckAssignment}
+          onUnassign={keepLuckAssignment}
+        />
+      )}
+      {!roll && showInitialAction && (
+        <Button size="sm" onClick={rollLuck}>
+          Roll
         </Button>
-      </Group>
-      {roll && detailsOpened && (
-        <Text size="sm" c="dimmed" role="status">
-          {rollBreakdown(roll)}
-        </Text>
       )}
       <GenerationIssues issues={visibleIssues} field="luck" />
       {roll && (

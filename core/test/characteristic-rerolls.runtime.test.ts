@@ -66,6 +66,86 @@ function expectUnchanged(
 }
 
 describe("Core characteristic reroll commands", () => {
+  it("commits all seven shared replacements and selected Luck atomically", () => {
+    const { creator } = setup();
+    const luck = { id: "luck-new", dice: [1, 2] };
+    expectUnchanged(
+      creator,
+      () => creator.rerollCharacteristics(batch(), luck),
+      "reroll-unavailable",
+    );
+    creator.setUnlimitedCharacteristicRerolls(true);
+    expectUnchanged(
+      creator,
+      () => creator.rerollCharacteristics(batch(), { id: "bad", dice: [0, 2] }),
+      "invalid-dice",
+    );
+    expectUnchanged(
+      creator,
+      () =>
+        creator.rerollCharacteristics(
+          [{ targetRollId: "absent", replacement: luck }],
+          luck,
+        ),
+      "reroll-target",
+    );
+    expect(creator.rerollCharacteristics(batch(7), luck).ok).toBe(true);
+    const generation = creator.getSnapshot().characteristicGeneration;
+    expect(generation.drafts.luck).toEqual(luck);
+    expect(generation.drafts.rolled.rolls).toEqual(
+      batch(7).map(({ replacement }) => replacement),
+    );
+    expect(generation.drafts.rolled.assignments).toEqual({});
+    expect(generation.rerolls.batchSpent).toBe(true);
+    creator.setUnlimitedCharacteristicRerolls(false);
+    expectUnchanged(
+      creator,
+      () => creator.rerollCharacteristics([], { id: "blocked", dice: [4, 5] }),
+      "reroll-unavailable",
+    );
+  });
+
+  it.each(["rolled", "point-buy"] as const)(
+    "supports Luck-only batches in %s without an initialized pool or spending the normal allowance",
+    (method) => {
+      const { creator } = setup(false);
+      creator.setCharacteristicGenerationMethod(method);
+      creator.setCharacteristicAllocations({ str: 12 });
+      const luck = { id: "luck-new", dice: [2, 3] };
+      expectUnchanged(
+        creator,
+        () => creator.rerollCharacteristics([], luck),
+        "reroll-unavailable",
+      );
+      creator.setUnlimitedCharacteristicRerolls(true);
+      const before = creator.getSnapshot().characteristicGeneration;
+      expect(creator.rerollCharacteristics([], luck).ok).toBe(true);
+      expect(creator.getSnapshot().characteristicGeneration).toMatchObject({
+        drafts: { ...before.drafts, luck },
+        rerolls: before.rerolls,
+      });
+      expectUnchanged(
+        creator,
+        () =>
+          creator.rerollCharacteristics(batch(), { id: "mixed", dice: [1, 1] }),
+        method === "rolled" ? "pool-uninitialized" : "generation-method",
+      );
+      creator.dispose();
+      expectIssue(creator.rerollCharacteristics([], luck), "disposed");
+    },
+  );
+
+  it("requires an existing Luck target for a Luck reroll", () => {
+    const { catalog } = creationCatalogs();
+    const creator = new CharacterCreator(catalog);
+    creator.setUnlimitedCharacteristicRerolls(true);
+    expectUnchanged(
+      creator,
+      () => creator.rerollCharacteristics([], { id: "luck", dice: [1, 1] }),
+      "reroll-target",
+    );
+  });
+
   it("requires rolled generation without activating a method or changing a valid inactive pool", () => {
     const { catalog } = creationCatalogs();
     const creator = new CharacterCreator(catalog);
@@ -437,6 +517,40 @@ describe("Core characteristic reroll commands", () => {
       "reroll-unavailable",
     );
   });
+
+  it.each(["rolled", "point-buy"] as const)(
+    "requires unlimited for Luck replacements in %s, independently of the normal batch",
+    (method) => {
+      const { creator } = setup();
+      creator.setCharacteristicGenerationMethod(method);
+      const before = creator.getSnapshot().characteristicGeneration;
+      const replacement = { id: "new-luck", dice: [1, 2] };
+      expect(creator.submitLuckRoll(replacement)).toMatchObject({
+        ok: false,
+        issues: [{ code: "reroll-unavailable", field: "luck" }],
+      });
+      expect(creator.getSnapshot().characteristicGeneration).toEqual(before);
+      creator.setUnlimitedCharacteristicRerolls(true);
+      expect(creator.submitLuckRoll(replacement).ok).toBe(true);
+      expect(
+        creator.getSnapshot().characteristicGeneration.rerolls.batchSpent,
+      ).toBe(false);
+      creator.setUnlimitedCharacteristicRerolls(false);
+      creator.setCharacteristicGenerationMethod(
+        method === "rolled" ? "point-buy" : "rolled",
+      );
+      const after = creator.getSnapshot().characteristicGeneration;
+      expect(creator.submitLuckRoll({ id: "blocked", dice: [10, 10] }).ok).toBe(
+        false,
+      );
+      expect(creator.getSnapshot().characteristicGeneration).toEqual(after);
+      creator.setCharacteristicGenerationMethod("rolled");
+      expect(creator.rerollCharacteristics(batch()).ok).toBe(true);
+      expect(
+        creator.getSnapshot().characteristicGeneration.drafts.luck,
+      ).toEqual(replacement);
+    },
+  );
 
   it("retains session policy through method, race and navigation changes; fresh creators and disposal are isolated", async () => {
     const { creator, catalog } = setup();

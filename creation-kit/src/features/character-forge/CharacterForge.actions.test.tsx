@@ -197,7 +197,7 @@ it("shows race load/retry blockers below the title without replacing inline reco
   expect(errorLog).toHaveBeenCalled();
 });
 
-it("updates rolled tasks from Core and resets expansion on step navigation", async () => {
+it("updates rolled tasks from Core's combined initial roll across step navigation", async () => {
   const user = userEvent.setup();
   renderActionsForge();
   await selectRace("Argonian");
@@ -229,25 +229,14 @@ it("updates rolled tasks from Core and resets expansion on step navigation", asy
       screen.getByRole("group", { name: "Rolled characteristics" }),
     ).getByRole("button", { name: "Roll" }),
   );
-  expect(expandedLabels()).toEqual([
+  expectActionsBelowTitle(
+    "Generate Characteristics",
     "Assign all characteristic results",
-    "Roll Luck",
-  ]);
+  );
+  expect(screen.queryByText("Roll Luck")).toBeNull();
   await user.click(screen.getByRole("button", { name: "Back" }));
   await user.click(screen.getByRole("button", { name: "Next" }));
-  expect(
-    screen
-      .getByRole("button", {
-        name: "Assign all characteristic results 2 remaining",
-      })
-      .getAttribute("aria-expanded"),
-  ).toBe("false");
-  await user.click(
-    within(screen.getByRole("group", { name: "Luck roll" })).getByRole(
-      "button",
-      { name: "Roll" },
-    ),
-  );
+  expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
   expectActionsBelowTitle(
     "Generate Characteristics",
     "Assign all characteristic results",

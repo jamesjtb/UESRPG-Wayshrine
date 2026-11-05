@@ -56,14 +56,18 @@ async function toggleReroll(user: User, index: number, selected = false) {
 }
 
 function poolRollButton(name: "Roll" | "Reroll" = "Roll") {
-  return within(
+  const pool = within(
     screen.getByRole("group", { name: "Rolled characteristics" }),
-  ).getByRole("button", {
+  );
+  const luck = screen.getByRole("group", { name: "Luck roll" });
+  const buttons = pool.getAllByRole("button", {
     name: name === "Reroll" ? /^Reroll(?: \(\d of 3\)| Used)?$/ : name,
   });
+  return buttons.find((button) => !luck.contains(button))!;
 }
 
 function luckRollButton(name: "Roll" | "Reroll" = "Roll") {
+  if (name === "Reroll") return poolRollButton("Reroll");
   return within(screen.getByRole("group", { name: "Luck roll" })).getByRole(
     "button",
     { name },
@@ -125,7 +129,7 @@ describe("Character Forge generation inputs", () => {
     await toggleReroll(user, 0, true);
     expect(poolRollButton("Reroll")).toHaveProperty("disabled", false);
     await user.click(poolRollButton("Reroll"));
-    expect(random).toHaveBeenCalledTimes(20);
+    expect(random).toHaveBeenCalledTimes(22);
     expect(poolRollButton("Reroll")).toHaveProperty("disabled", true);
     expect(poolRollButton("Reroll").textContent).toBe("Reroll Used");
   });
@@ -149,7 +153,7 @@ describe("Character Forge generation inputs", () => {
       expect(poolRollButton("Reroll").textContent).toBe("Reroll");
       expect(poolRollButton("Reroll")).toHaveProperty("disabled", true);
     }
-    expect(random).toHaveBeenCalledTimes(42);
+    expect(random).toHaveBeenCalledTimes(44);
     const rolls = snapshot().characteristicGeneration.drafts.rolled.rolls;
     await user.click(
       screen.getByRole("button", { name: "Close character creation" }),
@@ -176,7 +180,7 @@ describe("Character Forge generation inputs", () => {
     expect(snapshot().characteristicGeneration.drafts.rolled.rolls).toEqual(
       rolls,
     );
-    expect(random).toHaveBeenCalledTimes(42);
+    expect(random).toHaveBeenCalledTimes(44);
     expect(poolRollButton("Reroll").textContent).toBe("Reroll Used");
     await user.click(unlimited());
     expect(poolRollButton("Reroll").textContent).toBe("Reroll");
@@ -221,7 +225,7 @@ describe("Character Forge generation inputs", () => {
     );
     expect(snapshot().canFinish).toBe(false);
     await user.click(poolRollButton());
-    expect(random).toHaveBeenCalledTimes(14);
+    expect(random).toHaveBeenCalledTimes(16);
     const rolls = snapshot().characteristicGeneration.drafts.rolled.rolls;
     expect(rolls.slice(0, 2)).toEqual([
       { id: "roll-1", dice: [1, 10] },
@@ -230,7 +234,7 @@ describe("Character Forge generation inputs", () => {
     const pool = within(
       screen.getByRole("group", { name: "Characteristic rolls" }),
     );
-    expect(pool.getAllByRole("button")).toHaveLength(14);
+    expect(pool.getAllByRole("button")).toHaveLength(16);
     expect(pool.getByRole("button", { name: "Roll 1, total 11" })).toBeTruthy();
     expect(pool.getByRole("button", { name: "Roll 2, total 11" })).toBeTruthy();
     expect(screen.queryByText(/roll-\d/)).toBeNull();
@@ -257,7 +261,6 @@ describe("Character Forge generation inputs", () => {
       await chooseRoll(user, labels[index]!, index);
     }
     await favorStrengthAndEndurance(user);
-    await user.click(luckRollButton());
     expect(random).toHaveBeenCalledTimes(16);
     expect(snapshot().characteristicGeneration.complete).toBe(true);
     expect(snapshot().canFinish).toBe(true);
@@ -380,7 +383,6 @@ describe("Character Forge generation inputs", () => {
     await favorStrengthAndEndurance(user);
     await user.click(poolRollButton());
     await assignPool(user);
-    await user.click(luckRollButton());
     const luckGroup = within(screen.getByRole("group", { name: "Luck roll" }));
     expect(luckGroup.queryByText("Luck baseline: 30.")).toBeNull();
     expect(
@@ -389,7 +391,9 @@ describe("Character Forge generation inputs", () => {
       ),
     ).toBeNull();
     expect(
-      luckGroup.getByRole("button", { name: "Luck roll, total 10" }),
+      luckGroup.getByRole("button", {
+        name: "Luck roll, total 10, assigned Luck",
+      }),
     ).toBeTruthy();
     await user.click(
       screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
@@ -457,6 +461,10 @@ describe("Character Forge generation inputs", () => {
       total: 35,
     });
     const beforeLuck = snapshot().characteristicGeneration.drafts;
+    expect(luckRollButton("Reroll")).toHaveProperty("disabled", true);
+    await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
+    await user.click(screen.getByRole("button", { name: "Actions for Luck" }));
+    await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
     await user.click(luckRollButton("Reroll"));
     expect(random).toHaveBeenCalledTimes(24);
     expect(snapshot().characteristicGeneration.drafts).toEqual({
@@ -464,7 +472,9 @@ describe("Character Forge generation inputs", () => {
       luck: { id: "roll-12", dice: [5, 5] },
     });
     expect(
-      luckGroup.getByRole("button", { name: "Luck roll, total 10" }),
+      luckGroup.getByRole("button", {
+        name: "Luck roll, total 10, assigned Luck",
+      }),
     ).toBeTruthy();
     expect(snapshot().canFinish).toBe(true);
     await user.click(
@@ -621,7 +631,7 @@ describe("Character Forge generation inputs", () => {
     expect(console.error).not.toHaveBeenCalled();
   });
 
-  it("supports keyboard and touch assignment, focus tooltips and Luck disclosure", async () => {
+  it("supports keyboard and touch assignment and informational Luck tooltips", async () => {
     const random = vi.fn(() => 0.45);
     const { user, snapshot } = await startGeneration(random);
     await user.click(poolRollButton());
@@ -717,24 +727,22 @@ describe("Character Forge generation inputs", () => {
     expect(
       snapshot().characteristicGeneration.drafts.rolled.assignments,
     ).toEqual({ str: "roll-1", end: "roll-2" });
-    await user.click(luckRollButton());
     expect(poolTile(1).getAttribute("aria-expanded")).toBeNull();
     const luck = within(screen.getByRole("group", { name: "Luck roll" }));
-    const luckTile = luck.getByRole("button", { name: "Luck roll, total 10" });
-    expect(luckTile).toHaveProperty("ariaExpanded", "false");
+    const luckTile = luck.getByRole("button", {
+      name: "Luck roll, total 10, assigned Luck",
+    });
+    expect(luckTile.getAttribute("aria-expanded")).toBeNull();
     await user.pointer([
       { keys: "[TouchB>]", target: luckTile },
       { keys: "[/TouchB]" },
     ]);
-    expect(luckTile).toHaveProperty("ariaExpanded", "true");
-    expect(
-      luck.getByText("2d10: 5 + 5 = 10", { selector: '[role="status"]' }),
-    ).toBeTruthy();
+    expect(screen.queryByRole("menu")).toBeNull();
     await user.pointer([
       { keys: "[TouchC>]", target: luckTile },
       { keys: "[/TouchC]" },
     ]);
-    expect(luckTile).toHaveProperty("ariaExpanded", "false");
+    expect(luckTile.getAttribute("aria-expanded")).toBeNull();
     expect(
       luck.queryByText("2d10: 5 + 5 = 10", { selector: '[role="status"]' }),
     ).toBeNull();

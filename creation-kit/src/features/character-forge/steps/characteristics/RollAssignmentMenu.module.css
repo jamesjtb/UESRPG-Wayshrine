@@ -1,8 +1,8 @@
 .pair {
-  flex: 0 0 5.5rem;
-  width: 5.5rem;
+  flex: 0 0 4.5rem;
+  width: 4.5rem;
   border: 2px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-lg);
+  border-radius: var(--mantine-radius-md);
   background: var(--mantine-color-default);
 }
 
@@ -13,9 +13,9 @@
 
 .pair .total {
   width: 100%;
-  min-height: 4rem;
+  min-height: 2.5rem;
   border: 0;
-  border-radius: var(--mantine-radius-lg) var(--mantine-radius-lg) 0 0;
+  border-radius: var(--mantine-radius-md) var(--mantine-radius-md) 0 0;
   background: transparent;
 }
 
@@ -24,11 +24,12 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 44px;
-  padding: var(--mantine-spacing-xs);
+  min-height: 38px;
+  padding: 4px 2px;
   border-top: 1px solid var(--mantine-color-default-border);
-  border-radius: 0 0 var(--mantine-radius-lg) var(--mantine-radius-lg);
+  border-radius: 0 0 var(--mantine-radius-md) var(--mantine-radius-md);
   font-size: var(--mantine-font-size-xs);
+  line-height: 1.2;
   text-align: center;
   overflow-wrap: anywhere;
 }

@@ -197,6 +197,7 @@ describe("step user actions from Core snapshots", () => {
     expect(generationLabels(creator)).toEqual([
       "Allocate characteristic points",
     ]);
+    creator.setUnlimitedCharacteristicRerolls(true);
     creator.submitLuckRoll({ id: "bad", dice: [0, 2] });
     expect(generationLabels(creator)).toEqual([
       "Allocate characteristic points",

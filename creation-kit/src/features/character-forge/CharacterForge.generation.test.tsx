@@ -4,7 +4,7 @@ import { CharacterCreator } from "@wayshrine/core";
 import { expect, it, vi } from "vitest";
 import { renderForge, selectRace, sheet } from "./test/forgeTestHelpers";
 
-it("places the optional point-buy switch after the active flow and before Luck", async () => {
+it("places Luck at the end of the active row and the switches after the flow", async () => {
   const user = userEvent.setup();
   renderForge();
   await selectRace("Argonian");
@@ -14,27 +14,28 @@ it("places the optional point-buy switch after the active flow and before Luck",
     name: "Use Optional Point Buy Rules",
   });
 
-  function expectSwitchBetween(flowEnd: Element) {
+  function expectSwitchAfter(flowEnd: Element) {
     expect(
       flowEnd.compareDocumentPosition(methodSwitch) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      methodSwitch.compareDocumentPosition(
-        screen.getByRole("heading", { name: "Luck" }),
-      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen
+        .getByRole("group", { name: "Luck roll" })
+        .compareDocumentPosition(methodSwitch) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   }
 
-  expectSwitchBetween(
+  expectSwitchAfter(
     screen.getByRole("group", { name: "Rolled characteristics" }),
   );
   await user.click(methodSwitch);
-  expectSwitchBetween(
+  expectSwitchAfter(
     screen.getByRole("button", { name: "Increase Personality points" }),
   );
   await user.click(methodSwitch);
-  expectSwitchBetween(
+  expectSwitchAfter(
     screen.getByRole("group", { name: "Rolled characteristics" }),
   );
 });
@@ -79,13 +80,13 @@ it("switches editors through Core navigation while retaining the session, name a
   expect(
     editor.queryByText(/Luck requires|Luck uses a separate|Luck baseline:/),
   ).toBeNull();
-  expect(editor.getByRole("heading", { name: "Luck" })).toBeTruthy();
+  expect(editor.queryByRole("heading", { name: "Luck" })).toBeNull();
+  expect(editor.getByRole("button", { name: "Roll" })).toBeTruthy();
   expect(
-    within(editor.getByRole("group", { name: "Luck roll" })).getByRole(
+    within(editor.getByRole("group", { name: "Luck roll" })).queryByRole(
       "button",
-      { name: "Roll" },
     ),
-  ).toBeTruthy();
+  ).toBeNull();
   expect(
     editor.queryByText("Choose exactly two favored characteristics."),
   ).toBeNull();

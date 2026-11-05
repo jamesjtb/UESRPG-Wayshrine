@@ -12,6 +12,7 @@ import { rollBreakdown, rollTotal } from "./dice";
 import classes from "./RollAssignmentMenu.module.css";
 
 interface Props {
+  lockedAssignment?: "Luck";
   roll: CharacteristicRoll;
   ordinal: number;
   assignments: CharacteristicAssignments;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function RollAssignmentMenu({
+  lockedAssignment,
   roll,
   ordinal,
   assignments,
@@ -40,8 +42,10 @@ export function RollAssignmentMenu({
   const available = Object.values(Characteristic).filter(
     (key) => assignments[key] === undefined,
   );
-  const assignment = assigned ? characteristicLabels[assigned] : undefined;
-  let label = `Roll ${ordinal}, total ${rollTotal(roll)}`;
+  const assignment =
+    lockedAssignment ?? (assigned ? characteristicLabels[assigned] : undefined);
+  const tileLabel = lockedAssignment ? "Luck roll" : `Roll ${ordinal}`;
+  let label = `${tileLabel}, total ${rollTotal(roll)}`;
   if (assignment) label += `, assigned ${assignment}`;
   if (selected) label += ", selected for reroll";
   let action = assignment;
@@ -59,16 +63,16 @@ export function RollAssignmentMenu({
       gap={0}
       className={classes.pair}
       role="group"
-      aria-label={`Roll ${ordinal}`}
+      aria-label={lockedAssignment ? "Luck result" : tileLabel}
       data-selected={selected || undefined}
     >
       <RollTile
         roll={roll}
-        label={`Roll ${ordinal}`}
+        label={tileLabel}
         className={classes.total}
         aria-label={label}
         aria-description={rollBreakdown(roll)}
-        data-roll-result
+        data-roll-result={!lockedAssignment || undefined}
         data-selected={selected || undefined}
       />
       <Menu
@@ -86,7 +90,11 @@ export function RollAssignmentMenu({
           <UnstyledButton
             ref={triggerRef}
             className={classes.action}
-            aria-label={`Actions for result: ${rollTotal(roll)}`}
+            aria-label={
+              lockedAssignment
+                ? "Actions for Luck"
+                : `Actions for result: ${rollTotal(roll)}`
+            }
             aria-description={label}
             data-mantine-stop-propagation={opened || undefined}
             onKeyDown={closeFromTrigger}
@@ -107,14 +115,18 @@ export function RollAssignmentMenu({
           >
             {selected ? "Don't reroll" : "Reroll"}
           </Menu.Item>
-          {assigned && <Menu.Item onClick={onUnassign}>Unassign</Menu.Item>}
-          <Menu.Divider />
-          <Menu.Label>Assign To</Menu.Label>
-          {available.map((key) => (
-            <Menu.Item key={key} onClick={() => onAssign(key)}>
-              {characteristicLabels[key]}
-            </Menu.Item>
-          ))}
+          {!lockedAssignment && (
+            <>
+              {assigned && <Menu.Item onClick={onUnassign}>Unassign</Menu.Item>}
+              <Menu.Divider />
+              <Menu.Label>Assign To</Menu.Label>
+              {available.map((key) => (
+                <Menu.Item key={key} onClick={() => onAssign(key)}>
+                  {characteristicLabels[key]}
+                </Menu.Item>
+              ))}
+            </>
+          )}
         </Menu.Dropdown>
       </Menu>
     </Stack>

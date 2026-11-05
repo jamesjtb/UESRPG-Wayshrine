@@ -74,7 +74,7 @@ export function AllocationCard({
 
   return (
     <Stack
-      gap={4}
+      gap={2}
       className={classes.card}
       role="group"
       aria-label={`${label} allocation`}
@@ -84,14 +84,14 @@ export function AllocationCard({
       </Input.Label>
       <Box className={classes.controls}>
         <ActionIcon
-          size={44}
+          size={32}
           variant="transparent"
           className={classes.stepper}
           aria-label={`Decrease ${label} points`}
           disabled={!canDecrease}
           onClick={decrease}
         >
-          <IconMinus size={18} aria-hidden="true" />
+          <IconMinus size={16} aria-hidden="true" />
         </ActionIcon>
         <NumberInput
           id={inputId}
@@ -108,14 +108,14 @@ export function AllocationCard({
           classNames={{ input: classes.value }}
         />
         <ActionIcon
-          size={44}
+          size={32}
           variant="transparent"
           className={classes.stepper}
           aria-label={`Increase ${label} points`}
           disabled={!canIncrease}
           onClick={increase}
         >
-          <IconPlus size={18} aria-hidden="true" />
+          <IconPlus size={16} aria-hidden="true" />
         </ActionIcon>
       </Box>
       <GenerationIssues

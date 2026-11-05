@@ -59,13 +59,26 @@ whole-pool submissions. `rerollCharacteristics` accepts explicit
 live session, rolled method, initialized pool, policy allowance, batch size, unique
 known targets, valid faces, and distinct replacement IDs absent from the current
 pool. It then replaces selected results in place, removes only their assignments,
-and spends the batch. There is no submit/restore path. Assigned rolls remain eligible.
+and spends the batch when shared results are replaced. There is no submit/restore path. Assigned rolls remain eligible.
 
 Normal mode permits one batch of one to three, forfeiting unused slots. Unlimited
-defaults off and permits repeated batches up to seven; every successful batch still
+defaults off and permits repeated batches up to seven; every successful pool batch still
 spends the normal allowance. Disabling unlimited never restores it. Rejected commands
 return structured issues but do not change drafts, preview, allowance, or persistent
-validation. Luck remains independent and cannot be a reroll target.
+validation. Luck remains outside the shared pool and cannot be a shared-pool target ID.
+`rerollCharacteristics(replacements, luckReplacement?)` optionally includes selected
+Luck in the same atomic command. Luck requires unlimited mode and an existing Luck
+answer, with valid replacement dice. Core validates both groups before committing
+either; one invalid group rejects the whole command. The seven-result batch cap
+counts only pool replacements. A Luck-only command works in either method without
+an initialized pool and never spends the normal allowance. Mixed batches retain the
+usual rolled-method, initialization and shared-pool rules and spend that allowance.
+`submitLuckRoll` accepts an initial valid Luck roll in either method, then requires
+unlimited mode for replacements. It rejects locked replacements atomically with a
+Luck-targeted `reroll-unavailable` issue, including invalid attempted replacements.
+Invalid initial drafts remain correctable. Luck commands never spend the normal
+characteristic batch; pool-only batches never replace Luck. The shared
+answer and unlimited policy survive method changes.
 
 The creator stores only initialization, unlimited status, and spent status, outside
 generation answers. Its detached `characteristicGeneration.rerolls` snapshot derives
@@ -93,9 +106,12 @@ to the originating session. Catalog replacement or route exit disposes that sess
 retained callbacks and obsolete content completions cannot affect its replacement.
 
 Browser randomness lives in the feature-local `createCharacteristicRoller(random)`
-seam, injectable through Forge. Initial generation submits seven identified rolls;
-selective rerolls acquire one replacement per selected target and submit one atomic
-Core batch. Luck replacement remains independent. The host adapter returns Core's
+seam, injectable through Forge. Initial rolled generation acquires seven identified
+pool rolls and Luck, omitting Luck acquisition when a shared answer already exists;
+point-buy's initial Roll acquires only Luck without editing allocations.
+selective rerolls acquire one replacement per selected pool target and optionally
+selected Luck, then submit one atomic Core batch. Luck keeps its independent policy.
+The host adapter returns Core's
 structured result; rejection leaves accepted answers and the editor's selection intact.
 
 The browser selects rolled generation when creating each session. Its first explicit

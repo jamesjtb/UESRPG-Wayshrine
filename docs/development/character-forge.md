@@ -108,8 +108,9 @@ The hook delegates synchronous generation commands with public Core types:
 - `submitLuckRoll`
 - `setUnlimitedCharacteristicRerolls`
 
-Its `rerollCharacteristics(ids, rollDice)` host adapter acquires one identified
-replacement per selected target and submits the pairs to Core's command. It returns
+Its `rerollCharacteristics(ids, rollDice, rerollLuck = false)` host adapter acquires one identified
+replacement per selected pool target and optionally one Luck replacement, then submits
+all acquired dice to Core's atomic command. It returns
 Core's structured command result, or no result if its originating session is stale
 or acquisition throws. There is no host-side pool reconstruction, rule validation,
 assignment filtering, batch accounting, or rollback.
@@ -126,8 +127,8 @@ command before publishing its first snapshot; Core's own defaults and rules rema
 unchanged. The “Use Optional Point Buy Rules” Mantine switch is off for rolled
 generation, whose controls appear immediately, and on for point buy. There is no
 separate generation-method heading or radio group. Both this switch and the adjacent
-“Unlimited Rerolls” switch follow the active rolled or point-buy controls and precede
-the shared Luck section. Rolled and point-buy drafts remain
+“Unlimited Rerolls” switch follow the active rolled or point-buy controls, including
+the integrated Luck control. Rolled and point-buy drafts remain
 separate in Core, while favored selections and Luck are shared. Switching methods,
 Back/Next, and race changes retain these answers. Assignment and allocation edits
 submit whole replacement maps, including partial maps and explicit clears.
@@ -148,7 +149,11 @@ random-number source, defaulting to `Math.random`. Forge accepts an injected rol
 so tests exercise acquisition deterministically without mocking Core rules. Core
 never generates randomness.
 
-The initial “Roll” action obtains seven rolls and submits the complete pool. It is
+The initial rolled “Roll” action obtains seven rolls and Luck and submits the pool
+and shared Luck answer through their Core commands. It obtains Luck only when no
+shared answer exists, so switching from point buy cannot silently replace Luck.
+Point buy's initial “Roll” obtains only Luck and never changes allocations. The
+rolled pool action is
 then replaced by “Reroll (X of 3)”, disabled with no selection. The initial action is
 shown until Core reports an accepted pool, so invalid initial drafts remain repairable.
 Each result's
@@ -168,7 +173,7 @@ an action removes or disables the active button. There is no whole-pool reroll
 button after the initial roll.
 
 “Unlimited Rerolls” defaults off. When enabled it permits repeated batches with up
-to all seven results selected. Turning it off after **any** successful batch,
+to all seven shared results plus Luck selected. Turning it off after **any** successful shared-pool batch,
 including an unlimited batch, leaves the normal batch spent. Merely toggling it
 without using a batch does not spend the allowance. The flag and spent marker
 belong to Core's creator session, not the hook or editor: method switches, race
@@ -194,8 +199,36 @@ technical-error modal only for the still-live originating session; partial acqui
 is never submitted. Untouched rolls retain their IDs, faces, positions, and assignments;
 rerolled results become unassigned through Core's atomic command.
 
-Luck is excluded from reroll selections and allowances. Its independent
-“Roll”/“Reroll” action remains unchanged and replaces only the Luck answer.
+Luck is the final child in the same wrapping row as the rolled tiles or point-buy
+cards, separated by inline-start spacing and a vertical border. Whole controls wrap
+without reordering; the divider travels with Luck, including when it wraps onto a
+new line. Point-buy cards use bounded flex items rather than grid cells so the
+independent Luck control can share the row without inheriting allocation-card width.
+Luck reuses `RollAssignmentMenu` and its tile styles with a locked “Luck” assignment,
+no separate heading, and no Assign To or Unassign menu actions. Its total is
+informational, like ordinary totals; the bottom action shows “Luck” or “Rerolling”.
+The menu selects Luck only while Core's shared unlimited flag is enabled. Rolled
+mode submits pool selections and selected Luck through the same batch button;
+point buy uses the same selection menu and a shared-style Reroll button below its
+row. Luck-only rerolls work without an initialized shared pool and do not spend the
+normal allowance. Mixed batches spend it only because they include pool results.
+No unselected Luck is acquired or changed. Turning unlimited off clears the local
+Luck selection while retaining ordinary selections under their existing cap rules.
+Method changes also clear Luck's presentation selection, not its shared answer.
+Core validates every selected replacement and policy before mutating either group,
+so invalid Luck or pool dice, policy changes, and acquisition failures cannot cause
+partial success. `submitLuckRoll` independently rejects replacement of an accepted
+valid Luck roll without unlimited. Invalid initial drafts remain correctable.
+The rolled editor still has one initial Roll for the pool and Luck, not a second
+independent initial Luck button.
+
+The compact rolled/Luck presentation shares a 4.5rem width, 2.5rem minimum total
+height, 1.375rem result font, and 38px minimum assignment/menu strip. Strips retain
+12px labels and permit wrapping longer characteristic names. Four-pixel total/vertical
+strip padding, 2px inline strip padding and 4px row gaps reduce empty space; Luck
+retains a separate divider with 6px leading space and 8px padding. Menu items remain
+44px tall. These are presentation
+dimensions only, not generation rules; validation text can expand a tile/card.
 
 Pool tiles integrate a total on top with a bottom menu trigger. The trigger shows
 “Rerolling” while selected, otherwise its assigned characteristic, otherwise an
@@ -210,8 +243,9 @@ accessible label “Actions for result: <total>” (for example “Actions for r
 totals intentionally share that trigger name. Tooltips expose the faces and total, for
 example `2d10: 6 + 7 = 13`, with hover, focus, and touch events enabled. Pool tiles
 are informational: clicking or pressing a total never changes assignments or opens
-an action menu. Luck tile activation still toggles an inline
-breakdown and exposes its expanded state.
+an action menu. Luck uses the same informational total and tooltip rather than an
+inline expanding breakdown. Its action trigger is named “Actions for Luck”; its
+accessible total label includes the fixed assignment and selected state.
 
 `RollAssignmentMenu.tsx` owns each integrated tile. The horizontal
 Mantine group wraps whole tiles together on narrow screens. The bottom action
@@ -236,9 +270,13 @@ discards open action menus.
 `PointBuyCharacteristics.tsx` renders bounded, wrapping cards and a single points
 remaining indicator. `AllocationCard.tsx` places a linked full characteristic label
 above an icon-only minus button, editable number, and icon-only plus button. Both
-buttons retain 44px hit targets, accessible names, keyboard focus, and disabled
+buttons retain 32px hit targets, accessible names, keyboard focus, and disabled
 states. Local input text preserves lexical edits such as `1.`; Core owns the numeric
 draft.
+
+Point-buy cards use 8rem widths, 3px padding, 2px label/control gaps, 12px labels,
+20px values and 32px controls. Their wrapping row uses the same 4px gaps and rounded
+border style as rolled/Luck controls, without making Luck an allocation card.
 
 The UI does not submit negative allocations: typed minus signs are ignored, so
 typing `-5` enters `5`; a negative numeric paste resets the allocation to zero.

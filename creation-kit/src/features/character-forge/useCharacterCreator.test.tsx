@@ -337,6 +337,7 @@ describe("useCharacterCreator command boundary", () => {
     ).toEqual(assignments);
     act(() => {
       result.current.setFavoredCharacteristics(["str", "str"]);
+      result.current.setUnlimitedCharacteristicRerolls(true);
       result.current.submitLuckRoll({ id: "bad-luck", dice: [0, 11] });
     });
     expect(

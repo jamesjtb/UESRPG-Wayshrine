@@ -1,39 +1,41 @@
 .grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, min(100%, 9.5rem));
-  align-items: start;
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .card {
+  width: 8rem;
+  max-width: 100%;
   min-width: 0;
-  padding: 6px;
+  padding: 3px;
   border: 2px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-lg);
+  border-radius: var(--mantine-radius-md);
   background: var(--mantine-color-default);
 }
 
 .label {
   display: block;
-  font-size: var(--mantine-font-size-sm);
-  line-height: 1.25;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.2;
   text-align: center;
 }
 
 .value {
-  height: 44px;
-  min-height: 44px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   text-align: center;
 }
 
 .controls {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .input {

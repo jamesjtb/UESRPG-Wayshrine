@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Button, Group, Stack, Text } from "@mantine/core";
 import { Characteristic } from "@wayshrine/core";
 import type {
@@ -15,6 +16,8 @@ import type { CharacteristicRoller } from "./dice";
 import { characteristicLabels } from "./characteristicLabels";
 
 interface Props {
+  luckSelected?: boolean;
+  children?: ReactNode;
   draft: CharacteristicGenerationDrafts["rolled"];
   issues: readonly CharacteristicGenerationIssue[];
   rollDice: CharacteristicRoller;
@@ -38,6 +41,8 @@ function withoutRoll(assignments: CharacteristicAssignments, rollId: string) {
 }
 
 export function RolledCharacteristics({
+  luckSelected = false,
+  children,
   draft,
   issues,
   rollDice,
@@ -53,12 +58,18 @@ export function RolledCharacteristics({
   const poolRef = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<number | undefined>(undefined);
   useEffect(() => {
-    if (pendingFocus.current === undefined || draft.rolls.length === 0) return;
-    poolRef.current
-      ?.querySelectorAll<HTMLButtonElement>("[data-roll-result]")
-      [pendingFocus.current]?.focus();
+    if (pendingFocus.current === undefined) return;
+    if (pendingFocus.current === -1) {
+      poolRef.current
+        ?.querySelector<HTMLButtonElement>('[aria-label^="Luck roll, total"]')
+        ?.focus();
+    } else {
+      poolRef.current
+        ?.querySelectorAll<HTMLButtonElement>("[data-roll-result]")
+        [pendingFocus.current]?.focus();
+    }
     pendingFocus.current = undefined;
-  }, [draft.rolls]);
+  }, [draft.rolls, luckSelected]);
   const limit = rerolls.maxBatchSize;
   const canReroll = rerolls.available;
   const selection = selected.filter((id) =>
@@ -131,13 +142,13 @@ export function RolledCharacteristics({
       <Group
         ref={poolRef}
         key={JSON.stringify(draft.rolls)}
-        gap="xs"
+        gap={4}
         align="flex-start"
         role="group"
         aria-label="Characteristic rolls"
       >
         {draft.rolls.map((roll, index) => (
-          <Stack gap="xs" key={roll.id}>
+          <Stack gap={4} key={roll.id}>
             <RollAssignmentMenu
               roll={roll}
               ordinal={index + 1}
@@ -157,14 +168,17 @@ export function RolledCharacteristics({
             />
           </Stack>
         ))}
+        {children}
       </Group>
-      {rerolls.initialized && (
+      {(rerolls.initialized || luckSelected) && (
         <Stack gap="xs">
           <Button
             size="sm"
             onClick={rerollSelected}
             disabled={
-              !canReroll || selection.length === 0 || selection.length > limit
+              (!canReroll && !luckSelected) ||
+              (selection.length === 0 && !luckSelected) ||
+              selection.length > limit
             }
           >
             {rerollLabel}

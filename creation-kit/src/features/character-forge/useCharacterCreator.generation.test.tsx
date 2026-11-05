@@ -61,7 +61,10 @@ it("projects independent valid groups and guards all-step finish eligibility fro
   expect(result.current.view!.snapshot.canFinish).toBe(false);
   act(() => result.current.setFavoredCharacteristics(["str", "end"]));
   expect(result.current.view!.snapshot.canFinish).toBe(true);
-  act(() => result.current.submitLuckRoll({ id: "bad-luck", dice: [0, 11] }));
+  act(() => {
+    result.current.setUnlimitedCharacteristicRerolls(true);
+    result.current.submitLuckRoll({ id: "bad-luck", dice: [0, 11] });
+  });
   expectProjection(true, true, 0);
   expect(
     result.current.view!.snapshot.characteristicGeneration.drafts.luck,

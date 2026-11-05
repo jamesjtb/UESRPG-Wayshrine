@@ -199,11 +199,35 @@ technical-error modal only for the still-live originating session; partial acqui
 is never submitted. Untouched rolls retain their IDs, faces, positions, and assignments;
 rerolled results become unassigned through Core's atomic command.
 
-Luck is the final child in the same wrapping row as the rolled tiles or point-buy
-cards, separated by inline-start spacing and a vertical border. Whole controls wrap
-without reordering; the divider travels with Luck, including when it wraps onto a
-new line. Point-buy cards use bounded flex items rather than grid cells so the
-independent Luck control can share the row without inheriting allocation-card width.
+Luck is the final child in the rolled or point-buy group. Each editor establishes
+its own named inline-size container; layout depends on that container's width, not
+the viewport. There are exactly two layouts: all eight items in one fluid,
+non-wrapping row, or all eight in one centered vertical stack. Partial wrapping
+is not used. Wide rows retain growing, non-shrinking items and 6px gaps. The rolled
+minimum is 4.5rem; point buy sets `--characteristic-tile-min-width: 8rem` so Luck
+and allocation cards share the same inner minimum there. Luck additionally reserves
+8px inline padding, a 1px vertical divider and 6px leading margin. Tile contents
+fill their outer wrapper. Wide rows have no maximum-width caps.
+
+The complete-row thresholds include eight tile minima, seven 6px gaps and Luck's
+15px separator space: `36rem + 57px` for rolled and `64rem + 57px` for point buy
+(633px and 1081px with a 16px root font). The row remains horizontal exactly at
+its threshold and switches entirely to a stack below it. The editor styles and
+Luck's named-container queries must stay aligned when minima or gaps change.
+The existing modal width is unchanged; point buy therefore stacks even on a wide
+viewport unless its own container can supply the complete 1081px row.
+
+Stacks use 12px gaps and centered outer wrappers with `width: min(100%, 220px)`.
+This narrows the actual rolled, Luck and point-buy tiles rather than merely padding
+a full-width row. Luck's horizontal divider shares that same capped wrapper width
+and center alignment. The row itself has no side padding; editor container widths,
+thresholds and uncapped wide layouts remain independent of the stacked tile cap.
+Rolled/Luck tiles add 8px frame padding, a 3rem minimum total
+height and a 44px action strip with 8px vertical/4px inline padding, keeping the
+compact fonts but presenting full tiles rather than thin bars. Luck's vertical
+divider and inline spacing are replaced by a horizontal divider, 4px top margin
+and 12px top padding. Its answer, locked assignment, actions and final position
+are unchanged by layout transitions.
 Luck reuses `RollAssignmentMenu` and its tile styles with a locked “Luck” assignment,
 no separate heading, and no Assign To or Unassign menu actions. Its total is
 informational, like ordinary totals; the bottom action shows “Luck” or “Rerolling”.
@@ -222,10 +246,10 @@ valid Luck roll without unlimited. Invalid initial drafts remain correctable.
 The rolled editor still has one initial Roll for the pool and Luck, not a second
 independent initial Luck button.
 
-The compact rolled/Luck presentation shares a 4.5rem width, 2.5rem minimum total
+The wide rolled/Luck presentation shares a 4.5rem minimum width, 2.5rem minimum total
 height, 1.375rem result font, and 38px minimum assignment/menu strip. Strips retain
 12px labels and permit wrapping longer characteristic names. Four-pixel total/vertical
-strip padding, 2px inline strip padding and 4px row gaps reduce empty space; Luck
+strip padding and 2px inline strip padding reduce empty space; Luck
 retains a separate divider with 6px leading space and 8px padding. Menu items remain
 44px tall. These are presentation
 dimensions only, not generation rules; validation text can expand a tile/card.
@@ -247,8 +271,8 @@ an action menu. Luck uses the same informational total and tooltip rather than a
 inline expanding breakdown. Its action trigger is named “Actions for Luck”; its
 accessible total label includes the fixed assignment and selected state.
 
-`RollAssignmentMenu.tsx` owns each integrated tile. The horizontal
-Mantine group wraps whole tiles together on narrow screens. The bottom action
+`RollAssignmentMenu.tsx` owns each integrated tile. `RolledCharacteristics` places
+the tiles in a Mantine Box with the container-driven row/stack layout. The bottom action
 opens a feature-local Mantine menu by keyboard, mouse, or touch. It contains the
 reroll selection toggle, “Unassign” only for an assigned roll, then a divider and
 “Assign To” section listing unoccupied characteristics. All occupied targets,
@@ -267,16 +291,18 @@ discards open action menus.
 
 ### Point-buy controls
 
-`PointBuyCharacteristics.tsx` renders bounded, wrapping cards and a single points
+`PointBuyCharacteristics.tsx` renders container-responsive cards and a single points
 remaining indicator. `AllocationCard.tsx` places a linked full characteristic label
 above an icon-only minus button, editable number, and icon-only plus button. Both
-buttons retain 32px hit targets, accessible names, keyboard focus, and disabled
+buttons retain 32px wide-layout/44px stacked hit targets, accessible names, keyboard focus, and disabled
 states. Local input text preserves lexical edits such as `1.`; Core owns the numeric
 draft.
 
-Point-buy cards use 8rem widths, 3px padding, 2px label/control gaps, 12px labels,
-20px values and 32px controls. Their wrapping row uses the same 4px gaps and rounded
-border style as rolled/Luck controls, without making Luck an allocation card.
+Wide point-buy cards use 8rem minimum widths, 3px padding, 2px label/control gaps,
+12px labels, 20px values and 32px controls. Stacked cards use the centered 220px cap, with
+12px padding, 8px label/control gaps, and 44px controls; fonts stay unchanged.
+Both layouts retain the same rounded border style as rolled/Luck controls without
+making Luck an allocation card.
 
 The UI does not submit negative allocations: typed minus signs are ignored, so
 typing `-5` enters `5`; a negative numeric paste resets the allocation to zero.
@@ -393,6 +419,15 @@ race-index failures, explicit retries and repeated failures, closed skill recove
 canceling resumed pending race changes, and nested Select/assignment-menu Escape
 isolation. DOM checks do not establish visual stacking or small-screen reachability;
 those require a real browser.
+
+Row/stack layout checks also need a real browser: hold the viewport fixed while
+resizing each editor container to its complete-row threshold and one pixel below.
+Assert eight items in one row versus eight centered, capped stacked items, unchanged
+answer values/fonts, expanded stacked padding/controls, and Luck's divider switching
+from vertical to horizontal. Size the editor container directly during threshold
+probes: a modal scrollbar can otherwise reduce its available width. Test narrow
+screens separately for reachability and horizontal overflow. JSDOM does not compute
+container-query layout geometry.
 
 `scripts/content-pipeline.test.ts` compiles YAML to temporary files under
 `/tmp/opencode`, then reads those files through the real browser catalog and creator.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Button, Group, Stack, Text } from "@mantine/core";
+import { Box, Button, Group, Stack, Text } from "@mantine/core";
 import { Characteristic } from "@wayshrine/core";
 import type {
   CharacteristicAssignments,
@@ -14,6 +14,7 @@ import { GenerationIssues } from "./GenerationIssues";
 import { RollAssignmentMenu } from "./RollAssignmentMenu";
 import type { CharacteristicRoller } from "./dice";
 import { characteristicLabels } from "./characteristicLabels";
+import classes from "./RolledCharacteristics.module.css";
 
 interface Props {
   luckSelected?: boolean;
@@ -130,7 +131,12 @@ export function RolledCharacteristics({
   }
 
   return (
-    <Stack gap="sm" role="group" aria-label="Rolled characteristics">
+    <Stack
+      className={classes.container}
+      gap="sm"
+      role="group"
+      aria-label="Rolled characteristics"
+    >
       {!rerolls.initialized && (
         <Group align="center" gap="sm">
           <Button size="sm" onClick={rollPool}>
@@ -139,16 +145,15 @@ export function RolledCharacteristics({
         </Group>
       )}
       <GenerationIssues issues={rollIssues} field="rolls" />
-      <Group
+      <Box
         ref={poolRef}
         key={JSON.stringify(draft.rolls)}
-        gap={4}
-        align="flex-start"
+        className={classes.row}
         role="group"
         aria-label="Characteristic rolls"
       >
         {draft.rolls.map((roll, index) => (
-          <Stack gap={4} key={roll.id}>
+          <Stack gap={4} className={classes.result} key={roll.id}>
             <RollAssignmentMenu
               roll={roll}
               ordinal={index + 1}
@@ -169,7 +174,7 @@ export function RolledCharacteristics({
           </Stack>
         ))}
         {children}
-      </Group>
+      </Box>
       {(rerolls.initialized || luckSelected) && (
         <Stack gap="xs">
           <Button

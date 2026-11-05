@@ -46,7 +46,7 @@ export function PointBuyCharacteristics({
   const visibleIssues = issues.filter(showIssue);
 
   return (
-    <Stack gap="sm">
+    <Stack className={classes.container} gap="sm">
       <Text fw={600}>Points remaining: {displayedRemaining}</Text>
       <GenerationIssues issues={visibleIssues} field="allocations" />
       <Box

@@ -1,14 +1,19 @@
+.container {
+  container: point-buy-characteristics / inline-size;
+}
+
 .grid {
+  --characteristic-tile-min-width: 8rem;
+
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-start;
-  gap: 4px;
+  gap: 6px;
 }
 
 .card {
-  width: 8rem;
-  max-width: 100%;
-  min-width: 0;
+  flex: 1 0 var(--characteristic-tile-min-width, 8rem);
+  min-width: var(--characteristic-tile-min-width, 8rem);
   padding: 3px;
   border: 2px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-md);
@@ -46,4 +51,43 @@
 .stepper:disabled {
   background: transparent;
   border: 0;
+}
+
+/* Eight 8rem tiles, seven 6px gaps, and Luck's 15px separator space. */
+@container point-buy-characteristics (width < calc(64rem + 57px)) {
+  .grid {
+    --roll-tile-padding: 8px;
+    --roll-total-height: 3rem;
+    --roll-action-height: 44px;
+    --roll-action-padding: 8px 4px;
+
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .container .card {
+    flex: none;
+    width: min(100%, 220px);
+    min-width: 0;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .controls {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 8px;
+  }
+
+  .value {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .container .stepper {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
 }

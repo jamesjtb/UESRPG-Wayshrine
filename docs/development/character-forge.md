@@ -21,7 +21,8 @@ mobile sidebar rather than behind it.
   and disposes it during cleanup. StrictMode effect replay creates a new creator
   rather than reusing a disposed instance. Its interface exposes detached snapshots,
   preview data, error presentation state, and named commands. The creator, liveness
-  flag, request identities, point-buy initialization flag, and reroll policy stay private.
+  flag, request identities, and point-buy initialization flag stay private. Core owns
+  reroll policy; the hook publishes it only through the detached generation snapshot.
   Commands capture their originating session; retained callbacks and pending
   completions cannot affect a replacement session after catalog changes or unmount.
 - `CharacterForge.tsx` keeps the creator session and primary sheet outside the
@@ -85,7 +86,7 @@ trigger after dismissal, including when the modal's focus trap has reclaimed foc
 
 ## Generation commands and drafts
 
-The hook exposes all six synchronous generation commands with public Core types:
+The hook delegates synchronous generation commands with public Core types:
 
 - `setFavoredCharacteristics`
 - `setCharacteristicGenerationMethod`
@@ -93,6 +94,13 @@ The hook exposes all six synchronous generation commands with public Core types:
 - `setCharacteristicAssignments`
 - `setCharacteristicAllocations`
 - `submitLuckRoll`
+- `setUnlimitedCharacteristicRerolls`
+
+Its `rerollCharacteristics(ids, rollDice)` host adapter acquires one identified
+replacement per selected target and submits the pairs to Core's command. It returns
+Core's structured command result, or no result if its originating session is stale
+or acquisition throws. There is no host-side pool reconstruction, rule validation,
+assignment filtering, batch accounting, or rollback.
 
 Ordinary live field commands delegate to Core, refresh the snapshot and preview, and return
 the Core command result. Pool submission is initial-only after its first successful
@@ -129,7 +137,9 @@ so tests exercise acquisition deterministically without mocking Core rules. Core
 never generates randomness.
 
 The initial “Roll” action obtains seven rolls and submits the complete pool. It is
-then replaced by “Reroll (X of 3)”, disabled with no selection. Each result's
+then replaced by “Reroll (X of 3)”, disabled with no selection. The initial action is
+shown until Core reports an accepted pool, so invalid initial drafts remain repairable.
+Each result's
 integrated bottom action opens a menu to select up to three results for **one batch**.
 Using fewer than three forfeits the remainder. New results replace the selected
 results even when lower; there is no best-of comparison, undo, or roll history.
@@ -139,7 +149,7 @@ label includes the current selection count; unlimited mode labels it simply
 “Reroll”. There are no selection instructions or standalone counts. Selected
 tiles retain their highlighted border and background and accessible selected
 description. Once the normal batch is spent, the disabled button reads “Reroll
-Expended” instead of showing separate feedback text. Unlimited mode still reads
+Used” instead of showing separate feedback text. Unlimited mode still reads
 “Reroll” and permits further batches regardless of the spent marker.
 Focus moves to the first acquired/replaced tile when
 an action removes or disables the active button. There is no whole-pool reroll
@@ -149,24 +159,28 @@ button after the initial roll.
 to all seven results selected. Turning it off after **any** successful batch,
 including an unlimited batch, leaves the normal batch spent. Merely toggling it
 without using a batch does not spend the allowance. The flag and spent marker
-belong to the private creator session, not the editor: method switches, race
+belong to Core's creator session, not the hook or editor: method switches, race
 changes, Back/Next, and modal dismissal retain them. A new session resets them.
 Selection itself is an editor-local presentation draft. The menu's “Reroll”
 item is disabled at the cap or when the batch is spent; “Don't reroll”
 remains available, including if switching the option off makes the
 current selection exceed three. The batch button is disabled while over the cap.
 
-The session command checks current policy and selected IDs before acquiring dice,
-so retained callbacks cannot bypass changed limits or affect a replacement session.
-It validates the candidate pool through Core before submitting it and rejects
-invalid faces, duplicate IDs, or replacement IDs reused from the old pool without
-changing answers or spending the batch. If Core rejects a submitted replacement,
-the command restores the previous pool and assignments and leaves the batch unused.
-On success it submits the complete pool, then restores only assignments whose roll
-IDs were not selected. Untouched rolls retain their IDs, faces, positions, and
-assignments; rerolled results become unassigned. Core still never authorizes rerolls
-and still clears every assignment on pool submission. This host policy does not
-alter Core's contract.
+Controls derive initialization, unlimited/spent labels, availability, and selection
+caps from `characteristicGeneration.rerolls`. React owns only the selected-ID draft,
+captions, focus, and command-feedback presentation. The hook passes all acquired
+replacement pairs to Core; Core alone checks current rules, commits the replacements,
+clears selected assignments, and spends the allowance. Retained live callbacks still
+reach current Core policy rather than captured render flags. Liveness checks before
+and after acquisition prevent stale callbacks or a roller that disposes its session
+from publishing results into a replacement session.
+
+Core rejections are displayed inline without clearing selection or changing accepted
+results; retry remains possible. These transient command issues do not become Core
+answer-validation issues. Acquisition exceptions are logged and open the existing
+technical-error modal only for the still-live originating session; partial acquisition
+is never submitted. Untouched rolls retain their IDs, faces, positions, and assignments;
+rerolled results become unassigned through Core's atomic command.
 
 Luck is excluded from reroll selections and allowances. Its independent
 “Roll”/“Reroll” action remains unchanged and replaces only the Luck answer.
@@ -310,15 +324,16 @@ rendering, column/cell assertions, and controlled reads. Tests verify actual pre
 as well as detached drafts and command results.
 
 Coverage spans both generation methods, equal-total identity, whole-map edits,
-selective-reroll caps, final replacements and unaffected assignment retention,
-unlimited batches and switch-off policy, invalid acquisition and stale commands,
+snapshot-driven selection controls, deterministic selective replacements and unaffected
+assignment retention, option rendering and retention, rejected-command selection/retry,
+acquisition exceptions and stale commands,
 Luck isolation, method/navigation retention including cleared allocations,
 independent valid-group projection, race suppression/cancel/recalculation, and
 generation session isolation across route exit or catalog replacement. Hook tests
 cover invalid inputs that the UI prevents and all-step finish guards from either
 step. Component tests cover keyboard/touch interaction, tooltip/menu composition,
 focus return, controlled limits, and useful invalid numeric feedback. Core tests
-remain responsible for shared rules and calculations.
+remain responsible for exhaustive reroll rules, policy validation, and calculations.
 Wizard tests cover initially closed presentation, unanswered first-opening resume,
 both steps and all three dismissal mechanisms, retained generation drafts and
 assignments, sheet updates while closed, and pending content success/failure.

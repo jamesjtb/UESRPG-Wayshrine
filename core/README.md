@@ -99,7 +99,7 @@ issues are also detached from creator state.
 ### Characteristic generation
 
 The host obtains dice results (manual entry, a dice service, or host randomness).
-Core never generates randomness, authorizes rerolls, or requires a GM permission
+Core enforces reroll policy but never generates randomness or requires a GM permission
 gate. Supply identified rolls with their individual faces, not just totals. Each
 2d10 submission needs a nonempty string ID and exactly two integer d10 faces
 (1–10). Equal totals from distinct roll IDs are valid.
@@ -145,6 +145,44 @@ function submitRolled(creator: CharacterCreator) {
 }
 ```
 
+The first valid seven-result pool is accepted once. Invalid initial drafts remain
+editable with `submitCharacteristicRolls`; after acceptance, that command rejects
+every whole-pool resubmission without changing anything. Use selective rerolls:
+
+```ts
+import type { CharacterCreator } from "@wayshrine/core";
+
+function rerollSelected(creator: CharacterCreator) {
+  // The host acquires fresh dice and IDs; lower results are final too.
+  const result = creator.rerollCharacteristics([
+    { targetRollId: "r3", replacement: { id: "r8", dice: [1, 2] } },
+    { targetRollId: "r5", replacement: { id: "r9", dice: [7, 7] } },
+  ]);
+  if (!result.ok) return result; // Structured issues; no state was changed.
+  return creator.getSnapshot().characteristicGeneration;
+}
+
+function enableUnlimited(creator: CharacterCreator) {
+  return creator.setUnlimitedCharacteristicRerolls(true);
+}
+```
+
+Normally one batch of one to three results is allowed; unused slots are forfeited.
+Unlimited defaults off and permits repeated batches of up to seven. **Every successful
+batch spends the normal allowance**, even while unlimited is on; disabling unlimited
+never restores it. Targets must be unique current shared-pool IDs, never Luck.
+Replacement IDs must be distinct and cannot reuse any current pool ID, including
+another selected target. Equal totals are allowed. Only selected results lose their
+assignments; untouched results keep their order, IDs, dice, and assignments. Assigned
+results may be rerolled. Rejections never change drafts, previews, or allowance.
+
+`characteristicGeneration.rerolls` is a detached session-policy snapshot with
+`unlimited`, `batchSpent`, `initialized`, `available`, and `maxBatchSize`. Availability
+requires a live creator, rolled method, accepted initial pool, and an unspent batch
+or unlimited mode. Maximum batch size is zero when unavailable, otherwise three or
+seven. Policy survives method/race/navigation changes; a new creator starts fresh.
+Luck replacement is independent and does not spend this allowance.
+
 #### Point-buy flow
 
 Allocations map characteristic keys to **integer point amounts**, not roll IDs.
@@ -177,12 +215,12 @@ function submitPointBuy(creator: CharacterCreator, luck: CharacteristicRoll) {
 
 - Generation commands may run before choosing race or while content loads. A
   successful command validates only its submission, not the entire character.
-  Failed validation keeps the edit visible for correction; it is not rolled back.
+  Invalid draft edits remain visible for correction. Selective rerolls and locked
+  pool resubmissions instead reject atomically without retaining invalid edits.
 - `setCharacteristicAssignments()` and `setCharacteristicAllocations()` replace
   whole maps, never merge. Partial maps are retained as incomplete drafts; `{}`
-  clears a map. Submitting a roll pool replaces it and **always clears assignments**,
-  even for reused IDs. A host reroll therefore resubmits the complete pool, then the
-  complete assignment map. Replacing Luck affects only Luck.
+  clears a map. Initial pool submissions clear assignments until a valid pool is
+  accepted; later pool resubmissions are rejected. Replacing Luck affects only Luck.
 - Rolled and point-buy drafts are retained separately. Favored selections and Luck
   are common. Switching method preserves both drafts; editing an inactive draft
   does not activate it or affect the preview.
@@ -191,7 +229,8 @@ function submitPointBuy(creator: CharacterCreator, luck: CharacteristicRoll) {
   `message`, with optional `field`, `rollId`, and `characteristic` targets; hosts
   should not parse message text.
 - `snapshot.characteristicGeneration` contains detached `drafts`, the active
-  `answer`, full active `issues`, and `complete`. The characteristics step has an
+  `answer`, full active `issues`, `complete`, and session-only `rerolls`. Reroll command
+  rejections are not persistent answer-validation issues. The characteristics step has an
   empty `pendingChoices`; use the dedicated section for its inputs and details.
   Top-level wizard issues describe the current step, not every step.
 - Preview groups are independent: valid favored selections grant flags; a fully

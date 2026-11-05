@@ -2,15 +2,19 @@ import { MantineProvider } from "@mantine/core";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CharacterCreator } from "@wayshrine/core";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { fixtureCatalog } from "../../test/testCatalog";
 import { createCharacteristicRoller } from "./dice";
 import { RolledCharacteristics } from "./RolledCharacteristics";
 import { useCharacterCreator } from "../../useCharacterCreator";
+import type { CharacteristicRoller } from "./dice";
 
-function renderRolled(random: () => number = () => 0.45) {
+function renderRolled(
+  random: () => number = () => 0.45,
+  injectedRoller?: CharacteristicRoller,
+) {
   const catalog = fixtureCatalog();
-  const rollDice = createCharacteristicRoller(random);
+  const rollDice = injectedRoller ?? createCharacteristicRoller(random);
   function Harness() {
     const creator = useCharacterCreator(catalog);
     if (!creator.view) return null;
@@ -21,8 +25,7 @@ function renderRolled(random: () => number = () => 0.45) {
         issues={generation.issues}
         rollDice={rollDice}
         submitCharacteristicRolls={creator.submitCharacteristicRolls}
-        unlimitedRerolls={creator.view.unlimitedRerolls}
-        rerollBatchSpent={creator.view.rerollBatchSpent}
+        rerolls={generation.rerolls}
         rerollCharacteristics={creator.rerollCharacteristics}
         setCharacteristicAssignments={creator.setCharacteristicAssignments}
       />
@@ -128,7 +131,7 @@ it("offers separate keyboard/touch selections capped at three and one final batc
       name: "Roll 4, total 10, assigned Strength",
     }),
   ).toBeTruthy();
-  expect(reroll.textContent).toBe("Reroll Expended");
+  expect(reroll.textContent).toBe("Reroll Used");
   await user.click(action(4));
   expect(screen.getByRole("menuitem", { name: "Reroll" })).toHaveProperty(
     "disabled",
@@ -142,7 +145,7 @@ it("offers separate keyboard/touch selections capped at three and one final batc
   expect(
     within(
       screen.getByRole("group", { name: "Rolled characteristics" }),
-    ).getByRole("button", { name: "Reroll Expended" }),
+    ).getByRole("button", { name: "Reroll Used" }),
   ).toHaveProperty("disabled", true);
   expect(
     screen.queryByText(
@@ -198,6 +201,41 @@ it("integrates total and action without nested buttons, labels actions by value,
   ).toBeTruthy();
 });
 
+it("keeps selection and accepted assignments on structured rejection, displays the issue, and retries successfully", async () => {
+  const rollDice = vi.fn(createCharacteristicRoller(() => 0.45));
+  const user = renderRolled(undefined, rollDice);
+  await user.click(screen.getByRole("button", { name: "Roll" }));
+  const action = within(
+    screen.getByRole("group", { name: "Roll 1" }),
+  ).getByRole("button", { name: "Actions for result: 10" });
+  await user.click(action);
+  await user.click(screen.getByRole("menuitem", { name: "Strength" }));
+  await user.click(action);
+  await user.click(screen.getByRole("menuitem", { name: "Reroll" }));
+  rollDice.mockReturnValueOnce({ id: "invalid-replacement", dice: [0, 11] });
+  await user.click(screen.getByRole("button", { name: "Reroll (1 of 3)" }));
+  expect(screen.getByRole("status").textContent).toBe(
+    "Characteristic roll requires exactly two integer d10 faces (1–10).",
+  );
+  expect(action.textContent).toBe("Rerolling");
+  expect(
+    screen.getByRole("button", {
+      name: "Roll 1, total 10, assigned Strength, selected for reroll",
+    }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Reroll (1 of 3)" }),
+  ).toHaveProperty("disabled", false);
+  await user.click(screen.getByRole("button", { name: "Reroll (1 of 3)" }));
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByRole("button", { name: "Roll 1, total 10" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Reroll Used" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+  expect(rollDice).toHaveBeenCalledTimes(9);
+});
+
 it("still displays count and dice issues for a nonempty invalid roll pool", () => {
   const creator = new CharacterCreator(fixtureCatalog());
   creator.setCharacteristicGenerationMethod("rolled");
@@ -209,9 +247,8 @@ it("still displays count and dice issues for a nonempty invalid roll pool", () =
         draft={generation.drafts.rolled}
         issues={generation.issues}
         rollDice={createCharacteristicRoller(() => 0.45)}
-        unlimitedRerolls={false}
-        rerollBatchSpent={false}
-        rerollCharacteristics={() => false}
+        rerolls={generation.rerolls}
+        rerollCharacteristics={() => undefined}
         submitCharacteristicRolls={(rolls) =>
           creator.submitCharacteristicRolls(rolls)
         }

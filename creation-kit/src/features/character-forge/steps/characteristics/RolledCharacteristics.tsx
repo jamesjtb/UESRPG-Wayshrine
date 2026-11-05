@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, Group, Stack } from "@mantine/core";
+import { Button, Group, Stack, Text } from "@mantine/core";
 import { Characteristic } from "@wayshrine/core";
 import type {
   CharacteristicAssignments,
   CharacteristicGenerationDrafts,
   CharacteristicGenerationIssue,
+  CharacteristicGenerationCommandResult,
+  CharacteristicRerollSnapshot,
   CharacteristicRoll,
 } from "@wayshrine/core";
 import { GenerationIssues } from "./GenerationIssues";
@@ -17,12 +19,11 @@ interface Props {
   issues: readonly CharacteristicGenerationIssue[];
   rollDice: CharacteristicRoller;
   submitCharacteristicRolls: (rolls: readonly CharacteristicRoll[]) => void;
-  unlimitedRerolls: boolean;
-  rerollBatchSpent: boolean;
+  rerolls: CharacteristicRerollSnapshot;
   rerollCharacteristics: (
     ids: readonly string[],
     rollDice: CharacteristicRoller,
-  ) => boolean;
+  ) => CharacteristicGenerationCommandResult | undefined;
   setCharacteristicAssignments: (
     assignments: CharacteristicAssignments,
   ) => void;
@@ -41,12 +42,14 @@ export function RolledCharacteristics({
   issues,
   rollDice,
   submitCharacteristicRolls,
-  unlimitedRerolls,
-  rerollBatchSpent,
+  rerolls,
   rerollCharacteristics,
   setCharacteristicAssignments,
 }: Props) {
   const [selected, setSelected] = useState<readonly string[]>([]);
+  const [commandIssues, setCommandIssues] = useState<
+    readonly CharacteristicGenerationIssue[]
+  >([]);
   const poolRef = useRef<HTMLDivElement>(null);
   const pendingFocus = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -56,16 +59,17 @@ export function RolledCharacteristics({
       [pendingFocus.current]?.focus();
     pendingFocus.current = undefined;
   }, [draft.rolls]);
-  const limit = unlimitedRerolls ? 7 : 3;
-  const canReroll = unlimitedRerolls || !rerollBatchSpent;
+  const limit = rerolls.maxBatchSize;
+  const canReroll = rerolls.available;
   const selection = selected.filter((id) =>
     draft.rolls.some((roll) => roll.id === id),
   );
   let rerollLabel = `Reroll (${selection.length} of 3)`;
-  if (!canReroll) rerollLabel = "Reroll Expended";
-  if (unlimitedRerolls) rerollLabel = "Reroll";
+  if (rerolls.batchSpent) rerollLabel = "Reroll Used";
+  if (rerolls.unlimited) rerollLabel = "Reroll";
 
   function selectRoll(id: string, checked: boolean) {
+    setCommandIssues([]);
     if (!checked) {
       setSelected(selection.filter((value) => value !== id));
     } else if (canReroll && selection.length < limit) {
@@ -77,10 +81,13 @@ export function RolledCharacteristics({
     pendingFocus.current = draft.rolls.findIndex((roll) =>
       selection.includes(roll.id),
     );
-    if (rerollCharacteristics(selection, rollDice)) {
+    const result = rerollCharacteristics(selection, rollDice);
+    if (result?.ok) {
       setSelected([]);
+      setCommandIssues([]);
     } else {
       pendingFocus.current = undefined;
+      if (result) setCommandIssues(result.issues);
     }
   }
   const rollIssues = issues.filter(
@@ -113,7 +120,7 @@ export function RolledCharacteristics({
 
   return (
     <Stack gap="sm" role="group" aria-label="Rolled characteristics">
-      {draft.rolls.length === 0 && (
+      {!rerolls.initialized && (
         <Group align="center" gap="sm">
           <Button size="sm" onClick={rollPool}>
             Roll
@@ -151,7 +158,7 @@ export function RolledCharacteristics({
           </Stack>
         ))}
       </Group>
-      {draft.rolls.length > 0 && (
+      {rerolls.initialized && (
         <Stack gap="xs">
           <Button
             size="sm"
@@ -162,6 +169,11 @@ export function RolledCharacteristics({
           >
             {rerollLabel}
           </Button>
+          {commandIssues.map((issue, index) => (
+            <Text size="sm" role="status" key={index}>
+              {issue.message}
+            </Text>
+          ))}
         </Stack>
       )}
       {assignmentIssues.length > 0 && (

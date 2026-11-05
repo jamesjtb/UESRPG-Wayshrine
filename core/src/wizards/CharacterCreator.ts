@@ -12,7 +12,10 @@ import type {
   CharacteristicGenerationDrafts,
   CharacteristicGenerationField,
   CharacteristicGenerationMethod,
+  CharacteristicGenerationIssue,
   CharacteristicGenerationSnapshot,
+  CharacteristicRerollReplacement,
+  CharacteristicRerollSnapshot,
   CharacteristicRoll,
 } from "../../interface/character/CharacteristicGeneration";
 import type { Race } from "../../interface/character/Race";
@@ -32,6 +35,7 @@ import { ContentError } from "../content/ContentError";
 import {
   projectCharacteristicGeneration,
   validateCharacteristicGeneration,
+  validateRoll,
 } from "../character/characteristicGeneration";
 import { ContentReader } from "../content/ContentReader";
 import { raceSchema, skillSchema } from "../content/schemas";
@@ -84,6 +88,9 @@ export default class CharacterCreator {
   private readonly content: ContentReader;
   private name = "";
   private generation = emptyGenerationDrafts();
+  private characteristicPoolInitialized = false;
+  private characteristicRerollBatchSpent = false;
+  private unlimitedCharacteristicRerolls = false;
   private raceKey: string | undefined;
   private race: Race | undefined;
   private skillOptions: readonly ContentSummary[] = [];
@@ -134,14 +141,146 @@ export default class CharacterCreator {
     return this.generationSubmissionResult("method");
   }
 
-  /** Replacing the pool invalidates every assignment, even when roll IDs are reused. */
+  /** Invalid initial drafts remain editable until a valid seven-result pool is accepted. */
   submitCharacteristicRolls(
     rolls: readonly CharacteristicRoll[],
   ): CharacteristicGenerationCommandResult {
     if (this.disposed) return this.generationDisposedResult();
+    if (this.characteristicPoolInitialized)
+      return this.rerollRejection(
+        "pool-initialized",
+        "The initial pool is accepted. Use selective rerolls to replace results.",
+      );
     this.generation.rolled.rolls = rolls.map(copyRoll);
     this.generation.rolled.assignments = {};
-    return this.generationSubmissionResult("rolls", "rolled");
+    const result = this.generationSubmissionResult("rolls", "rolled");
+    if (result.ok) this.characteristicPoolInitialized = true;
+    return result;
+  }
+
+  setUnlimitedCharacteristicRerolls(
+    enabled: boolean,
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    this.unlimitedCharacteristicRerolls = enabled;
+    return { ok: true, value: undefined };
+  }
+
+  /** Validate the entire batch before replacing results or spending the allowance. */
+  rerollCharacteristics(
+    replacements: readonly CharacteristicRerollReplacement[],
+  ): CharacteristicGenerationCommandResult {
+    if (this.disposed) return this.generationDisposedResult();
+    if (this.generation.method !== "rolled")
+      return this.rerollRejection(
+        "generation-method",
+        "Select rolled generation before rerolling characteristics.",
+      );
+    if (!this.characteristicPoolInitialized)
+      return this.rerollRejection(
+        "pool-uninitialized",
+        "Submit a valid initial pool before rerolling characteristics.",
+      );
+    const policy = this.characteristicRerollSnapshot();
+    if (!policy.available)
+      return this.rerollRejection(
+        "reroll-unavailable",
+        "The normal characteristic reroll batch has already been spent.",
+      );
+    if (replacements.length < 1 || replacements.length > policy.maxBatchSize)
+      return this.rerollRejection(
+        "reroll-count",
+        `Submit one to ${policy.maxBatchSize} replacements in a single batch.`,
+      );
+
+    const issues = this.characteristicReplacementIssues(replacements);
+    if (issues.length > 0) return { ok: false, issues };
+
+    const byTarget = new Map(
+      replacements.map(({ targetRollId, replacement }) => [
+        targetRollId,
+        replacement,
+      ]),
+    );
+    const rolls = this.generation.rolled.rolls.map((roll) =>
+      copyRoll(byTarget.get(roll.id) ?? roll),
+    );
+    const assignments = { ...this.generation.rolled.assignments };
+    for (const key of Object.keys(assignments) as Characteristic[]) {
+      if (byTarget.has(assignments[key]!)) delete assignments[key];
+    }
+    this.generation.rolled = { rolls, assignments };
+    this.characteristicRerollBatchSpent = true;
+    return { ok: true, value: undefined };
+  }
+
+  private characteristicReplacementIssues(
+    replacements: readonly CharacteristicRerollReplacement[],
+  ): CharacteristicGenerationIssue[] {
+    const issues: CharacteristicGenerationIssue[] = [];
+    const poolIds = new Set(
+      this.generation.rolled.rolls.map((roll) => roll.id),
+    );
+    const targets = new Set<string>();
+    const replacementIds = new Set<string>();
+    for (const { targetRollId, replacement } of replacements) {
+      if (!poolIds.has(targetRollId) || targets.has(targetRollId)) {
+        issues.push({
+          code: "reroll-target",
+          field: "rolls",
+          rollId: targetRollId,
+          message:
+            "Reroll targets must be distinct IDs from the current shared pool.",
+        });
+      }
+      targets.add(targetRollId);
+      issues.push(...validateRoll(replacement, "rolls"));
+      if (poolIds.has(replacement.id) || replacementIds.has(replacement.id)) {
+        issues.push({
+          code: "roll-identity",
+          field: "rolls",
+          rollId: replacement.id,
+          message:
+            "Replacement IDs must be distinct and not reuse any current pool ID.",
+        });
+      }
+      replacementIds.add(replacement.id);
+    }
+    return issues;
+  }
+
+  private rerollRejection(
+    code: CharacteristicGenerationIssue["code"],
+    message: string,
+  ): CharacteristicGenerationCommandResult {
+    return {
+      ok: false,
+      issues: [
+        {
+          code,
+          field: code === "generation-method" ? "method" : "rolls",
+          message,
+        },
+      ],
+    };
+  }
+
+  private characteristicRerollSnapshot(): CharacteristicRerollSnapshot {
+    const available =
+      !this.disposed &&
+      this.generation.method === "rolled" &&
+      this.characteristicPoolInitialized &&
+      (!this.characteristicRerollBatchSpent ||
+        this.unlimitedCharacteristicRerolls);
+    let maxBatchSize = 0;
+    if (available) maxBatchSize = this.unlimitedCharacteristicRerolls ? 7 : 3;
+    return {
+      unlimited: this.unlimitedCharacteristicRerolls,
+      batchSpent: this.characteristicRerollBatchSpent,
+      initialized: this.characteristicPoolInitialized,
+      available,
+      maxBatchSize,
+    };
   }
 
   /** Replace the entire rolled draft map; an empty map clears it. */
@@ -352,6 +491,9 @@ export default class CharacterCreator {
     this.disposed = true;
     this.name = "";
     this.generation = emptyGenerationDrafts();
+    this.characteristicPoolInitialized = false;
+    this.characteristicRerollBatchSpent = false;
+    this.unlimitedCharacteristicRerolls = false;
     this.loads.clear();
     this.answers.clear();
     this.bonusSkills.clear();
@@ -387,6 +529,7 @@ export default class CharacterCreator {
     const issues = validateCharacteristicGeneration(answer);
     return {
       drafts: copyGenerationDrafts(this.generation),
+      rerolls: this.characteristicRerollSnapshot(),
       answer,
       issues,
       complete: issues.length === 0,

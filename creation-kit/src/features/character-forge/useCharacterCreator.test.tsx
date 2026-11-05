@@ -41,7 +41,7 @@ describe("useCharacterCreator command boundary", () => {
       "setCharacteristicGenerationMethod",
       "setFavoredCharacteristics",
       "setName",
-      "setUnlimitedRerolls",
+      "setUnlimitedCharacteristicRerolls",
       "submitCharacteristicRolls",
       "submitLuckRoll",
       "view",
@@ -49,9 +49,7 @@ describe("useCharacterCreator command boundary", () => {
     expect(Object.keys(result.current.view!).sort()).toEqual([
       "errorOpened",
       "preview",
-      "rerollBatchSpent",
       "snapshot",
-      "unlimitedRerolls",
     ]);
   });
 
@@ -327,7 +325,12 @@ describe("useCharacterCreator command boundary", () => {
     ).toEqual({ str: "missing" });
     expect(result.current.view!.preview.characteristics.str.rolled).toBe(0);
     act(() => result.current.setCharacteristicAssignments(assignments));
-    act(() => result.current.submitCharacteristicRolls(rolls));
+    act(() => {
+      expect(result.current.submitCharacteristicRolls(rolls)).toMatchObject({
+        ok: false,
+        issues: [{ code: "pool-initialized" }],
+      });
+    });
     expect(
       result.current.view!.snapshot.characteristicGeneration.drafts.rolled
         .assignments,

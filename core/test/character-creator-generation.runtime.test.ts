@@ -213,13 +213,13 @@ describe("CharacterCreator generation drafts", () => {
     });
     creator.setCharacteristicAllocations({ str: 1 });
     const active = creator.getSnapshot().characteristicGeneration.answer;
-    creator.submitCharacteristicRolls(rolls());
+    expect(creator.submitCharacteristicRolls(rolls()).ok).toBe(false);
     expect(creator.getSnapshot().characteristicGeneration.answer).toEqual(
       active,
     );
     expect(
       creator.getSnapshot().characteristicGeneration.drafts.rolled.assignments,
-    ).toEqual({});
+    ).toEqual(assignments());
     creator.setCharacteristicAssignments({ str: "roll-str" });
     expect(creator.getSnapshot().characteristicGeneration.answer).toEqual(
       active,
@@ -278,26 +278,23 @@ describe("CharacterCreator generation drafts", () => {
     ).toEqual({});
   });
 
-  it("replaces the roll pool and always clears assignments, including for reused IDs or invalid pools", () => {
+  it("rejects whole-pool replacement after initialization without changing assignments", () => {
     const { creator } = setup();
     populate(creator);
     const before = creator.getSnapshot().characteristicGeneration.drafts;
     const replacement = rolls();
     replacement[0]!.dice = [1, 1];
-    expect(creator.submitCharacteristicRolls(replacement).ok).toBe(true);
-    expect(creator.getSnapshot().characteristicGeneration.drafts).toEqual({
-      ...before,
-      rolled: { rolls: replacement, assignments: {} },
-    });
-    expect(creator.getSnapshot().characteristicGeneration.complete).toBe(false);
-    creator.setCharacteristicAssignments(assignments());
+    expect(creator.submitCharacteristicRolls(replacement).ok).toBe(false);
+    expect(creator.getSnapshot().characteristicGeneration.drafts).toEqual(
+      before,
+    );
     expect(creator.getSnapshot().characteristicGeneration.complete).toBe(true);
     expect(
       issues(creator.submitCharacteristicRolls([])).map((issue) => issue.code),
-    ).toEqual(["roll-count"]);
+    ).toEqual(["pool-initialized"]);
     expect(
       creator.getSnapshot().characteristicGeneration.drafts.rolled,
-    ).toEqual({ rolls: [], assignments: {} });
+    ).toEqual(before.rolled);
   });
 
   it("replaces only Luck without clearing shared dice, assignments, allocations or favored selections", () => {
@@ -449,7 +446,10 @@ describe("CharacterCreator generation drafts", () => {
     const listCount = catalog.listCalls.length;
     creator.setFavoredCharacteristics([Characteristic.End, Characteristic.Wp]);
     creator.setCharacteristicGenerationMethod("point-buy");
-    creator.submitCharacteristicRolls(rolls());
+    expect(creator.submitCharacteristicRolls(rolls())).toMatchObject({
+      ok: false,
+      issues: [{ code: "pool-initialized" }],
+    });
     creator.setCharacteristicAssignments(assignments());
     creator.setCharacteristicAllocations(allocations());
     creator.submitLuckRoll({ id: "during-load", dice: [2, 3] });
@@ -641,9 +641,14 @@ describe("CharacterCreator generation drafts", () => {
     expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(3);
     creator.setCharacteristicAssignments(assignments());
     expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(10);
-    creator.submitCharacteristicRolls(rolls());
+    creator.rerollCharacteristics([
+      {
+        targetRollId: "roll-str",
+        replacement: { id: "new-str", dice: [5, 5] },
+      },
+    ]);
     expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(0);
-    creator.setCharacteristicAssignments(assignments());
+    creator.setCharacteristicAssignments({ ...assignments(), str: "new-str" });
     expect(creator.getSnapshot().canFinish).toBe(true);
   });
 
@@ -657,7 +662,7 @@ describe("CharacterCreator generation drafts", () => {
     expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(0);
     creator.setCharacteristicAllocations(allocations());
     expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(20);
-    creator.submitCharacteristicRolls([]);
+    expect(creator.submitCharacteristicRolls([]).ok).toBe(false);
     expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(20);
     creator.setCharacteristicAllocations({ ...allocations(), str: 19 });
     for (const key of Object.values(Characteristic))
@@ -668,16 +673,18 @@ describe("CharacterCreator generation drafts", () => {
     expect(creator.getCharacterPreview().characteristics.lck.rolled).toBe(9);
     creator.setCharacteristicAllocations(allocations());
     creator.setCharacteristicGenerationMethod("rolled");
-    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(0);
+    expect(creator.getCharacterPreview().characteristics.str.rolled).toBe(10);
   });
 
   it("rejects invalid individual dice atomically even with otherwise complete assignments", async () => {
     const { creator } = setup();
     await creator.chooseRace("argonian");
-    populate(creator);
     const invalid = rolls();
     invalid[6]!.dice = [Infinity, 5];
     creator.submitCharacteristicRolls(invalid);
+    creator.setFavoredCharacteristics([Characteristic.Str, Characteristic.Int]);
+    creator.submitLuckRoll({ id: "luck", dice: [4, 5] });
+    creator.setCharacteristicGenerationMethod("rolled");
     creator.setCharacteristicAssignments(assignments());
     for (const key of Object.values(Characteristic))
       expect(creator.getCharacterPreview().characteristics[key].rolled).toBe(0);
@@ -830,9 +837,19 @@ describe("CharacterCreator generation drafts", () => {
     const preview = creator.getCharacterPreview();
     const commands = [
       () => creator.setCharacteristicGenerationMethod("point-buy"),
-      () => creator.submitCharacteristicRolls(rolls()),
       () => creator.setCharacteristicGenerationMethod("rolled"),
-      () => creator.setCharacteristicAssignments(assignments()),
+      () =>
+        creator.rerollCharacteristics([
+          {
+            targetRollId: "roll-str",
+            replacement: { id: "new-str", dice: [5, 5] },
+          },
+        ]),
+      () =>
+        creator.setCharacteristicAssignments({
+          ...assignments(),
+          str: "new-str",
+        }),
     ];
     for (const command of commands) {
       expect(command().ok).toBe(true);

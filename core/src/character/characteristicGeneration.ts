@@ -53,7 +53,7 @@ export function validateCharacteristicGeneration(
   return issues;
 }
 
-function validateRoll(
+export function validateRoll(
   roll: CharacteristicRoll | undefined,
   field: "luck" | "rolls",
 ): CharacteristicGenerationIssue[] {

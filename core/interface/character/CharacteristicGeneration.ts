@@ -5,7 +5,7 @@ import type {
 import type { WizardIssue } from "../common/Wizard";
 import type { PcCharacteristicData } from "./Characteristic";
 
-/** The host supplies faces; replacing a submission is sufficient for a reroll. */
+/** The host supplies identified dice results; Core never acquires dice. */
 export interface CharacteristicRoll {
   id: string;
   dice: readonly number[];
@@ -37,9 +37,25 @@ export interface CharacteristicGenerationDrafts {
 
 export interface CharacteristicGenerationSnapshot {
   drafts: CharacteristicGenerationDrafts;
+  rerolls: CharacteristicRerollSnapshot;
   answer: CharacteristicGenerationAnswer;
   issues: readonly CharacteristicGenerationIssue[];
   complete: boolean;
+}
+
+export interface CharacteristicRerollReplacement {
+  targetRollId: string;
+  replacement: CharacteristicRoll;
+}
+
+/** Session policy only; never part of a generation answer or calculated data. */
+export interface CharacteristicRerollSnapshot {
+  unlimited: boolean;
+  batchSpent: boolean;
+  initialized: boolean;
+  available: boolean;
+  /** Zero when unavailable; otherwise three normally or seven with unlimited enabled. */
+  maxBatchSize: number;
 }
 
 export type CharacteristicGenerationField =
@@ -70,6 +86,11 @@ export interface CharacteristicGenerationIssue extends WizardIssue {
   characteristic?: Characteristic;
   code:
     | "disposed"
+    | "pool-initialized"
+    | "pool-uninitialized"
+    | "reroll-unavailable"
+    | "reroll-count"
+    | "reroll-target"
     | "generation-method"
     | "favored-count"
     | "duplicate-favored"

@@ -59,7 +59,7 @@ function poolRollButton(name: "Roll" | "Reroll" = "Roll") {
   return within(
     screen.getByRole("group", { name: "Rolled characteristics" }),
   ).getByRole("button", {
-    name: name === "Reroll" ? /^Reroll(?: \(\d of 3\)| Expended)?$/ : name,
+    name: name === "Reroll" ? /^Reroll(?: \(\d of 3\)| Used)?$/ : name,
   });
 }
 
@@ -127,7 +127,7 @@ describe("Character Forge generation inputs", () => {
     await user.click(poolRollButton("Reroll"));
     expect(random).toHaveBeenCalledTimes(20);
     expect(poolRollButton("Reroll")).toHaveProperty("disabled", true);
-    expect(poolRollButton("Reroll").textContent).toBe("Reroll Expended");
+    expect(poolRollButton("Reroll").textContent).toBe("Reroll Used");
   });
 
   it("allows repeated unlimited seven-result batches and retains spent policy through modal dismissal and method/navigation changes", async () => {
@@ -177,7 +177,7 @@ describe("Character Forge generation inputs", () => {
       rolls,
     );
     expect(random).toHaveBeenCalledTimes(42);
-    expect(poolRollButton("Reroll").textContent).toBe("Reroll Expended");
+    expect(poolRollButton("Reroll").textContent).toBe("Reroll Used");
     await user.click(unlimited());
     expect(poolRollButton("Reroll").textContent).toBe("Reroll");
     await toggleReroll(user, 0);

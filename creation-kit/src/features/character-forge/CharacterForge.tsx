@@ -63,7 +63,7 @@ function ForgeSession({
     setFavoredCharacteristics,
     setCharacteristicGenerationMethod,
     submitCharacteristicRolls,
-    setUnlimitedRerolls,
+    setUnlimitedCharacteristicRerolls,
     rerollCharacteristics,
     setCharacteristicAssignments,
     setCharacteristicAllocations,
@@ -157,9 +157,9 @@ function ForgeSession({
                   generation={view.snapshot.characteristicGeneration}
                   rollDice={rollDice}
                   submitCharacteristicRolls={submitCharacteristicRolls}
-                  unlimitedRerolls={view.unlimitedRerolls}
-                  rerollBatchSpent={view.rerollBatchSpent}
-                  setUnlimitedRerolls={setUnlimitedRerolls}
+                  setUnlimitedCharacteristicRerolls={
+                    setUnlimitedCharacteristicRerolls
+                  }
                   rerollCharacteristics={rerollCharacteristics}
                   setCharacteristicAssignments={setCharacteristicAssignments}
                   setCharacteristicAllocations={setCharacteristicAllocations}

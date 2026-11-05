@@ -15,8 +15,9 @@ For host setup and command examples, use the
   are valid, duplicate pool IDs are not.
 - `CharacterCreator` stores common favored/Luck answers and separate rolled and
   point-buy drafts. It derives the active answer rather than maintaining a second
-  mutable copy. Commands replace their submitted fields, retain invalid edits, and
-  report only field-relevant issues from the same pure validator.
+  mutable copy. Draft commands replace their submitted fields, retain invalid edits,
+  and report field-relevant issues from the same pure validator. Initial pool drafts
+  are editable only until the first valid seven-result pool is accepted.
 - Snapshot construction independently detaches both drafts and the active answer,
   including nested dice. Validation produces fresh issue objects. Disposal clears
   drafts and rejects later commands before mutation; race operations never reset
@@ -50,11 +51,33 @@ characteristics blocks finish but does not automatically navigate backward.
 
 ## Host integration and extension seams
 
-The host owns dice acquisition, roll IDs, and any reroll policy. Core does no
-randomness or GM permission checks. A reroll replaces the complete shared pool and
-clears assignments, even when IDs are reused; hosts must explicitly reassign it.
-Replacing Luck has no shared-pool side effects. Do not turn map replacements into
-merges or make inactive-draft edits switch methods.
+The host owns dice acquisition and roll IDs. Core owns reroll policy and session
+state, without randomness or GM permission checks. `submitCharacteristicRolls`
+accepts initial drafts until a valid pool is committed, then rejects all later
+whole-pool submissions. `rerollCharacteristics` accepts explicit
+`{ targetRollId, replacement }` pairs. It validates the entire batch before mutation:
+live session, rolled method, initialized pool, policy allowance, batch size, unique
+known targets, valid faces, and distinct replacement IDs absent from the current
+pool. It then replaces selected results in place, removes only their assignments,
+and spends the batch. There is no submit/restore path. Assigned rolls remain eligible.
+
+Normal mode permits one batch of one to three, forfeiting unused slots. Unlimited
+defaults off and permits repeated batches up to seven; every successful batch still
+spends the normal allowance. Disabling unlimited never restores it. Rejected commands
+return structured issues but do not change drafts, preview, allowance, or persistent
+validation. Luck remains independent and cannot be a reroll target.
+
+The creator stores only initialization, unlimited status, and spent status, outside
+generation answers. Its detached `characteristicGeneration.rerolls` snapshot derives
+`available` and `maxBatchSize` (zero when unavailable) from those facts, active method,
+and disposal. Policy survives method, race, and navigation changes. Disposal clears
+it and rejects later commands; each new creator starts fresh. Pure answer validation
+and calculation remain independent of this workflow policy. Do not turn map
+replacements into merges or make inactive-draft edits switch methods.
+
+Creation Kit delegates selective rerolls and unlimited options to this contract.
+It retains only dice acquisition and transient selection/feedback presentation; see
+the [Forge reroll integration notes](character-forge.md#browser-dice-and-roll-assignments).
 
 ### Creation Kit integration
 
@@ -63,68 +86,51 @@ The session and primary sheet stay outside the dismissible creation modal;
 Back/Next controls live inside the modal above the individual editors' lifetimes.
 `useCharacterCreator` exposes `setFavoredCharacteristics`,
 `setCharacteristicGenerationMethod`, `submitCharacteristicRolls`,
-`setCharacteristicAssignments`, `setCharacteristicAllocations`, and `submitLuckRoll`.
+`setCharacteristicAssignments`, `setCharacteristicAllocations`, `submitLuckRoll`,
+`setUnlimitedCharacteristicRerolls`, and the dice-acquiring `rerollCharacteristics` adapter.
 They use public Core types, refresh detached snapshots and previews, and are bound
 to the originating session. Catalog replacement or route exit disposes that session;
 retained callbacks and obsolete content completions cannot affect its replacement.
 
 Browser randomness lives in the feature-local `createCharacteristicRoller(random)`
-seam, injectable through Forge. Pool and Luck controls say “Roll” or “Reroll” and
-acquire dice only on activation. A pool reroll submits seven identified rolls and
-clears assignments through Core; Luck replacement remains independent.
+seam, injectable through Forge. Initial generation submits seven identified rolls;
+selective rerolls acquire one replacement per selected target and submit one atomic
+Core batch. Luck replacement remains independent. The host adapter returns Core's
+structured result; rejection leaves accepted answers and the editor's selection intact.
 
-Roll tiles show totals and assigned characteristic captions, retaining IDs
-internally and distinguishing equal totals with ordinal accessible names.
-Tooltips expose die math on hover/focus, with touch
-events enabled. An unassigned tile opens a tile-anchored, label-only menu of
-available characteristics; an assigned tile directly unassigns on click, tap, or
-keyboard activation. Moving therefore requires unassigning before choosing a new
-target. The shared `AssignmentMenu` knows only its trigger, options, and selection
-callback. Luck tile activation instead toggles an inline breakdown. Pool menus do
-not contain dice details or validation. See [Character Sheet engineering notes](character-forge.md)
-for interaction ownership and focus handling.
+The browser selects rolled generation when creating each session. Its first explicit
+point-buy selection supplies seven zeros only if the stored allocation map is empty;
+a private per-session flag preserves prepopulated drafts and later partial/cleared
+maps. These are host defaults submitted through commands, not Core defaults or rules.
 
-The browser does not choose a method automatically. Its first explicit point-buy
-selection supplies seven zeros only if the stored allocation map is empty; a
-private per-session flag preserves prepopulated drafts and later partial/cleared
-maps. This is a host default via commands, not a Core default. Compact point-buy
-cards use linked labels and inline icon-only minus/input/plus controls with 44px
-button targets. UI entry cannot submit negative values; typed minus signs are
-ignored and negative numeric pastes normalize to zero. Direct values above 20 or
-fractions remain invalid Core drafts with inline feedback. Clearing a field removes
-its key. Budget display and stepper guards are presentation conveniences, not
-substitutes for Core validation. Favored and racial choices share the controlled
-`LimitedCheckboxGroup`, without inventing another domain choice object.
+Pool tiles have separate informational totals and integrated action-menu triggers,
+whether assigned or not. The menu toggles reroll selection, offers explicit unassignment,
+and can move a roll directly to an unoccupied characteristic. Occupied destinations
+must first be unassigned. Selection is presentation-only until Core accepts the batch.
+Detailed captions, accessible names, limits, button labels, keyboard/touch behavior,
+and focus handling belong in the
+[Forge dice and assignment notes](character-forge.md#browser-dice-and-roll-assignments).
 
-Forge filters routine incomplete-state messages by structured issue targets/codes,
-without changing Core issues or guards. Missing method/favored-count, routine
-assignment, empty-pool count, absent-Luck, and routine allocation/budget feedback
-are restrained; actual supplied invalid dice and numeric edits retain actionable
-feedback. Invalid groups still lose their contributions independently. Pending or
-failed race changes suppress all generation effects except Luck's baseline; cancel
-restores them, and a successful change reapplies retained drafts to new baselines.
-
-The preview always shows all eight characteristic columns, with Total and Bonus
-body rows. Core's `calculateCharacteristicScore` computes the unmodified
-creation total (`baseline + rolled`) and its tens-digit bonus; neither favored
-flags nor modifiers change those values. Generated is `rolled` for both methods.
-Mantine tooltips only on Total score cells disclose the baseline, generated
-contribution, and total through hover, keyboard focus, and touch. Those cells carry
-the persistent calculation description and are the table's only cell tab stops;
-column headings, favored stars, and Bonus cells do not trigger tooltips.
-Favored characteristics have a read-only star beside their column heading, labeled
-“Favored” for assistive technology; non-favored headings have no star.
-Luck's default baseline remains visible even before race selection. The
-table scrolls horizontally on narrow screens. No explanatory totals prose is
-required in the product UI.
+Point-buy controls and restrained incomplete-state feedback are presentation conveniences,
+not substitutes for Core validation. See [point-buy controls](character-forge.md#point-buy-controls)
+and [feedback ownership](character-forge.md#asynchronous-behavior-and-feedback).
+The primary sheet uses Core's `calculateCharacteristicScore` for the unmodified
+`baseline + rolled` total and tens-digit bonus; favored flags and modifiers do not
+change those values. See [sheet presentation](character-forge.md#primary-sheet-and-navigation)
+for table semantics and calculation disclosure.
 
 Only race and characteristic generation are implemented, not full character
 creation. Forge has no Finish action and no Foundry runtime integration; see
 [Forge limitations](character-forge.md#limitations-and-extension-boundaries).
 
 Core tests separate numeric/identity rules, creator retention/isolation and
-projection, and package-entry-point host flows. The public host test compares
-submission issues, full active validation, step completeness, strict calculation,
-and finished data while correcting invalid submissions. Consumer tests exercise
-both registered steps and the default Luck baseline, independently valid preview
+projection, and package-entry-point host flows. The public host test imports only
+`@wayshrine/core` and the test runner, runs in Node with a local content catalog and
+explicit dice, and compares submission issues, full active validation, step completeness, strict calculation,
+and finished data while correcting invalid submissions. Its reroll flow covers
+selective final replacements, rejected repeat and whole-pool submissions, unlimited
+batches, switch-off, and snapshot detachment. Exact answer/contribution/statistic
+shapes and standalone validation demonstrate that workflow policy does not enter
+final answers, calculated contributions, or finished characteristic data.
+Consumer tests exercise both registered steps and the default Luck baseline, independently valid preview
 groups, draft retention, race-change suppression/restoration, and session isolation.

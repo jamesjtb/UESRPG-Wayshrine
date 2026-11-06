@@ -14,7 +14,6 @@ import type {
 } from "@wayshrine/core";
 import { GenerationIssues } from "./GenerationIssues";
 import { RolledCharacteristics } from "./RolledCharacteristics";
-import { PointBuyCharacteristics } from "./PointBuyCharacteristics";
 import { LuckRoll } from "./LuckRoll";
 import type { CharacteristicRoller } from "./dice";
 import { CharacteristicDraftPreview } from "./CharacteristicDraftPreview";
@@ -98,6 +97,19 @@ export function CharacteristicsStep({
     if (luck) submitLuckRoll(luck);
   }
 
+  const pointBuy = generation.drafts.method === "point-buy";
+  const initialLuckControl = (
+    <LuckRoll
+      roll={generation.drafts.luck}
+      issues={generation.issues}
+      rollDice={rollDice}
+      submitLuckRoll={submitLuckRoll}
+      onDiceAcquisitionError={onDiceAcquisitionError}
+      showInitialAction={pointBuy || generation.rerolls.initialized}
+      inTable={pointBuy}
+    />
+  );
+
   const preview = (
     <CharacteristicDraftPreview
       characteristics={characteristics}
@@ -105,6 +117,8 @@ export function CharacteristicsStep({
       generation={generation}
       setFavoredCharacteristics={setFavoredCharacteristics}
       setCharacteristicAssignments={setCharacteristicAssignments}
+      setCharacteristicAllocations={setCharacteristicAllocations}
+      initialLuckControl={pointBuy ? initialLuckControl : undefined}
       rerollLuck={rerollLuck}
     />
   );
@@ -136,24 +150,7 @@ export function CharacteristicsStep({
         </Box>
       </Box>
       <GenerationIssues issues={generation.issues} field="favored" />
-      {generation.drafts.method === "point-buy" && (
-        <PointBuyCharacteristics
-          allocations={generation.drafts.pointBuy.allocations}
-          issues={generation.issues}
-          setCharacteristicAllocations={setCharacteristicAllocations}
-        />
-      )}
-      <LuckRoll
-        roll={generation.drafts.luck}
-        issues={generation.issues}
-        rollDice={rollDice}
-        submitLuckRoll={submitLuckRoll}
-        onDiceAcquisitionError={onDiceAcquisitionError}
-        showInitialAction={
-          generation.drafts.method === "point-buy" ||
-          generation.rerolls.initialized
-        }
-      />
+      {!pointBuy && initialLuckControl}
       {commandIssues.length > 0 && (
         <Stack gap="xs" role="group" aria-label="Luck reroll feedback">
           {commandIssues.map((issue, index) => (
@@ -181,16 +178,16 @@ export function CharacteristicsStep({
           <Accordion.Panel>
             <Stack>
               <Switch
+                label="Use Optional Point Buy Rules"
+                checked={generation.drafts.method === "point-buy"}
+                onChange={(event) => changeMethod(event.currentTarget.checked)}
+              />
+              <Switch
                 label="Unlimited Rerolls"
                 checked={generation.rerolls.unlimited}
                 onChange={(event) =>
                   changeUnlimited(event.currentTarget.checked)
                 }
-              />
-              <Switch
-                label="Use Optional Point Buy Rules"
-                checked={generation.drafts.method === "point-buy"}
-                onChange={(event) => changeMethod(event.currentTarget.checked)}
               />
             </Stack>
           </Accordion.Panel>

@@ -1,6 +1,6 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { ClipboardEvent } from "react";
-import { ActionIcon, Box, Input, NumberInput, Stack } from "@mantine/core";
+import { ActionIcon, Box, NumberInput, Stack } from "@mantine/core";
 import { IconMinus, IconPlus } from "@tabler/icons-react";
 import type {
   Characteristic,
@@ -8,7 +8,7 @@ import type {
 } from "@wayshrine/core";
 import { characteristicLabels } from "./characteristicLabels";
 import { GenerationIssues } from "./GenerationIssues";
-import classes from "./PointBuyCharacteristics.module.css";
+import classes from "./AllocationInput.module.css";
 
 interface Props {
   characteristic: Characteristic;
@@ -18,7 +18,7 @@ interface Props {
   onChange: (value: number | undefined) => void;
 }
 
-export function AllocationCard({
+export function AllocationInput({
   characteristic,
   value,
   remaining,
@@ -26,7 +26,6 @@ export function AllocationCard({
   onChange,
 }: Props) {
   const label = characteristicLabels[characteristic];
-  const inputId = useId();
   // Keep lexical edits such as "1." while Core owns the numeric answer.
   const [edit, setEdit] = useState<{
     value: number | undefined;
@@ -75,16 +74,13 @@ export function AllocationCard({
   return (
     <Stack
       gap={2}
-      className={classes.card}
+      className={classes.allocation}
       role="group"
       aria-label={`${label} allocation`}
     >
-      <Input.Label htmlFor={inputId} className={classes.label}>
-        {label}
-      </Input.Label>
       <Box className={classes.controls}>
         <ActionIcon
-          size={32}
+          size={44}
           variant="transparent"
           className={classes.stepper}
           aria-label={`Decrease ${label} points`}
@@ -94,7 +90,6 @@ export function AllocationCard({
           <IconMinus size={16} aria-hidden="true" />
         </ActionIcon>
         <NumberInput
-          id={inputId}
           aria-label={`${label} points`}
           value={input}
           onChange={changeInput}
@@ -108,7 +103,7 @@ export function AllocationCard({
           classNames={{ input: classes.value }}
         />
         <ActionIcon
-          size={32}
+          size={44}
           variant="transparent"
           className={classes.stepper}
           aria-label={`Increase ${label} points`}

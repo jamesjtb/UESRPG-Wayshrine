@@ -40,7 +40,7 @@ it("starts Options collapsed and retains expansion and Core options through gene
   const panel = screen.getByRole("region", { name: "Options" });
   expect(within(panel).getAllByRole("switch")).toHaveLength(2);
   expect(panel.textContent).toBe(
-    "Unlimited RerollsUse Optional Point Buy Rules",
+    "Use Optional Point Buy RulesUnlimited Rerolls",
   );
   const unlimited = screen.getByRole("switch", { name: "Unlimited Rerolls" });
   const method = screen.getByRole("switch", {

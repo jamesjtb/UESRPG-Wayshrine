@@ -441,8 +441,8 @@ describe("Character Forge generation inputs", () => {
     });
     const beforeLuck = snapshot().characteristicGeneration.drafts;
     expect(
-      screen.queryByRole("button", { name: "Rolled result for Luck" }),
-    ).toBeNull();
+      screen.getByRole("button", { name: "Rolled result for Luck" }),
+    ).toHaveProperty("disabled", true);
     await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
     await user.click(
       screen.getByRole("button", { name: "Rolled result for Luck" }),
@@ -725,8 +725,8 @@ describe("Character Forge generation inputs", () => {
     ).toEqual({ str: "roll-1", end: "roll-2" });
     expect(enduranceCell.getAttribute("aria-expanded")).toBe("false");
     expect(
-      screen.queryByRole("button", { name: "Rolled result for Luck" }),
-    ).toBeNull();
+      screen.getByRole("button", { name: "Rolled result for Luck" }),
+    ).toHaveProperty("disabled", true);
     expect(random).toHaveBeenCalledTimes(16);
     expect(console.error).not.toHaveBeenCalled();
   });
@@ -801,13 +801,25 @@ describe("Character Forge generation inputs", () => {
       snapshot().characteristicGeneration.drafts.pointBuy.allocations,
     ).toEqual(zeros);
     expect(allocations).toHaveBeenCalledExactlyOnceWith(zeros);
+    const table = within(
+      screen.getByRole("table", { name: "Characteristic draft preview" }),
+    );
+    expect(table.getByRole("columnheader", { name: "Points" })).toBeTruthy();
+    expect(table.queryByRole("columnheader", { name: "Rolled" })).toBeNull();
+    expect(table.getAllByRole("textbox", { name: / points$/ })).toHaveLength(7);
+    expect(table.queryByRole("textbox", { name: "Luck points" })).toBeNull();
+    expect(
+      screen.queryByRole("group", { name: "Point-buy characteristics" }),
+    ).toBeNull();
     for (const label of Object.values(characteristicLabels)) {
-      const card = within(
-        screen.getByRole("group", { name: `${label} allocation` }),
-      );
-      expect(card.getByLabelText(label)).toBe(
-        card.getByRole("textbox", { name: `${label} points` }),
-      );
+      const row = within(
+        screen.getByRole("table", { name: "Characteristic draft preview" }),
+      )
+        .getByRole("rowheader", { name: label })
+        .closest("tr")!;
+      expect(
+        within(row).getByRole("textbox", { name: `${label} points` }),
+      ).toHaveProperty("value", "0");
       expect(
         screen.getByRole("button", { name: `Decrease ${label} points` }),
       ).toHaveProperty("disabled", true);
@@ -941,6 +953,11 @@ describe("Character Forge generation inputs", () => {
         /Allocate points to|Enter integers from|Spend exactly 80 points/,
       ),
     ).toBeNull();
+    const lexicalInput = await enterPoints(user, "Strength", "1.");
+    expect(lexicalInput).toHaveProperty("value", "1.");
+    expect(
+      snapshot().characteristicGeneration.drafts.pointBuy.allocations.str,
+    ).toBe(1);
     const amounts = ["20", "20", "20", "10", "10", "0", "0"];
     const labels = Object.values(characteristicLabels);
     for (let index = 0; index < labels.length; index += 1) {

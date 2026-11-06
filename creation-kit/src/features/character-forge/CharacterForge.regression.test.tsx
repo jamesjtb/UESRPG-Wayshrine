@@ -39,9 +39,18 @@ it.each(["pool", "pool-luck", "point-buy"])(
     }
     const label =
       scenario === "point-buy" ? "Roll" : "Make Characteristic Roll";
+    function initialAction() {
+      if (scenario !== "point-buy")
+        return screen.getByRole("button", { name: label });
+      const table = within(
+        screen.getByRole("table", { name: "Characteristic draft preview" }),
+      );
+      const row = table.getByRole("rowheader", { name: "Luck" }).closest("tr")!;
+      return within(row).getByRole("button", { name: "Roll" });
+    }
     const before =
       snapshots.mock.results.at(-1)!.value.characteristicGeneration;
-    await user.click(screen.getByRole("button", { name: label }));
+    await user.click(initialAction());
     const error = await screen.findByRole("dialog", {
       name: "Something went wrong!",
     });
@@ -53,7 +62,7 @@ it.each(["pool", "pool-luck", "point-buy"])(
       snapshots.mock.results.at(-1)!.value.characteristicGeneration,
     ).toEqual(before);
     await user.click(within(error).getByRole("button", { name: "OK" }));
-    await user.click(screen.getByRole("button", { name: label }));
+    await user.click(initialAction());
     const after = snapshots.mock.results.at(-1)!.value.characteristicGeneration;
     expect(after.drafts.luck?.dice).toEqual([5, 5]);
     expect(after.drafts.rolled.rolls).toHaveLength(

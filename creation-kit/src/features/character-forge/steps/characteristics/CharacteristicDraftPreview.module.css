@@ -25,6 +25,46 @@
   white-space: nowrap;
 }
 
+.initialLuck {
+  width: min(100%, 128px);
+  margin-inline: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+
+  & button {
+    min-height: 44px;
+  }
+}
+
+.pointBuy {
+  & th:nth-child(1) {
+    width: 16%;
+  }
+
+  & th:nth-child(2),
+  & th:nth-child(4) {
+    width: 12%;
+  }
+
+  & th:nth-child(3) {
+    width: 44%;
+  }
+
+  & th:nth-child(5) {
+    width: 16%;
+  }
+}
+
+@container characteristic-draft-preview (width >= 26rem) {
+  .pointBuy th:nth-child(1) {
+    width: 26%;
+  }
+
+  .pointBuy th:nth-child(3) {
+    width: 34%;
+  }
+}
+
 .contribution {
   display: inline-flex;
   align-items: center;
@@ -42,8 +82,13 @@
   flex-shrink: 0;
 }
 
-.contribution:hover {
+.contribution:hover:not(:disabled) {
   background: var(--mantine-color-default-hover);
+}
+
+.contribution:disabled {
+  color: var(--mantine-color-text);
+  cursor: default;
 }
 
 .favored {

@@ -1,4 +1,5 @@
-import { ActionIcon, Box, Table } from "@mantine/core";
+import type { ReactNode } from "react";
+import { ActionIcon, Box, Table, Text, UnstyledButton } from "@mantine/core";
 import { IconStar, IconStarFilled } from "@tabler/icons-react";
 import {
   calculateCharacteristicScore,
@@ -6,6 +7,7 @@ import {
 } from "@wayshrine/core";
 import type {
   Characteristic,
+  CharacteristicAllocations,
   CharacteristicAssignments,
   CharacteristicGenerationSnapshot,
   PcCharacteristics,
@@ -14,6 +16,8 @@ import { characteristicLabels } from "./characteristicLabels";
 import classes from "./CharacteristicDraftPreview.module.css";
 import { RolledContributionMenu } from "./RolledContributionMenu";
 import { LuckContributionMenu } from "./LuckContributionMenu";
+import { AllocationInput } from "./AllocationInput";
+import { rollBreakdown } from "./dice";
 
 const labels = { ...characteristicLabels, lck: "Luck" };
 const shortLabels: Record<PcCharacteristic, string> = {
@@ -64,6 +68,8 @@ export function CharacteristicDraftPreview({
   generation,
   setFavoredCharacteristics,
   setCharacteristicAssignments,
+  setCharacteristicAllocations,
+  initialLuckControl,
   rerollLuck,
 }: {
   characteristics: PcCharacteristics;
@@ -73,9 +79,25 @@ export function CharacteristicDraftPreview({
   setCharacteristicAssignments: (
     assignments: CharacteristicAssignments,
   ) => void;
+  setCharacteristicAllocations: (
+    allocations: CharacteristicAllocations,
+  ) => void;
   rerollLuck?: () => void;
+  initialLuckControl?: ReactNode;
 }) {
   const favored = generation.drafts.favored;
+  const pointBuy = generation.drafts.method === "point-buy";
+  const allocations = generation.drafts.pointBuy.allocations;
+  let spent = 0;
+  for (const value of Object.values(allocations)) spent += value ?? 0;
+  const remaining = 80 - spent;
+
+  function changeAllocation(key: Characteristic, value: number | undefined) {
+    const next = { ...allocations };
+    if (value === undefined) delete next[key];
+    else next[key] = value;
+    setCharacteristicAllocations(next);
+  }
   const rows = Object.values(PcCharacteristic).map((key) => {
     const generated = raceUsable
       ? draftContribution(key, generation)
@@ -123,9 +145,36 @@ export function CharacteristicDraftPreview({
       const roll = generation.drafts.luck;
       const valid =
         roll && !generation.issues.some((issue) => issue.field === "luck");
-      if (!valid || !generation.rerolls.unlimited || !rerollLuck) return value;
+      if (pointBuy && !valid && initialLuckControl) {
+        return <Box className={classes.initialLuck}>{initialLuckControl}</Box>;
+      }
+      if (!valid) return value;
+      if (!generation.rerolls.unlimited || !rerollLuck) {
+        return (
+          <UnstyledButton
+            className={classes.contribution}
+            disabled
+            aria-label="Rolled result for Luck"
+            aria-description={rollBreakdown(roll)}
+          >
+            <span>{value}</span>
+          </UnstyledButton>
+        );
+      }
       return (
         <LuckContributionMenu value={value} roll={roll} onReroll={rerollLuck} />
+      );
+    }
+    if (pointBuy) {
+      const amount = allocations[key];
+      return (
+        <AllocationInput
+          characteristic={key}
+          value={amount}
+          remaining={remaining}
+          issues={amount === undefined ? [] : generation.issues}
+          onChange={(value) => changeAllocation(key, value)}
+        />
       );
     }
     if (generation.drafts.method !== "rolled") return value;
@@ -144,6 +193,11 @@ export function CharacteristicDraftPreview({
 
   return (
     <Box className={classes.preview}>
+      {pointBuy && (
+        <Text fw={600} mb="sm">
+          Points remaining: {Number.isFinite(remaining) ? remaining : "—"}
+        </Text>
+      )}
       <Table
         aria-label="Characteristic draft preview"
         layout="fixed"
@@ -154,6 +208,7 @@ export function CharacteristicDraftPreview({
         verticalSpacing={4}
         fz="sm"
         classNames={{ th: classes.cell, td: classes.cell }}
+        className={pointBuy ? classes.pointBuy : undefined}
         style={{ fontVariantNumeric: "tabular-nums" }}
       >
         <Table.Thead>
@@ -178,7 +233,7 @@ export function CharacteristicDraftPreview({
               <abbr title="Baseline">Base</abbr>
             </Table.Th>
             <Table.Th scope="col" ta="center">
-              Rolled
+              {pointBuy ? "Points" : "Rolled"}
             </Table.Th>
             <Table.Th scope="col" ta="center">
               Total

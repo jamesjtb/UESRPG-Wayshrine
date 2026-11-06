@@ -151,7 +151,7 @@ does not make generation complete.
 ### Browser dice and roll assignments
 
 `steps/characteristics/CharacteristicDraftPreview.tsx` appears beside rolled controls
-and above point-buy controls. Its eight characteristic rows show Baseline, Rolled, Total,
+and contains point-buy editing. Its eight characteristic rows show Baseline, Rolled (Points for point buy), Total,
 and Favored columns, without a visible caption or Bonus column. The hook's existing detached Core preview supplies racial baselines
 directly, including Luck's 30; baselines are never inferred by subtracting generated
 values from scores. The preview's usable race also controls suppression during pending
@@ -199,7 +199,7 @@ Menus use viewport-adjusted Mantine positioning, scrolling, 44px items, keyboard
 navigation and focus return to the cell. Escape closes an open cell menu without
 closing the wizard. Pool replacement remounts cell menus so obsolete options do
 not survive a reroll. Luck is never assignable; its independent table action is
-described below. Point-buy allocation cells and favored-star behavior are unchanged.
+described below. Favored-star behavior is independent of generation method.
 Assigning or clearing a result updates
 the partial draft arithmetic immediately without changing Core's atomic main-sheet
 projection.
@@ -213,8 +213,9 @@ hidden from assistive technology. The wide first column receives 26% of table wi
 to fit its full label; narrow columns retain equal widths. This depends on the
 preview's actual available width, including the 65% rolled-panel split, not the
 viewport. Baseline's visible Base label and the Rolled/Total headings do not change.
-Rolled names the generation
-contribution in both methods, including point-buy allocations. The five-column table uses Mantine's
+Points names the generation contribution in point buy, including Luck's independent roll.
+Point buy gives its editable contribution column extra width, retaining compact first/last headings
+below the same container threshold. The five-column table uses Mantine's
 `layout="fixed"` at full available width with no minimum-width scroll container.
 Abbreviations and numeric cells do not wrap or clip. Full characteristic/statistic
 names remain in accessible labels and abbreviation titles; star buttons retain full
@@ -310,38 +311,23 @@ available editor width, the panel stacks below the table with a horizontal borde
 There is still only one table and one panel; CSS, not JavaScript viewport inference,
 controls their layout. The result grid remains two columns on phones.
 
-Point buy retains its own named inline-size container and its seven-card row
-or centered-stack layout. Wide rows retain growing, non-shrinking items and 6px gaps.
-Point buy sets `--characteristic-tile-min-width: 8rem` for its allocation cards.
-Card contents fill their outer wrapper.
-Wide rows have no maximum-width caps.
-
-The point-buy complete-row threshold includes seven tile minima and six 6px gaps:
-`56rem + 36px` (932px with a 16px root font).
-The row remains horizontal exactly at
-its threshold and switches entirely to a stack below it.
-The existing modal width is unchanged; point buy therefore stacks even on a wide
-viewport unless its own container can supply the complete 932px row.
-
-Point-buy stacks use 12px gaps and centered outer wrappers with `width: min(100%, 220px)`.
-This narrows the actual point-buy cards rather than merely padding
-a full-width row. The row itself has no side padding; editor container widths,
-thresholds and uncapped wide layouts remain independent of the stacked tile cap.
-
 Neither result panel contains a Luck tile or Luck divider. Luck appears in the
 draft table only. With an existing valid Luck roll and Core's unlimited flag on,
-`LuckContributionMenu.tsx` makes its Rolled cell a menu trigger in either method.
+`LuckContributionMenu.tsx` makes its contribution cell a menu trigger in either method.
 Its single “Reroll” action immediately calls the existing host adapter as
 `rerollCharacteristics([], rollDice, true)`. It never selects Luck, joins an ordinary
 batch, changes ordinary selected IDs or spends the normal batch allowance. Luck-only
 rerolls also work in point buy without an initialized shared pool. With unlimited
-off (or missing/invalid Luck), the table cell is informational, with no reroll menu.
+off, accepted Luck is informational, with no reroll menu. Missing/invalid Luck has no reroll menu.
 The trigger's accessible description retains the dice breakdown; menu focus and
 Escape behavior match the assignment pickers.
 
-`LuckRoll.tsx` now owns only initial acquisition and invalid-draft feedback, outside
-the result panels. Point buy retains its initial “Roll” button until valid Luck is
-accepted. Rolled mode still obtains missing Luck with “Make Characteristic Roll”; after
+`LuckRoll.tsx` owns initial acquisition and invalid-draft feedback. Point buy places
+this control directly in the table's Luck contribution cell, with no duplicate action
+outside the table. Its “Roll” button remains until valid Luck is accepted, then the
+cell shows the result and the existing optional reroll menu. Acquisition failures use
+the same session-guarded error reporter and leave the cell action available for retry.
+Rolled mode still obtains missing Luck with “Make Characteristic Roll”; after
 pool initialization a missing/invalid Luck draft can be repaired with the same
 initial-acquisition control. Accepted Luck has no extra result display or batch
 button. Invalid supplied Luck retains Core's inline field feedback.
@@ -369,17 +355,14 @@ Luck menus remain in the table with their existing Escape isolation and focus re
 
 ### Point-buy controls
 
-`PointBuyCharacteristics.tsx` renders container-responsive cards and a single points
-remaining indicator. `AllocationCard.tsx` places a linked full characteristic label
-above an icon-only minus button, editable number, and icon-only plus button. Both
-buttons retain 32px wide-layout/44px stacked hit targets, accessible names, keyboard focus, and disabled
-states. Local input text preserves lexical edits such as `1.`; Core owns the numeric
-draft.
-
-Wide point-buy cards use 8rem minimum widths, 3px padding, 2px label/control gaps,
-12px labels, 20px values and 32px controls. Stacked cards use the centered 220px cap, with
-12px padding, 8px label/control gaps, and 44px controls; fonts stay unchanged.
-Both layouts retain the same rounded border style as ordinary rolled controls.
+`CharacteristicDraftPreview.tsx` renders a single points-remaining indicator beside
+the table. Each non-Luck Points cell contains `AllocationInput.tsx`: an icon-only
+minus button, editable number, icon-only plus button, and targeted inline Core
+feedback. Full characteristic names remain in the row and control accessible labels.
+Stepper buttons retain 44px touch targets even in the narrow table.
+Local input text preserves lexical edits such as `1.`; Core owns the numeric draft.
+Inputs continue to show editable stored drafts while unusable race content suppresses
+their contribution to totals. There are no separate point-buy allocation tiles.
 
 The UI does not submit negative allocations: typed minus signs are ignored, so
 typing `-5` enters `5`; a negative numeric paste resets the allocation to zero.
@@ -510,9 +493,9 @@ above 40rem, then stack below that threshold with a horizontal divider. Assert o
 button per unassigned pool result, two result columns and no overflow on phones.
 Check hidden assigned tiles returning in pool order, concise visible picker labels,
 and independent table Luck rerolls without losing an ordinary selection. For point buy,
-resize its container to its complete-row threshold and one pixel below; assert seven
-cards in one row versus seven centered, capped stacked cards, unchanged answer
-values/fonts and expanded stacked controls. Neither panel may contain a Luck tile or divider.
+check seven editable Points cells, stepper bounds, retained invalid numeric edits and
+wrapped inline feedback, method-switch retention, and no duplicate allocation tiles.
+Neither panel may contain a Luck tile or divider.
 Size the editor container directly during threshold
 probes: a modal scrollbar can otherwise reduce its available width. Test narrow
 screens separately for reachability and horizontal overflow. JSDOM does not compute

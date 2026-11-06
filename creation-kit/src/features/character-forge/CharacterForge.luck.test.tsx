@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { CharacterCreator } from "@wayshrine/core";
 import { expect, it, vi } from "vitest";
 import { createCharacteristicRoller } from "./steps/characteristics/dice";
+import draftClasses from "./steps/characteristics/CharacteristicDraftPreview.module.css";
 import {
   assignDraftResult,
   expandOptions,
@@ -38,6 +39,23 @@ async function startLuck() {
   return { user, random, rollDice, generation, rerollLuck, selectOrdinary };
 }
 
+function luckCells() {
+  const table = within(
+    screen.getByRole("table", { name: "Characteristic draft preview" }),
+  );
+  const row = table.getByRole("rowheader", { name: "Luck" }).closest("tr")!;
+  return within(row).getAllByRole("cell");
+}
+
+function disabledLuckValue() {
+  const control = screen.getByRole("button", {
+    name: "Rolled result for Luck",
+  });
+  expect(control).toHaveProperty("disabled", true);
+  expect(control.getAttribute("aria-haspopup")).toBeNull();
+  return control;
+}
+
 it("rerolls table Luck immediately, preserving ordinary selections, pool and allowance", async () => {
   const { user, random, generation, rerollLuck, selectOrdinary } =
     await startLuck();
@@ -46,9 +64,9 @@ it("rerolls table Luck immediately, preserving ordinary selections, pool and all
   );
   expect(random).toHaveBeenCalledTimes(16);
   expect(screen.queryByRole("group", { name: "Luck roll" })).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Rolled result for Luck" }),
-  ).toBeNull();
+  await user.click(disabledLuckValue());
+  expect(screen.queryByRole("menuitem", { name: "Reroll" })).toBeNull();
+  expect(random).toHaveBeenCalledTimes(16);
   expect(
     screen.getByRole("group", { name: "Characteristic rolls" }).children,
   ).toHaveLength(7);
@@ -77,9 +95,7 @@ it("rerolls table Luck immediately, preserving ordinary selections, pool and all
   expect(generation().rerolls).toEqual(spent.rerolls);
   expect(generation().drafts.rolled).toEqual(spent.drafts.rolled);
   await user.click(screen.getByRole("switch", { name: "Unlimited Rerolls" }));
-  expect(
-    screen.queryByRole("button", { name: "Rolled result for Luck" }),
-  ).toBeNull();
+  disabledLuckValue();
   expect(screen.getByRole("button", { name: "Reroll Used" })).toHaveProperty(
     "disabled",
     true,
@@ -131,10 +147,26 @@ it("acquires initial Luck in point buy and rerolls it from the table without a r
   const points = screen.getByRole("textbox", { name: "Strength points" });
   await user.clear(points);
   await user.type(points, "12");
-  await user.click(screen.getByRole("button", { name: "Roll" }));
+  const initial = within(luckCells()[1]!).getByRole("button", { name: "Roll" });
+  expect(initial.classList.contains(draftClasses.contribution)).toBe(true);
+  expect(screen.getAllByRole("button", { name: "Roll" })).toEqual([initial]);
+  expect(luckCells()[2]!.textContent).toBe("30");
+  const beforeInitial = generation();
+  await user.click(initial);
   expect(random).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole("button", { name: "Roll" })).toBeNull();
+  expect(luckCells()[1]!.textContent).toBe("10");
+  await user.click(disabledLuckValue());
+  expect(screen.queryByRole("menuitem", { name: "Reroll" })).toBeNull();
+  expect(random).toHaveBeenCalledTimes(2);
+  expect(luckCells()[2]!.textContent).toBe("40");
+  expect(generation().drafts.luck?.dice).toEqual([5, 5]);
+  expect(generation().drafts.pointBuy).toEqual(beforeInitial.drafts.pointBuy);
+  expect(generation().rerolls).toEqual(beforeInitial.rerolls);
   expect(
-    screen.getByRole("group", { name: "Point-buy characteristics" }).children,
+    within(
+      screen.getByRole("table", { name: "Characteristic draft preview" }),
+    ).getAllByRole("textbox", { name: / points$/ }),
   ).toHaveLength(7);
   expect(screen.queryByRole("group", { name: "Luck roll" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Reroll" })).toBeNull();
@@ -152,6 +184,35 @@ it("acquires initial Luck in point buy and rerolls it from the table without a r
   );
   expect(random).toHaveBeenCalledTimes(18);
   expect(generation().drafts.luck).toEqual(luck);
+});
+
+it("keeps invalid initial point-buy Luck repairable inside its cell without enabling rerolls", async () => {
+  const { user, rollDice, generation } = await startLuck();
+  await user.click(
+    screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
+  );
+  const before = generation();
+  rollDice.mockReturnValueOnce({ id: "invalid-luck", dice: [0, 11] });
+  await user.click(
+    within(luckCells()[1]!).getByRole("button", { name: "Roll" }),
+  );
+  expect(generation().drafts.luck?.id).toBe("invalid-luck");
+  expect(within(luckCells()[1]!).getByRole("status").textContent).toContain(
+    "Luck requires exactly two integer d10 faces",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Rolled result for Luck" }),
+  ).toBeNull();
+  expect(luckCells()[2]!.textContent).toBe("30");
+  await user.click(
+    within(luckCells()[1]!).getByRole("button", { name: "Roll" }),
+  );
+  expect(luckCells()[1]!.textContent).toBe("10");
+  expect(luckCells()[2]!.textContent).toBe("40");
+  expect(generation().rerolls).toEqual(before.rerolls);
+  expect(generation().drafts.pointBuy).toEqual(before.drafts.pointBuy);
+  expect(screen.queryByRole("button", { name: "Roll" })).toBeNull();
+  disabledLuckValue();
 });
 
 it("shows rejected Luck commands inline and acquisition failures through the existing error seam", async () => {

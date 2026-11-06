@@ -131,8 +131,11 @@ export async function fillPointBuy(user: ReturnType<typeof userEvent.setup>) {
     Perception: 0,
     Personality: 0,
   };
+  const table = within(
+    screen.getByRole("table", { name: "Characteristic draft preview" }),
+  );
   for (const [label, amount] of Object.entries(amounts)) {
-    const input = screen.getByRole("textbox", { name: `${label} points` });
+    const input = table.getByRole("textbox", { name: `${label} points` });
     await user.clear(input);
     await user.type(input, String(amount));
   }

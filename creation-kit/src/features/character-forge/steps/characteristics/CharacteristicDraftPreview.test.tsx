@@ -23,6 +23,10 @@ async function setup() {
           characteristics={preview.characteristics}
           raceUsable={preview.race !== undefined}
           generation={creator.getSnapshot().characteristicGeneration}
+          setCharacteristicAllocations={(allocations) => {
+            creator.setCharacteristicAllocations(allocations);
+            refresh();
+          }}
           setCharacteristicAssignments={(assignments) => {
             creator.setCharacteristicAssignments(assignments);
             refresh();
@@ -55,7 +59,9 @@ function cell(row: string, label: string) {
   );
   const header = table.getByRole("rowheader", { name: label });
   const index = ["Baseline", "Generated", "Total"].indexOf(row);
-  return within(header.closest("tr")!).getAllByRole("cell")[index]!.textContent;
+  const target = within(header.closest("tr")!).getAllByRole("cell")[index]!;
+  const input = target.querySelector("input");
+  return input ? input.value : target.textContent;
 }
 
 function expectEmptyRolledCell(label: string) {
@@ -206,17 +212,27 @@ it("distinguishes missing, zero and invalid allocations", async () => {
     int: 12,
     ag: 21,
     wp: 1.5,
-    prs: -1,
+    prs: 22,
   });
   creator.submitLuckRoll({ id: "bad", dice: [0, 10] });
   refresh();
   expect(cell("Generated", "Strength")).toBe("0");
-  expect(cell("Generated", "Endurance")).toBe("—");
+  expect(cell("Generated", "Endurance")).toBe("");
   expect(cell("Generated", "Intelligence")).toBe("12");
   expect(cell("Total", "Intelligence")).toBe("42");
-  for (const label of ["Agility", "Willpower", "Personality", "Luck"]) {
-    expect(cell("Generated", label)).toBe("Invalid");
+  for (const [label, value] of [
+    ["Agility", "21"],
+    ["Willpower", "1.5"],
+    ["Personality", "22"],
+  ]) {
+    expect(cell("Generated", label!)).toBe(value);
+    expect(
+      within(
+        screen.getByRole("group", { name: `${label} allocation` }),
+      ).getByRole("status"),
+    ).toBeTruthy();
   }
+  expect(cell("Generated", "Luck")).toBe("Invalid");
   expect(cell("Total", "Luck")).toBe("30");
   expect(creator.getCharacterPreview().characteristics.int.rolled).toBe(0);
   expect(creator.getSnapshot().characteristicGeneration.complete).toBe(false);
@@ -296,7 +312,8 @@ it("uses Core's race suppression and cancellation", async () => {
   const pending = creator.chooseRace("altmer");
   refresh();
   expect(cell("Baseline", "Intelligence")).toBe("0");
-  expect(cell("Generated", "Intelligence")).toBe("—");
+  expect(cell("Generated", "Intelligence")).toBe("10");
+  expect(cell("Total", "Intelligence")).toBe("0");
   creator.cancelRaceSelection();
   refresh();
   expect(cell("Baseline", "Intelligence")).toBe("30");
@@ -492,9 +509,13 @@ it("only enables the independent Luck cell menu for a valid existing roll with u
   );
   creator.setUnlimitedCharacteristicRerolls(false);
   refresh();
-  expect(
-    screen.queryByRole("button", { name: "Rolled result for Luck" }),
-  ).toBeNull();
+  const locked = screen.getByRole("button", { name: "Rolled result for Luck" });
+  expect(locked).toHaveProperty("disabled", true);
+  expect(locked.getAttribute("aria-haspopup")).toBeNull();
+  expect(locked.getAttribute("aria-description")).toBe("2d10: 2 + 3 = 5");
+  await user.click(locked);
+  expect(screen.queryByRole("menu")).toBeNull();
+  expect(screen.queryByRole("menuitem", { name: "Reroll" })).toBeNull();
 });
 
 it("keeps down chevrons only on empty menu triggers and plain values on assigned or locked cells", async () => {
@@ -527,7 +548,10 @@ it("keeps down chevrons only on empty menu triggers and plain values on assigned
   expect(strength.getAttribute("aria-expanded")).toBe("false");
   expect(rolledCell("Luck").textContent).toBe("9");
   expect(rolledCell("Luck").querySelector("svg")).toBeNull();
-  expect(rolledCell("Luck").querySelector("button")).toBeNull();
+  expect(rolledCell("Luck").querySelector("button")).toHaveProperty(
+    "disabled",
+    true,
+  );
   creator.setUnlimitedCharacteristicRerolls(true);
   refresh();
   const luck = screen.getByRole("button", { name: "Rolled result for Luck" });
@@ -537,10 +561,22 @@ it("keeps down chevrons only on empty menu triggers and plain values on assigned
   creator.setCharacteristicGenerationMethod("point-buy");
   creator.setCharacteristicAllocations({ str: 0 });
   refresh();
-  expect(rolledCell("Strength").textContent).toBe("0");
-  expect(rolledCell("Strength").querySelector("svg, button")).toBeNull();
-  expect(rolledCell("Endurance").textContent).toBe("—");
-  expect(rolledCell("Endurance").querySelector("svg, button")).toBeNull();
+  expect(
+    within(rolledCell("Strength")).getByRole("textbox", {
+      name: "Strength points",
+    }),
+  ).toHaveProperty("value", "0");
+  expect(
+    within(rolledCell("Endurance")).getByRole("textbox", {
+      name: "Endurance points",
+    }),
+  ).toHaveProperty("value", "");
+  expect(
+    rolledCell("Strength").querySelector(".tabler-icon-chevron-down"),
+  ).toBeNull();
+  expect(
+    rolledCell("Endurance").querySelector(".tabler-icon-chevron-down"),
+  ).toBeNull();
   expect(
     screen
       .getByRole("button", { name: "Rolled result for Luck" })
@@ -549,5 +585,9 @@ it("keeps down chevrons only on empty menu triggers and plain values on assigned
   creator.setUnlimitedCharacteristicRerolls(false);
   refresh();
   expect(rolledCell("Luck").textContent).toBe("9");
-  expect(rolledCell("Luck").querySelector("svg, button")).toBeNull();
+  expect(rolledCell("Luck").querySelector("svg")).toBeNull();
+  expect(rolledCell("Luck").querySelector("button")).toHaveProperty(
+    "disabled",
+    true,
+  );
 });

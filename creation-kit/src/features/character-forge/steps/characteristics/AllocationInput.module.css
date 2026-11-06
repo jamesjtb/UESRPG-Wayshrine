@@ -1,0 +1,33 @@
+.allocation {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 2px;
+  width: min(100%, 128px);
+  margin-inline: auto;
+}
+
+.input {
+  min-width: 0;
+}
+
+.value {
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+  text-align: center;
+}
+
+.stepper,
+.stepper:disabled {
+  height: 44px;
+  background: transparent;
+  border: 0;
+}

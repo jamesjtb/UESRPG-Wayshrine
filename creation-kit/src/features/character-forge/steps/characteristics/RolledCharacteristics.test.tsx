@@ -26,6 +26,7 @@ function renderRolled(random: () => number = () => 0.45) {
           generation={generation}
           setFavoredCharacteristics={creator.setFavoredCharacteristics}
           setCharacteristicAssignments={creator.setCharacteristicAssignments}
+          setCharacteristicAllocations={creator.setCharacteristicAllocations}
         />
         <RolledCharacteristics
           draft={generation.drafts.rolled}

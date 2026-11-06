@@ -334,8 +334,8 @@ describe("Character Forge race editing", () => {
     renderForge(catalog);
     await openWizard();
     expect(
-      await screen.findByRole("status", { name: "Loading races" }),
-    ).toBeTruthy();
+      await screen.findAllByRole("status", { name: "Loading races" }),
+    ).toHaveLength(2);
     const failure = new Error("offline index URL");
     await act(async () => pending.reject(failure));
     await screen.findByRole("dialog", { name: "Something went wrong!" });

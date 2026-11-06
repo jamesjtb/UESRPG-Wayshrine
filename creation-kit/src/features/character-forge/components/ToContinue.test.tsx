@@ -35,12 +35,12 @@ describe("ToContinue", () => {
     render(toContinue());
 
     const control = screen.getByRole("button", {
-      name: "Choose a race 3 remaining",
+      name: "Choose a race 2 more",
     });
     expect(control.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("list")).toBeNull();
     expect(screen.queryByText("Choose racial skills")).toBeNull();
-    expect(screen.queryByText("Complete the following to continue")).toBeNull();
+    expect(screen.queryByText("Resolve before continuing:")).toBeNull();
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(control.querySelector("button")).toBeNull();
     expect(control.getAttribute("data-chevron-position")).toBe("right");
@@ -56,11 +56,11 @@ describe("ToContinue", () => {
 
     await user.click(screen.getByRole("button"));
     const control = screen.getByRole("button", {
-      name: "Complete the following to continue 3 remaining",
+      name: "Resolve before continuing:",
     });
     expect(control.getAttribute("aria-expanded")).toBe("true");
     const panel = screen.getByRole("region", {
-      name: "Complete the following to continue 3 remaining",
+      name: "Resolve before continuing:",
     });
     expect(panel.id).toBe(control.getAttribute("aria-controls"));
     expect(panel.getAttribute("aria-labelledby")).toBe(control.id);
@@ -70,13 +70,14 @@ describe("ToContinue", () => {
         .map((item) => item.textContent),
     ).toEqual(actions.map((action) => action.label));
     expect(screen.getAllByText("Choose a race")).toHaveLength(1);
-    expect(screen.getByText("Complete the following to continue")).toBeTruthy();
+    expect(screen.getByText("Resolve before continuing:")).toBeTruthy();
+    expect(screen.queryByText(/\d+ more/)).toBeNull();
 
     await user.click(control);
     expect(control.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("list")).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Choose a race 3 remaining" }),
+      screen.getByRole("button", { name: "Choose a race 2 more" }),
     ).toBeTruthy();
   });
 
@@ -100,7 +101,7 @@ describe("ToContinue", () => {
     render(toContinue([actions[1]]));
 
     expect(screen.getByText("Choose racial skills")).toBeTruthy();
-    expect(screen.queryByText(/remaining/)).toBeNull();
+    expect(screen.queryByText(/\d+ more/)).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByRole("list")).toBeNull();
     expect(
@@ -136,44 +137,44 @@ describe("ToContinue", () => {
   it("renders pending summaries and list entries with meaningful loading labels", async () => {
     const user = userEvent.setup();
     const pendingActions: readonly UserAction[] = [
-      { id: "skills", label: "Loading racial skills", loading: true },
+      { id: "skills", label: "Loading available skills", loading: true },
       { id: "other", label: "Choose another racial skill" },
     ];
     const view = render(toContinue(pendingActions));
     const control = screen.getByRole("button", {
-      name: "Loading racial skills 2 remaining",
+      name: "Loading available skills 1 more",
     });
     expect(
       within(control)
-        .getByRole("status", { name: "Loading racial skills" })
+        .getByRole("status", { name: "Loading available skills" })
         .querySelector(".mantine-Loader-root"),
     ).not.toBeNull();
     await user.click(control);
     const panel = screen.getByRole("region", {
-      name: "Complete the following to continue 2 remaining",
+      name: "Resolve before continuing:",
     });
     expect(within(control).queryByRole("status")).toBeNull();
     expect(
       within(panel)
-        .getByRole("status", { name: "Loading racial skills" })
+        .getByRole("status", { name: "Loading available skills" })
         .querySelector(".mantine-Loader-root"),
     ).not.toBeNull();
     expect(within(panel).getAllByRole("listitem")).toHaveLength(2);
     view.rerender(
       toContinue([
-        { id: "skills", label: "Retry racial skill selection" },
+        { id: "skills", label: "There is a problem with the selected skill" },
         pendingActions[1]!,
       ]),
     );
     expect(control.getAttribute("aria-expanded")).toBe("true");
     expect(screen.queryByRole("status")).toBeNull();
     expect(
-      within(panel).getByText("Retry racial skill selection"),
+      within(panel).getByText("There is a problem with the selected skill"),
     ).toBeTruthy();
     await user.click(control);
     expect(
       screen.getByRole("button", {
-        name: "Retry racial skill selection 2 remaining",
+        name: "There is a problem with the selected skill 1 more",
       }),
     ).toBe(control);
   });
@@ -183,7 +184,7 @@ describe("ToContinue", () => {
     const view = render(toContinue());
     view.rerender(toContinue([actions[2], actions[1]]));
     const control = screen.getByRole("button", {
-      name: "Roll Luck 2 remaining",
+      name: "Roll Luck 1 more",
     });
     expect(control.getAttribute("aria-expanded")).toBe("false");
 
@@ -198,7 +199,7 @@ describe("ToContinue", () => {
     expect(control.getAttribute("aria-expanded")).toBe("true");
     expect(
       screen.getByRole("button", {
-        name: "Complete the following to continue 3 remaining",
+        name: "Resolve before continuing:",
       }),
     ).toBe(control);
     expect(

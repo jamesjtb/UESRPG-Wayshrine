@@ -69,20 +69,22 @@ export function ToContinue({ actions }: ToContinueProps) {
           <span className={classes.summary}>
             <span className={classes.summaryText}>
               {expandedItem ? (
-                "Complete the following to continue"
+                "Resolve before continuing:"
               ) : (
                 <ActionLabel action={firstAction} />
               )}
             </span>{" "}
-            <Badge
-              component="span"
-              size="xs"
-              variant="light"
-              color="gray"
-              tt="none"
-            >
-              {actions.length} remaining
-            </Badge>
+            {!expandedItem && (
+              <Badge
+                component="span"
+                size="xs"
+                variant="light"
+                color="gray"
+                tt="none"
+              >
+                {actions.length - 1} more
+              </Badge>
+            )}
           </span>
         </Accordion.Control>
         <Accordion.Panel>

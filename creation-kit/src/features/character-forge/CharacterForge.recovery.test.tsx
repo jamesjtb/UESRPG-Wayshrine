@@ -126,7 +126,9 @@ it("acknowledges a race-index failure while closed and retries only on request",
   // Use real portals/transitions: test mode renders nested dialogs inline.
   renderForge(catalog, undefined, "default");
   await openWizard();
-  await screen.findByRole("status", { name: "Loading races" });
+  expect(
+    await screen.findAllByRole("status", { name: "Loading races" }),
+  ).toHaveLength(2);
   await closeWizard();
   await act(async () => pending.reject(new Error("offline")));
   const error = await screen.findByRole("dialog", {

@@ -31,12 +31,25 @@ function completePointBuy(creator: CharacterCreator) {
 }
 
 describe("step user actions from Core snapshots", () => {
+  it("omits the method reminder without changing Core's method requirement", () => {
+    const creator = new CharacterCreator(fixtureCatalog());
+    expect(
+      creator.getSnapshot().characteristicGeneration.issues,
+    ).toContainEqual(expect.objectContaining({ field: "method" }));
+    expect(generationLabels(creator)).toEqual([
+      "Resolve issues in previous step(s)",
+      "Choose two favored characteristics",
+      "Roll Luck",
+    ]);
+    expect(creator.getSnapshot().canFinish).toBe(false);
+  });
+
   it("uses race browsing state only when race selection is outstanding", async () => {
     const creator = new CharacterCreator(fixtureCatalog());
     for (const [status, label] of [
-      ["loading", "Loading available races"],
+      ["loading", "Loading races"],
       ["error", "Retry loading races"],
-      ["empty", "Resolve unavailable race content"],
+      ["empty", "Race content unavailable"],
       ["ready", "Choose a race"],
     ] as const) {
       expect(raceUserActions(creator.getSnapshot(), status)).toEqual([
@@ -55,8 +68,8 @@ describe("step user actions from Core snapshots", () => {
     const creator = new CharacterCreator(fixtureCatalog());
     await creator.chooseRace("manyChoices");
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([
-      { id: "manyChoices/pair", label: "Choose 2 racial skills" },
-      { id: "manyChoices/overlap", label: "Choose 1 racial skill" },
+      { id: "manyChoices/pair", label: "Choose 2 skills" },
+      { id: "manyChoices/overlap", label: "Choose 1 skill" },
     ]);
     await creator.chooseRacialBonus("manyChoices/pair", [
       "alchemy",
@@ -67,7 +80,7 @@ describe("step user actions from Core snapshots", () => {
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([]);
     await creator.chooseRacialBonus("manyChoices/pair", ["alchemy", "alchemy"]);
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([
-      { id: "manyChoices/pair", label: "Review racial skill selection" },
+      { id: "manyChoices/pair", label: "Review skill selection" },
     ]);
   });
 
@@ -88,7 +101,7 @@ describe("step user actions from Core snapshots", () => {
     ]);
     creator.cancelRaceSelection();
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([
-      { id: "altmer/magic", label: "Choose 1 racial skill" },
+      { id: "altmer/magic", label: "Choose 1 skill" },
     ]);
   });
 
@@ -100,12 +113,15 @@ describe("step user actions from Core snapshots", () => {
     const gate = reads.hold("skill", "alchemy");
     const request = creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([
-      { id: "altmer/magic", label: "Loading racial skills", loading: true },
+      { id: "altmer/magic", label: "Loading available skills", loading: true },
     ]);
     gate.reject(new Error("offline"));
     await request;
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([
-      { id: "altmer/magic", label: "Retry racial skill selection" },
+      {
+        id: "altmer/magic",
+        label: "There is a problem with the selected skill",
+      },
     ]);
     const raceGate = reads.hold("race", "argonian");
     const raceRequest = creator.chooseRace("argonian");
@@ -113,7 +129,10 @@ describe("step user actions from Core snapshots", () => {
     raceGate.resolve();
     await raceRequest;
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([
-      { id: "altmer/magic", label: "Retry racial skill selection" },
+      {
+        id: "altmer/magic",
+        label: "There is a problem with the selected skill",
+      },
     ]);
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);
     expect(raceUserActions(creator.getSnapshot(), "ready")).toEqual([]);
@@ -141,8 +160,8 @@ describe("step user actions from Core snapshots", () => {
     creator.setCharacteristicGenerationMethod("rolled");
     expect(generationLabels(creator)).toEqual([
       "Choose two favored characteristics",
-      "Roll characteristic results",
-      "Assign all characteristic results",
+      "Make a characteristic roll",
+      "Assign all characteristic rolls",
       "Roll Luck",
     ]);
     creator.setFavoredCharacteristics(["str", "end"]);
@@ -152,7 +171,7 @@ describe("step user actions from Core snapshots", () => {
     }));
     creator.submitCharacteristicRolls(rolls);
     expect(generationLabels(creator)).toEqual([
-      "Assign all characteristic results",
+      "Assign all characteristic rolls",
       "Roll Luck",
     ]);
     creator.setCharacteristicAssignments({
@@ -170,12 +189,12 @@ describe("step user actions from Core snapshots", () => {
       { targetRollId: "r0", replacement: { id: "new", dice: [3, 4] } },
     ]);
     expect(generationLabels(creator)).toEqual([
-      "Assign all characteristic results",
+      "Assign all characteristic rolls",
     ]);
     // Rejected reroll commands do not create outstanding answer tasks.
     creator.rerollCharacteristics([]);
     expect(generationLabels(creator)).toEqual([
-      "Assign all characteristic results",
+      "Assign all characteristic rolls",
     ]);
   });
 
@@ -190,8 +209,8 @@ describe("step user actions from Core snapshots", () => {
     ]);
     creator.setCharacteristicGenerationMethod("rolled");
     expect(generationLabels(creator)).toEqual([
-      "Roll characteristic results",
-      "Assign all characteristic results",
+      "Make a characteristic roll",
+      "Assign all characteristic rolls",
     ]);
     creator.setCharacteristicGenerationMethod("point-buy");
     expect(generationLabels(creator)).toEqual([
@@ -216,12 +235,12 @@ describe("step user actions from Core snapshots", () => {
     const gate = reads.hold("race", "altmer");
     const request = creator.chooseRace("altmer");
     expect(generationLabels(creator)).toEqual([
-      "Return to Select Race to resolve outstanding actions",
+      "Resolve issues in previous step(s)",
     ]);
     gate.reject(new Error("offline"));
     await request;
     expect(generationLabels(creator)).toEqual([
-      "Return to Select Race to resolve outstanding actions",
+      "Resolve issues in previous step(s)",
     ]);
     expect(creator.getSnapshot().characteristicGeneration.complete).toBe(true);
     expect(creator.getSnapshot().canFinish).toBe(false);
@@ -229,7 +248,7 @@ describe("step user actions from Core snapshots", () => {
     expect(generationLabels(creator)).toEqual([]);
     await creator.chooseRace("altmer");
     expect(generationLabels(creator)).toEqual([
-      "Return to Select Race to resolve outstanding actions",
+      "Resolve issues in previous step(s)",
     ]);
   });
 });

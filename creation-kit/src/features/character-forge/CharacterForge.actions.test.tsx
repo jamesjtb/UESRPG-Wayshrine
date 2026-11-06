@@ -48,7 +48,7 @@ function expectActionsBelowTitle(title: string, text: string) {
 
 function expandedLabels() {
   return within(
-    screen.getByRole("region", { name: /^Complete the following to continue/ }),
+    screen.getByRole("region", { name: "Resolve before continuing:" }),
   )
     .getAllByRole("listitem")
     .map((item) => item.textContent);
@@ -60,33 +60,34 @@ it("places pending racial choices below the title and removes only resolved grou
   await openWizard();
   await screen.findByRole("combobox", { name: "Race" });
   expectActionsBelowTitle("Select Race", "Choose a race");
+  expect(screen.getAllByText("Choose a race")).toHaveLength(1);
+  expect(screen.getByRole("combobox", { name: "Race" })).toHaveProperty(
+    "placeholder",
+    "Choose a race",
+  );
+  expect(screen.queryByRole("status")).toBeNull();
   await selectRace("Many choices");
   const toggle = await screen.findByRole("button", {
-    name: "Choose 2 racial skills 2 remaining",
+    name: "Choose 2 skills 1 more",
   });
-  expectActionsBelowTitle("Select Race", "Choose 2 racial skills");
+  expectActionsBelowTitle("Select Race", "Choose 2 skills");
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
     true,
   );
   await user.click(toggle);
-  expect(expandedLabels()).toEqual([
-    "Choose 2 racial skills",
-    "Choose 1 racial skill",
-  ]);
+  expect(expandedLabels()).toEqual(["Choose 2 skills", "Choose 1 skill"]);
   const pair = within(screen.getByRole("group", { name: "Choose 2" }));
   await user.click(pair.getByRole("checkbox", { name: "Alchemy" }));
   expect(
     screen.getByRole("button", {
-      name: "Complete the following to continue 2 remaining",
+      name: "Resolve before continuing:",
     }),
   ).toBe(toggle);
   await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
-  await waitFor(() =>
-    expect(screen.queryByText("Choose 2 racial skills")).toBeNull(),
-  );
-  expectActionsBelowTitle("Select Race", "Choose 1 racial skill");
-  expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
+  await waitFor(() => expect(screen.queryByText("Choose 2 skills")).toBeNull());
+  expectActionsBelowTitle("Select Race", "Choose 1 skill");
+  expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   await user.click(
     within(screen.getByRole("group", { name: "Choose 1" })).getByRole(
       "checkbox",
@@ -99,17 +100,15 @@ it("places pending racial choices below the title and removes only resolved grou
       false,
     ),
   );
-  expect(screen.queryByText("Choose 1 racial skill")).toBeNull();
+  expect(screen.queryByText("Choose 1 skill")).toBeNull();
   await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
-  expectActionsBelowTitle("Select Race", "Choose 2 racial skills");
+  expectActionsBelowTitle("Select Race", "Choose 2 skills");
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
     true,
   );
   await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
-  await waitFor(() =>
-    expect(screen.queryByText("Choose 2 racial skills")).toBeNull(),
-  );
+  await waitFor(() => expect(screen.queryByText("Choose 2 skills")).toBeNull());
   expect(
     screen.getByRole("heading", { name: "Select Race" }).nextElementSibling
       ?.tagName,
@@ -131,14 +130,12 @@ it("uses shared indicators until race browsing and selection settle successfully
   const title = screen.getByRole("heading", { name: "Select Race" });
   const browsing = within(title.nextElementSibling! as HTMLElement).getByRole(
     "status",
-    { name: "Loading available races" },
+    { name: "Loading races" },
   );
   expect(browsing.querySelector(".mantine-Loader-root")).not.toBeNull();
   await act(async () => indexGate.resolve());
   expectActionsBelowTitle("Select Race", "Choose a race");
-  expect(
-    screen.queryByRole("status", { name: "Loading available races" }),
-  ).toBeNull();
+  expect(screen.queryByRole("status", { name: "Loading races" })).toBeNull();
   await selectRace("Argonian");
   const selection = within(title.nextElementSibling! as HTMLElement).getByRole(
     "status",
@@ -204,7 +201,7 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   await sheet().findByText("Argonian");
   await user.click(screen.getByRole("button", { name: "Next" }));
   const toggle = screen.getByRole("button", {
-    name: "Choose two favored characteristics 4 remaining",
+    name: "Choose two favored characteristics 3 more",
   });
   expectActionsBelowTitle(
     "Generate Characteristics",
@@ -213,15 +210,15 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   await user.click(toggle);
   expect(expandedLabels()).toEqual([
     "Choose two favored characteristics",
-    "Roll characteristic results",
-    "Assign all characteristic results",
+    "Make a characteristic roll",
+    "Assign all characteristic rolls",
     "Roll Luck",
   ]);
   await user.click(screen.getByRole("button", { name: "Favor Strength" }));
   await user.click(screen.getByRole("button", { name: "Favor Endurance" }));
   expect(
     screen.getByRole("button", {
-      name: "Complete the following to continue 3 remaining",
+      name: "Resolve before continuing:",
     }),
   ).toBe(toggle);
   await user.click(
@@ -231,15 +228,15 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   );
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Assign all characteristic results",
+    "Assign all characteristic rolls",
   );
   expect(screen.queryByText("Roll Luck")).toBeNull();
   await user.click(screen.getByRole("button", { name: "Back" }));
   await user.click(screen.getByRole("button", { name: "Next" }));
-  expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Assign all characteristic results",
+    "Assign all characteristic rolls",
   );
   const labels = [
     "Strength",
@@ -253,8 +250,8 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   for (const [index, label] of labels.entries()) {
     await assignDraftResult(user, label, index);
   }
-  expect(screen.queryByText("Assign all characteristic results")).toBeNull();
-  expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
+  expect(screen.queryByText("Assign all characteristic rolls")).toBeNull();
+  expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   const firstResult = screen.getByRole("button", {
     name: "Rolled result for Strength",
   });
@@ -262,10 +259,10 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   await user.click(await screen.findByRole("menuitem", { name: "Unassign" }));
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Assign all characteristic results",
+    "Assign all characteristic rolls",
   );
   await assignDraftResult(user, "Strength", 0);
-  expect(screen.queryByText("Assign all characteristic results")).toBeNull();
+  expect(screen.queryByText("Assign all characteristic rolls")).toBeNull();
   // The last registered Core step still has no Next, regardless of this presentation.
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
@@ -281,11 +278,11 @@ it("groups point-buy tasks, retains inline numeric feedback, and hides completed
   await user.click(screen.getByRole("button", { name: "Next" }));
   await user.click(
     screen.getByRole("button", {
-      name: "Choose two favored characteristics 4 remaining",
+      name: "Choose two favored characteristics 3 more",
     }),
   );
   await fillPointBuy(user);
-  expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   expect(screen.queryByText("Allocate characteristic points")).toBeNull();
   const strength = screen.getByRole("textbox", { name: "Strength points" });
   await user.clear(strength);
@@ -299,7 +296,7 @@ it("groups point-buy tasks, retains inline numeric feedback, and hides completed
       "Allocate an integer from 0 to 20 to this characteristic.",
     ),
   ).toBeTruthy();
-  expect(screen.queryByRole("button", { name: /remaining/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   await user.clear(strength);
   await user.type(strength, "20");
   expect(screen.queryByText("Allocate characteristic points")).toBeNull();

@@ -48,6 +48,7 @@ export function RaceStep({
   const globalIssues = snapshot.issues.filter(
     (issue) =>
       issue.choiceId === undefined &&
+      issue.code !== "race-required" &&
       issue.code !== "content-loading" &&
       !isBlockingContentIssue(issue),
   );

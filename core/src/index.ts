@@ -1,4 +1,5 @@
 export type { default as Attributes } from "../interface/character/Attributes";
+export type * from "../interface/character/Birthsign";
 export type * from "../interface/character/Character";
 export type * from "../interface/character/CharacterCreation";
 export type * from "../interface/character/Characteristic";

@@ -1,0 +1,334 @@
+theWarrior:
+  label: "{LOCALE.birthsigns.theWarrior.label}"
+  description: "{LOCALE.birthsigns.theWarrior.description}"
+  bonuses:
+    - bonusType: attribute
+      bonusTargetKey: spMaximum
+      bonusValue: 1
+  starCursed:
+    overwriteBaseBonuses: false
+    bonuses:
+      - bonusType: characteristic
+        bonusTargetKey: str
+        bonusValue: 5
+      - bonusType: characteristic
+        bonusTargetKey: wp
+        bonusValue: -5
+theLady:
+  label: "{LOCALE.birthsigns.theLady.label}"
+  description: "{LOCALE.birthsigns.theLady.description}"
+  bonuses:
+    - bonusType: characteristic
+      bonusTargetKey: prs
+      bonusValue: 5
+  starCursed:
+    overwriteBaseBonuses: false
+    bonuses:
+      - bonusType: characteristic
+        bonusTargetKey: end
+        bonusValue: 5
+      - bonusType: characteristic
+        bonusTargetKey: str
+        bonusValue: -5
+theSteed:
+  label: "{LOCALE.birthsigns.theSteed.label}"
+  description: "{LOCALE.birthsigns.theSteed.description}"
+  bonuses:
+    - bonusType: attribute
+      bonusTargetKey: speed
+      bonusValue: 2
+  starCursed:
+    overwriteBaseBonuses: false
+    bonuses:
+      - bonusType: characteristic
+        bonusTargetKey: ag
+        bonusValue: 5
+      - bonusType: choice
+        choiceGroup:
+          id: theSteedPenalty
+          choose: 1
+          options:
+            - id: wp
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: wp
+                  bonusValue: -5
+            - id: prc
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: prc
+                  bonusValue: -5
+        lifecycle:
+          selection: once
+theLord:
+  label: "{LOCALE.birthsigns.theLord.label}"
+  description: "{LOCALE.birthsigns.theLord.description}"
+  bonuses:
+    - bonusType: multiplier
+      bonusTargetKey: naturalHealing
+      bonusValue: 2
+  starCursed:
+    overwriteBaseBonuses: false
+    bonuses:
+      - bonusType: characteristic
+        bonusTargetKey: end
+        bonusValue: 5
+      - bonusType: trait
+        bonusTargetKey: weakness
+        bonusParams:
+          type: fire
+          X: 2
+theMage:
+  label: "{LOCALE.birthsigns.theMage.label}"
+  description: "{LOCALE.birthsigns.theMage.description}"
+  bonuses:
+    - bonusType: trait
+      bonusTargetKey: powerWell
+      bonusParams:
+        X: 10
+  starCursed:
+    overwriteBaseBonuses: true
+    bonuses:
+      - bonusType: trait
+        bonusTargetKey: powerWell
+        bonusParams:
+          X: 25
+      - bonusType: choice
+        choiceGroup:
+          id: theMagePenalty
+          choose: 1
+          options:
+            - id: prc
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: prc
+                  bonusValue: -5
+            - id: str
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: str
+                  bonusValue: -5
+            - id: prs
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: prs
+                  bonusValue: -5
+        lifecycle:
+          selection: once
+theApprentice:
+  label: "{LOCALE.birthsigns.theApprentice.label}"
+  description: "{LOCALE.birthsigns.theApprentice.description}"
+  bonuses:
+    - bonusType: trait
+      bonusTargetKey: powerWell
+      bonusParams:
+        X: 25
+    - bonusType: trait
+      bonusTargetKey: weakness
+      bonusParams:
+        type: magic
+        X: 2
+  starCursed:
+    overwriteBaseBonuses: true
+    bonuses:
+      - bonusType: trait
+        bonusTargetKey: powerWell
+        bonusParams:
+          X: 50
+      - bonusType: trait
+        bonusTargetKey: weakness
+        bonusParams:
+          type: magic
+          X: 3
+theAtronach:
+  label: "{LOCALE.birthsigns.theAtronach.label}"
+  description: "{LOCALE.birthsigns.theAtronach.description}"
+  bonuses:
+    - bonusType: trait
+      bonusTargetKey: powerWell
+      bonusParams:
+        X: 50
+    - bonusType: trait
+      bonusTargetKey: spellAbsorption
+      bonusParams:
+        X: 5
+    - bonusType: trait
+      bonusTargetKey: stuntedMagicka
+  starCursed:
+    overwriteBaseBonuses: true
+    bonuses:
+      - bonusType: trait
+        bonusTargetKey: powerWell
+        bonusParams:
+          X: 75
+      - bonusType: trait
+        bonusTargetKey: spellAbsorption
+        bonusParams:
+          X: 5
+      - bonusType: trait
+        bonusTargetKey: stuntedMagicka
+      - bonusType: choice
+        choiceGroup:
+          id: theAtronachPenalty
+          choose: 1
+          options:
+            - id: ag
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: ag
+                  bonusValue: -5
+            - id: end
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: end
+                  bonusValue: -5
+        lifecycle:
+          selection: once
+theRitual:
+  label: "{LOCALE.birthsigns.theRitual.label}"
+  description: "{LOCALE.birthsigns.theRitual.description}"
+  bonuses:
+    - bonusType: choice
+      choiceGroup:
+        id: theRitualPower
+        choose: 1
+        options:
+          - id: blessedTouch
+            effects:
+              - bonusType: power
+                bonusTargetKey: blessedTouch
+          - id: blessedWord
+            effects:
+              - bonusType: power
+                bonusTargetKey: blessedWord
+          - id: marasGift
+            effects:
+              - bonusType: power
+                bonusTargetKey: marasGift
+      lifecycle:
+        selection: recurring
+        chooseAt: longRest
+        expiresAt: nextLongRest
+  starCursed:
+    overwriteBaseBonuses: true
+    bonuses:
+      - bonusType: power
+        bonusTargetKey: blessedTouch
+      - bonusType: power
+        bonusTargetKey: blessedWord
+      - bonusType: power
+        bonusTargetKey: marasGift
+      - bonusType: characteristic
+        bonusTargetKey: lck
+        bonusValue: -5
+theThief:
+  label: "{LOCALE.birthsigns.theThief.label}"
+  description: "{LOCALE.birthsigns.theThief.description}"
+  bonuses:
+    - bonusType: extraLuckyNumber
+      count: 1
+      retainedRegardlessOfLuck: true
+  starCursed:
+    overwriteBaseBonuses: false
+    eligibility:
+      requiresNaturallyRolledSign: true
+      canSelectBySpendingLuck: false
+    bonuses:
+      - bonusType: replaceRolledCharacteristic
+        bonusTargetKey: lck
+        bonusValue: 50
+      - bonusType: power
+        bonusTargetKey: akaviriDangerSense
+      - bonusType: trait
+        bonusTargetKey: runningOutOfLuck
+theLover:
+  label: "{LOCALE.birthsigns.theLover.label}"
+  description: "{LOCALE.birthsigns.theLover.description}"
+  bonuses:
+    - bonusType: characteristic
+      bonusTargetKey: ag
+      bonusValue: 5
+  starCursed:
+    overwriteBaseBonuses: false
+    bonuses:
+      - bonusType: characteristic
+        bonusTargetKey: prs
+        bonusValue: 5
+      - bonusType: choice
+        choiceGroup:
+          id: theLoverPenalty
+          choose: 1
+          options:
+            - id: wp
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: wp
+                  bonusValue: -5
+            - id: str
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: str
+                  bonusValue: -5
+        lifecycle:
+          selection: once
+theShadow:
+  label: "{LOCALE.birthsigns.theShadow.label}"
+  description: "{LOCALE.birthsigns.theShadow.description}"
+  bonuses:
+    - bonusType: power
+      bonusTargetKey: moonshadow
+  starCursed:
+    overwriteBaseBonuses: false
+    bonuses:
+      - bonusType: characteristic
+        bonusTargetKey: prc
+        bonusValue: 5
+      - bonusType: choice
+        choiceGroup:
+          id: theShadowPenalty
+          choose: 1
+          options:
+            - id: prs
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: prs
+                  bonusValue: -5
+            - id: str
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: str
+                  bonusValue: -5
+        lifecycle:
+          selection: once
+theTower:
+  label: "{LOCALE.birthsigns.theTower.label}"
+  description: "{LOCALE.birthsigns.theTower.description}"
+  bonuses:
+    - bonusType: power
+      bonusTargetKey: treasureSeeker
+    - bonusType: characteristic
+      bonusTargetKey: prc
+      bonusValue: 5
+  starCursed:
+    overwriteBaseBonuses: false
+    bonuses:
+      - bonusType: characteristic
+        bonusTargetKey: ag
+        bonusValue: 5
+      - bonusType: choice
+        choiceGroup:
+          id: theTowerPenalty
+          choose: 1
+          options:
+            - id: wp
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: wp
+                  bonusValue: -5
+            - id: str
+              effects:
+                - bonusType: characteristic
+                  bonusTargetKey: str
+                  bonusValue: -5
+        lifecycle:
+          selection: once

@@ -2,11 +2,11 @@
 
 ## Status and scope
 
-This document records the existing content inventory and the **proposed** authoring
-and compilation contract. English locale text is authored for traits, races, skills,
-and birthsigns. Localization compilation and runtime resolution are not
-implemented. Statements under “Proposed contract” describe the intended contract,
-not implemented compilation capabilities.
+This document records the content inventory and authoring/compilation contract.
+English locale text is authored for traits, races, skills, and birthsigns. The
+host-neutral build-time compiler is implemented in Core's dedicated
+`@wayshrine/core/content-localization` subpath. Creation Kit integrates this compiler
+and consumes language-scoped format-2 JSON artifacts, with English selected by default.
 
 Cover all currently authored races, traits, skills, and birthsigns, including
 birthsign authoring even though birthsigns are not a runtime `ContentCatalog` kind.
@@ -25,7 +25,7 @@ or invent prose to make coverage appear complete.
 - `core/content/` contains six YAML files. Top-level map keys identify definitions;
   filenames do not. `core/locales/en/traits/`, `core/locales/en/races/`,
   `core/locales/en/skills/`, and `core/locales/en/birthsigns/` contain English text;
-  there is no locale resolver. Race locale authoring includes staged entries
+  the build-only compiler resolves parsed display references. Race locale authoring includes staged entries
   without mechanical definitions; those entries are not playable content.
 - `Race`, `Trait`, and `Birthsign` require `label` and `description`; `Skill` makes
   both optional. Trait parameter declarations are names only. Applied parameter
@@ -35,21 +35,22 @@ or invent prose to make coverage appear complete.
   `validateRaceContent.ts` checks skill/trait references and exact trait parameter
   names, not parameter meaning or display formatting. Birthsigns have domain types
   but no parser in `parseContentDefinition` or runtime catalog kind.
-- `creation-kit/scripts/generate-content.ts` reads only races, skills, and traits,
-  derives `skillKey`, validates definitions and racial references, and emits JSON.
-  It copies authored display references unchanged; skill index labels fall back to
-  keys. The SHA-256 revision covers validated content, Core schema version, and
-  artifact format, with sorted object keys and meaningful array ordering.
-- The static manifest is `{ schemaVersion, revision }`; indexes and definitions
-  carry that version. The browser adapter pins it and checks every response.
+- `creation-kit/scripts/generate-content.ts` reads all four authored domains and all
+  locale language/domain shards, rejects duplicate YAML keys before object conversion,
+  and invokes the shared compiler once per explicitly selected language. It derives
+  runtime `skillKey`, validates resolved definitions and racial references, and emits
+  only race, skill, and trait JSON. Staged locale entries never add definitions.
+- The static manifest contains `artifactFormat`, `version`, and `localization`;
+  indexes and definitions repeat that identity. The browser adapter pins it and checks every response.
   `ContentVersion` is immutable for a catalog/creator lifetime. See
   [Core content access](../../core/README.md#shared-content-access) and
   [static content setup](../../README.md#creation-kit-static-content).
-- Forge's `labels.ts` humanizes keys when labels contain `{LOCALE` and suppresses
-  such descriptions. That is a presentation workaround, not localization or English
-  fallback. It is not a policy for publishing unresolved content.
-- Foundry is a skeleton, with no content adapter or pack compiler. Neither host
-  currently provides the proposed content localization pipeline.
+- Forge presents compiled labels/descriptions literally, without detecting or hiding
+  `LOCALE` tokens. Its readable-key fallback serves genuinely optional missing labels,
+  not mandatory content coverage or runtime English fallback. Trait instances still
+  show readable keys and raw parameters; definition fetching and instance formatting
+  are deferred.
+- Foundry is a skeleton, with no content adapter or pack compiler.
 
 ## Authored inventory
 
@@ -58,9 +59,9 @@ Every existing display reference has the exact form
 `{LOCALE.<domain>.<contentKey>.<field>}` with `field` equal to `label` or
 `description`. There are no inline rules descriptions in these content files.
 English locale values are authored for traits, races, skills, and birthsigns; reference
-resolution remains unimplemented.
+resolution is performed by the build-only compiler in the Creation Kit pipeline.
 
-| Source under `core/content/` | Entries | Display fields today       | Proposed coverage               |
+| Source under `core/content/` | Entries | Display fields today       | English key coverage            |
 | ---------------------------- | ------: | -------------------------- | ------------------------------- |
 | `races/core.yml`             |       2 | Both fields are references | 4 English keys                  |
 | `traits/core.yml`            |      44 | Both fields are references | 88 English keys                 |
@@ -164,7 +165,7 @@ this contract does not invent a new variant/option/power display schema or prose
 Those gaps remain visible for later birthsign work, without requiring runtime
 birthsign catalog support now.
 
-## Proposed contract
+## Authoring and compilation contract
 
 ### Locale authoring and explicit references
 
@@ -198,6 +199,12 @@ birthsign catalog support now.
   extra braces, unknown domains/fields, and references to nonexistent definitions.
   Locale leaves are terminal strings, not references to other locale leaves;
   recursive resolution and cycles are not part of this contract.
+  Terminal-text validation recognizes a braced `LOCALE` prefix (case-insensitively,
+  allowing whitespace after the opening brace), or a bare `LOCALE.` followed
+  immediately by an identifier-start character, another dot, or an opening brace.
+  These reference-shaped tokens fail even when their path or braces are malformed.
+  The ordinary word “locale”, including sentence-final punctuation, remains valid
+  prose; it is not globally reserved.
 - English must contain every required display key for every authored definition,
   including skills and birthsigns, irrespective of runtime export kinds. Non-English
   files may be incomplete while contributors work. Reject duplicate YAML keys and
@@ -220,8 +227,8 @@ or `[TEMPORARY: <contentKey> approved description pending]`. These examples are
 editorial notices, not rules text. Keep a machine-recognizable marker and report
 temporary entries separately from missing keys. Temporary entries must stay visibly
 marked in compiled text; do not rely only on comments or hide them behind an
-apparently finished description. Existing Forge suppression of `{LOCALE` is not
-the temporary-text convention.
+apparently finished description. Forge displays these marked strings directly;
+presentation suppression is not the temporary-text convention.
 
 Do not translate fabricated rules or make temporary descriptions sound
 authoritative. Contributors may supply an equally marked notice in their language
@@ -320,15 +327,81 @@ formatter or parameter-type system is implemented by this phase.
 
 ### Small compiler interface and host responsibilities
 
-The proposed compiler seam accepts parsed authored definitions (all four domains),
-locale maps, an exact canonical `language`, and `allowEnglishFallback` (default
-`false`). It returns resolved content by authored domain, identity metadata, and
-structured diagnostics. Canonical display tables and classification policy are
-deferred, not compiler inputs or outputs required by this contract. Hosts own
-filesystem/YAML loading and artifact serialization; reference parsing, coverage, fallback, and
-placeholder validation belong behind this one shared interface, not duplicated
-across hosts. Keep this build-time module host-neutral and out of browser/Core
-runtime dependency paths; its exact file/package placement is later work.
+`compileContentLocalization` is exported only through
+`@wayshrine/core/content-localization`, backed by `core/src/content-localization/`.
+It is separate from the normal runtime index and has no filesystem or YAML-loader
+dependency. It accepts parsed authored definitions (all four domains), parsed
+locale shards, an exact canonical `language`, and `allowEnglishFallback` (default
+`false`):
+
+```ts
+import { compileContentLocalization } from "@wayshrine/core/content-localization";
+
+const result = compileContentLocalization({
+  content: [
+    { domain: "traits", source: "content/traits/core.yml", data: parsedTraits },
+  ],
+  locales: [
+    {
+      domain: "traits",
+      language: "en",
+      source: "locales/en/traits/core.yml",
+      data: parsedEnglish,
+    },
+  ],
+  language: "en",
+});
+if (result.success) {
+  // Detached maps: races, traits, skills, birthsigns; no staged definitions.
+  consumeResolvedDefinitions(result.definitions);
+} else {
+  reportDiagnostics(result.diagnostics); // No definitions on failure.
+}
+```
+
+Inputs use source-file strings for diagnostic provenance; each `data` is unknown
+until validated at the Zod boundary. Definitions have strict domain shapes, both
+display fields are required (including authored skills), and content keys and trait
+parameter names use `[A-Za-z_][A-Za-z0-9_-]*`. The own map key `__proto__` is a
+reserved exception: the compiler rejects it before Zod parsing, including in
+nested maps such as applied trait parameters, rather than silently dropping it.
+Authored skills may omit `skillKey`;
+if present it must match the enclosing key. Compilation preserves its presence or
+absence. The authoring types in `core/interface/common/AuthoredContent.ts` include
+birthsigns without changing runtime `ContentKind` or `parseContentDefinition`.
+The cross-domain compiler contracts live in
+`core/interface/common/ContentLocalization.ts` and are exported through the same
+build-only subpath, not the runtime index.
+The build-only birthsign schema validates the existing domain structure, not new
+birthsign runtime behavior or cross-content mechanical references.
+
+Each locale entry allows only optional nonempty `label`/`description` strings.
+Missing leaves are checked against authored references; invalid present leaves
+fail before fallback. Every supplied shard is shape/template validated, including
+unrequested languages and staged entries. Staged trait templates receive syntax
+validation, but parameter-name validation waits for a mechanical declaration.
+All non-trait text permits no instance placeholders. Unconsumed locale leaves are
+reported individually as informational `unused-entry` diagnostics. Temporary text
+is recognized by a nonempty `[TEMPORARY: ...]` marker and reported separately.
+
+Success returns detached resolved maps, diagnostics, and only
+`metadata: { language, allowEnglishFallback }`. Failure returns diagnostics with
+no publishable partial definitions. Array and source insertion order, mechanical
+values, and literal instance placeholders are preserved. No input objects are
+mutated or shared with the output.
+
+Hosts own filesystem/YAML loading and artifact serialization. They must reject
+duplicate keys **within a YAML document** while parsing (for example, YAML's
+`uniqueKeys: true`): a parsed object cannot reveal keys already collapsed by its
+parser. The compiler rejects duplicate content keys across content shards and
+duplicate locale entry keys across shards of the same language/domain, even when
+those shards provide disjoint fields. Canonical language spelling rejects aliases
+and case variants rather than merging them.
+
+Reference parsing, coverage, fallback, and placeholder validation belong behind
+this shared interface. Canonical display tables and classification policy remain
+deferred. Source/artifact hashing, `sourceRevision`, and transport metadata belong
+to Creation Kit's host build tools, not the shared compiler or Core runtime.
 
 Diagnostics need a stable code, severity, source file and field/key path, language,
 and reference/placeholder where applicable. Distinguish malformed reference,
@@ -339,7 +412,7 @@ result; authoring inspection can still report incomplete languages. Validate and
 prepare all results before replacing generated output, as the current generator
 does; do not claim transactional disk writes or live publication.
 
-Creation Kit then projects only `race`, `skill`, and `trait` into its existing
+Creation Kit projects only `race`, `skill`, and `trait` into its
 indexes/definition artifacts and uses Core validators on resolved definitions.
 Birthsign authoring is checked/resolved by the shared compiler, without adding
 `birthsign` to `ContentDefinitions`, `ContentKind`, or `ContentCatalog`.
@@ -355,7 +428,7 @@ pack generation are deferred.
 
 Preserve `ContentVersion = { schemaVersion, revision }`. Do not add localization
 properties to Core definitions or require a new runtime language operation.
-Use a separate proposed artifact metadata record:
+Use a separate artifact `localization` metadata record:
 
 - `language`: the requested canonical tag, even when some leaves use English.
 - `sourceRevision`: deterministic SHA-256 identity of normalized authored content
@@ -375,13 +448,10 @@ languages with the same catalog revision.
 
 Keep one immutable language/revision per published artifact set and catalog.
 Transport manifests/envelopes may carry the separate localization metadata, with
-matching identity checked by the host adapter on every read. This is a **planned
-transport change**: the current schemas/layout do not support it. Bump
-`CONTENT_ARTIFACT_FORMAT` and update transport validation together when implementing
-it. Core receives only its existing version pair and plain definitions. Retain
-revision-qualified paths and existing safe definition filename encoding; language
-selection/root layout can be decided during host integration, not through an
-in-session language switch.
+matching identity checked by the host adapter on every read. Creation Kit uses
+`CONTENT_ARTIFACT_FORMAT = 2`; bump it for transport or compilation identity changes.
+Core receives only its existing version pair and plain definitions. Revision-qualified
+paths and safe definition filename encoding are retained.
 
 A host selects a compiled artifact set before initializing its catalog. Changing
 content language or revision requires a fresh catalog/runtime/creator as today.
@@ -389,23 +459,85 @@ Do not mutate active definitions, add automatic runtime fallback, polling, or a
 picker as a consequence of this contract. Caching/deduplication and retry behavior
 remain host responsibilities under the existing catalog interface.
 
+### Creation Kit host pipeline and transport
+
+`generateContent(sourceDirectory, outputDirectory, options)` returns one manifest
+per requested language. Options are `languages` (default `["en"]`),
+`allowEnglishFallback` (default `false`), `localeDirectory` (default the content
+directory's sibling `locales/`), and `onDiagnostic`. The callback receives shared
+compiler diagnostics, including informational unused/temporary leaves and per-leaf
+fallback records. The CLI accepts repeatable `--language` and the explicit
+`--allow-english-fallback` flag, printing fallback diagnostics with source paths.
+All supplied shards are validated even if their languages are not requested.
+
+Every requested language is compiled, runtime-validated, serialized, and held in
+memory before the generated directory is removed. A compilation failure preserves
+all previous output. Replacing files is not a transactional disk operation: an I/O
+failure after removal can leave an incomplete directory. This is a pre-build step,
+not live publication. Generation replaces old revisions and unselected languages.
+
+The format-2 layout under `content/` is:
+
+- `<language>/manifest.json`: `{ artifactFormat, version, localization }`.
+- `<language>/<revision>/<kind>/index.json`: the same identity plus `kind` and
+  lightweight `entries: [{ key, label }]`.
+- `<language>/<revision>/<kind>/definitions/<encoded-key>.json`: the same identity
+  plus `kind`, `key`, and a plain Core `definition`.
+
+Kinds remain `race`, `skill`, and `trait`. Filenames use `encodeURIComponent` plus
+encoding for dots and remaining URI punctuation (`!'()*`). HTTP consumers encode
+that disk filename again as one path segment. The separate `definitions/` directory
+avoids collisions with a definition named `index`. Shared authoring restricts keys
+to its identifier grammar, while transport encoding remains safe for arbitrary
+runtime catalog keys.
+
+`sourceRevision` hashes the merged parsed authored maps for all four domains before
+resolution, after successful validation; source paths and shard boundaries are
+excluded. Localized revisions hash that identity, Core schema, artifact/compiler
+format, language/fallback policy, all four resolved maps, and consumed translation
+leaves. Consumed leaves are supplied leaves not marked `unused-entry` by the shared
+compiler; this includes English used for coverage/parity and fallback. Temporary
+status is encoded in the preserved text marker. Staged unused text is validated
+but excluded from the localized hash and never emitted as playable definitions.
+Sorted object keys make source filenames, mapping order, comments, and YAML
+formatting irrelevant; meaningful array order remains significant.
+
+`BrowserContentCatalog.create({ language })` defaults to `en`, validates exact
+canonical spelling, and reads only that language's manifest. It pins an immutable
+Core version pair and separate immutable localization metadata. Every response
+must match language, source revision, artifact revision, fallback policy, and the
+supported artifact/schema formats. No browser-locale discovery or runtime fallback
+occurs. Only indexes remain cached; concurrent definition reads share a pending
+request and release it on either outcome. Reads return detached values and failed
+reads can be retried. The application-owned retryable catalog loader is shared
+across consumers; switching content requires a fresh runtime/catalog/creator.
+
+Filesystem access, SHA-256, YAML parsing, and the shared build-only compiler remain
+outside the browser bundle and Core runtime.
+
 ## Follow-through constraints
 
-Later implementation should test the compiler through its shared interface:
+The compiler is tested through its public subpath interface for:
 complete English coverage of all four domains; incomplete non-English authoring;
 strict publication versus explicit English fallback; visible temporary text versus
 absent keys; effective-pair placeholder parity after fallback, including mixed
 temporary/approved fields; malformed references and placeholder errors;
 preservation of mechanics and deferred instance placeholders;
-deterministic language/source/artifact identity;
-and absence of unresolved references in successful results. Host pipeline tests
-should verify resolved indexes and definitions without widening runtime kinds.
+language/fallback metadata; detached outputs; and absence of unresolved references
+in successful results. Host pipeline tests cover deterministic source/artifact
+identity and resolved indexes/definitions without widening runtime kinds.
+
+The host's file-backed pipeline integration also renders Forge with the real
+browser catalog and Core creator, using actual English authoring and a small
+test-only French shard with explicit English fallback. It checks resolved race
+labels/descriptions, translated racial skill options and selected skills, staged
+race exclusion, and retained choices across wizard dismissal and Back navigation.
+This fixture does not establish production French translation coverage. Real-browser
+checks remain necessary for reachability and desktop/mobile presentation.
 
 Canonical-term coverage, classification policy, and display-table output are not
 reference-compilation acceptance requirements. Revisit their design and any
 necessary artifact identity changes only when an instance-formatting consumer
 requires them; confirm unknown parameter semantics then without inventing prose.
-Before publishing localized host artifacts,
-settle their metadata envelopes and root layout together with compatibility checks.
-These are implementation seams requiring attention, not reasons to invent rules,
-block temporary text, or extend the authorized documentation-only work.
+Future hosts should settle their metadata envelopes and root layout together with
+compatibility checks, without expanding reference compilation into instance formatting.

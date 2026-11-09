@@ -443,8 +443,13 @@ Column headings (including favored stars) and Bonus cells do not trigger tooltip
 and are not additional keyboard tab stops.
 The native, keyboard-focusable scroll container preserves horizontal scrolling on
 narrow screens. The table does not require explanatory product prose.
-Traits retain keys/parameters and skills retain resolved ranks; unresolved
-labels fall back to readable keys and placeholder descriptions are omitted.
+Traits retain readable keys/raw parameters and skills retain resolved ranks.
+Forge displays compiled labels and race descriptions directly as plain text;
+it neither resolves nor hides authored `LOCALE` references. Readable-key fallback
+is only for genuinely optional missing labels, not English fallback. The compiler
+owns required display coverage and explicit per-leaf English fallback. Markdown
+rendering, trait-definition display reads, and applied-template formatting are
+not implemented. Literal player names and parameter values are not translated.
 
 Core registers only `race` then `characteristics`. Valid race answers enable Next;
 Back preserves answers. Invalidating an earlier step blocks Core finish eligibility
@@ -504,7 +509,11 @@ container-query layout geometry.
 `scripts/content-pipeline.test.ts` compiles YAML to temporary files under
 `/tmp/opencode`, then reads those files through the real browser catalog and creator.
 Its file-backed fetch seam models a static host's single URL-decoding pass. Script
-checks include DOM and Vite types; Node types stay outside the browser config.
+tests also render Forge from actual English authoring and minimal test-only French
+shards, exercising compiled labels/descriptions, racial skill options, staged race
+exclusion, and navigation/dismissal retention with a real creator. Script checks
+include JSX, DOM, Mantine collection, and Vite types for that integration; Node
+types stay outside the browser config.
 
 Run `pnpm --filter @wayshrine/creation-kit test` for frontend and content compiler
 tests, and `pnpm --filter @wayshrine/core test` for shared type and rule checks.
@@ -521,4 +530,6 @@ snapshots and guards. Keep shared UI feature-local until another tool needs it;
 do not introduce a second wizard or rules calculator. The application catalog
 outlives Forge sessions and represents a pinned revision. Content updates require
 a fresh runtime/catalog and creator rather than swapping definitions inside a
-session; see the [static content maintenance instructions](../../README.md#creation-kit-static-content).
+session. Changing content language has the same requirement: each catalog pins
+one compiled language and fallback policy, with no UI picker or runtime fallback.
+See the [static content maintenance instructions](../../README.md#creation-kit-static-content).

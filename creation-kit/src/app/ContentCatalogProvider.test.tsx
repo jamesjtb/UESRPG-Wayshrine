@@ -11,6 +11,16 @@ import {
   useContentCatalog,
 } from "./ContentCatalogProvider";
 
+const manifest = {
+  version: testCatalog.version,
+  artifactFormat: 2,
+  localization: {
+    language: "en",
+    sourceRevision: "a".repeat(64),
+    allowEnglishFallback: false,
+  },
+};
+
 function Consumer() {
   const state = useContentCatalog();
   if (state.status === "ready") return <p>{state.catalog.version.revision}</p>;
@@ -36,7 +46,7 @@ describe("ContentCatalogProvider", () => {
       </StrictMode>,
     );
     await waitFor(() => expect(fetchContent).toHaveBeenCalledTimes(1));
-    await act(async () => pending.resolve(Response.json(testCatalog.version)));
+    await act(async () => pending.resolve(Response.json(manifest)));
     expect(await screen.findAllByText("test")).toHaveLength(2);
     expect(fetchContent).toHaveBeenCalledTimes(1);
   });
@@ -52,7 +62,7 @@ describe("ContentCatalogProvider", () => {
     );
     await waitFor(() => expect(fetchContent).toHaveBeenCalledTimes(1));
     first.unmount();
-    await act(async () => pending.resolve(Response.json(testCatalog.version)));
+    await act(async () => pending.resolve(Response.json(manifest)));
     render(
       <ContentCatalogProvider loadCatalog={load}>
         <Consumer />
@@ -109,7 +119,7 @@ describe("ContentCatalogProvider", () => {
     const fetchContent = vi
       .fn<typeof fetch>()
       .mockReturnValueOnce(pending.promise)
-      .mockResolvedValueOnce(Response.json(testCatalog.version));
+      .mockResolvedValueOnce(Response.json(manifest));
     const load = createContentCatalogLoader({ fetch: fetchContent });
     render(<App loadCatalog={load} />);
     expect(

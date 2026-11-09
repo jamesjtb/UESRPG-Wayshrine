@@ -2,6 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 import { deferred } from "../../test/content";
 import { createContentCatalogLoader } from "./catalog";
 
+const manifest = {
+  version: { schemaVersion: 1, revision: "one" },
+  artifactFormat: 2,
+  localization: {
+    language: "en",
+    sourceRevision: "a".repeat(64),
+    allowEnglishFallback: false,
+  },
+};
+
 describe("host content catalog loader", () => {
   it("shares one pending initialization and retains the successful catalog", async () => {
     const pending = deferred<Response>();
@@ -10,7 +20,7 @@ describe("host content catalog loader", () => {
     const first = load();
     expect(load()).toBe(first);
     expect(fetchContent).toHaveBeenCalledTimes(1);
-    pending.resolve(Response.json({ schemaVersion: 1, revision: "one" }));
+    pending.resolve(Response.json(manifest));
     const catalog = await first;
     expect(await load()).toBe(catalog);
     expect(fetchContent).toHaveBeenCalledTimes(1);
@@ -20,9 +30,7 @@ describe("host content catalog loader", () => {
     const fetchContent = vi
       .fn<typeof fetch>()
       .mockRejectedValueOnce(new Error("offline"))
-      .mockResolvedValueOnce(
-        Response.json({ schemaVersion: 1, revision: "one" }),
-      );
+      .mockResolvedValueOnce(Response.json(manifest));
     const load = createContentCatalogLoader({ fetch: fetchContent });
     const first = load();
     expect(load()).toBe(first);

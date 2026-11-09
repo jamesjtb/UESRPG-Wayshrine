@@ -12,13 +12,17 @@ import type {
     ContentVersion,
 } from "@wayshrine/core";
 import {
+    CONTENT_ARTIFACT_FORMAT,
     definitionArtifactSchema,
     definitionFilename,
     indexArtifactSchema,
     manifestSchema,
+    languageSchema,
 } from "./artifacts";
+import type { ContentManifest } from "./artifacts";
 
 export interface BrowserContentCatalogOptions {
+    language?: string;
     baseUrl?: string;
     fetch?: typeof fetch;
 }
@@ -36,7 +40,10 @@ async function fetchJson(
         });
     }
     if (response.status === 401 || response.status === 403) {
-        throw new ContentError("content-access-denied", `Access denied: ${url}.`);
+        throw new ContentError(
+            "content-access-denied",
+            `Access denied: ${url}.`,
+        );
     }
     if (!response.ok) {
         throw new ContentError(
@@ -82,9 +89,40 @@ function validateEnvelopeVersion(value: unknown, expected: ContentVersion) {
     }
 }
 
+function validateFormat(value: unknown) {
+    if (
+        value !== null &&
+        typeof value === "object" &&
+        "artifactFormat" in value &&
+        value.artifactFormat !== CONTENT_ARTIFACT_FORMAT
+    ) {
+        throw new ContentError(
+            "incompatible-content",
+            "Unsupported content artifact format.",
+        );
+    }
+}
+
+function validateLocalization(
+    actual: ContentManifest["localization"],
+    expected: ContentManifest["localization"],
+) {
+    if (
+        actual.language !== expected.language ||
+        actual.sourceRevision !== expected.sourceRevision ||
+        actual.allowEnglishFallback !== expected.allowEnglishFallback
+    ) {
+        throw new ContentError(
+            "content-version-mismatch",
+            "Content localization identity changed. Reload to start a new session.",
+        );
+    }
+}
+
 /** One host-owned revision. Only summaries survive settled reads. */
 export class BrowserContentCatalog implements ContentCatalog {
     readonly version: ContentVersion;
+    readonly localization: ContentManifest["localization"];
     private readonly indexes = new Map<
         ContentKind,
         Promise<readonly ContentSummary[]>
@@ -92,11 +130,12 @@ export class BrowserContentCatalog implements ContentCatalog {
     private readonly definitions = new Map<string, Promise<unknown>>();
 
     private constructor(
-        version: ContentVersion,
+        manifest: ContentManifest,
         private readonly contentUrl: string,
         private readonly fetchContent: typeof fetch,
     ) {
-        this.version = Object.freeze({ ...version });
+        this.version = Object.freeze({ ...manifest.version });
+        this.localization = Object.freeze({ ...manifest.localization });
         Object.freeze(this);
     }
 
@@ -107,17 +146,45 @@ export class BrowserContentCatalog implements ContentCatalog {
             options.baseUrl ?? import.meta.env.BASE_URL,
             document.baseURI,
         );
-        const contentUrl = new URL("content/", baseUrl).href;
+        const language = languageSchema.safeParse(options.language ?? "en");
+        if (!language.success)
+            throw new ContentError(
+                "invalid-content",
+                "Expected a canonical content language.",
+            );
+        const contentUrl = new URL(
+            `content/${encodeURIComponent(language.data)}/`,
+            baseUrl,
+        ).href;
         const fetchContent = options.fetch ?? globalThis.fetch.bind(globalThis);
-        const value = await fetchJson(fetchContent, `${contentUrl}manifest.json`);
-        validateVersion(value);
+        const value = await fetchJson(
+            fetchContent,
+            `${contentUrl}manifest.json`,
+        );
+        validateFormat(value);
+        if (value !== null && typeof value === "object" && "version" in value)
+            validateVersion(value.version);
         const manifest = manifestSchema.safeParse(value);
         if (!manifest.success) {
-            throw new ContentError("invalid-content", "Invalid content manifest.", {
-                cause: manifest.error,
-            });
+            throw new ContentError(
+                "invalid-content",
+                "Invalid content manifest.",
+                {
+                    cause: manifest.error,
+                },
+            );
         }
-        return new BrowserContentCatalog(manifest.data, contentUrl, fetchContent);
+        if (manifest.data.localization.language !== language.data) {
+            throw new ContentError(
+                "content-version-mismatch",
+                "Manifest language does not match the requested language.",
+            );
+        }
+        return new BrowserContentCatalog(
+            manifest.data,
+            contentUrl,
+            fetchContent,
+        );
     }
 
     async list(kind: ContentKind): Promise<readonly ContentSummary[]> {
@@ -162,9 +229,13 @@ export class BrowserContentCatalog implements ContentCatalog {
         const value = await this.read(`${kind}/index.json`);
         const result = indexArtifactSchema.safeParse(value);
         if (!result.success) {
-            throw new ContentError("invalid-content", "Invalid content index.", {
-                cause: result.error,
-            });
+            throw new ContentError(
+                "invalid-content",
+                "Invalid content index.",
+                {
+                    cause: result.error,
+                },
+            );
         }
         if (result.data.kind !== kind) {
             throw new ContentError(
@@ -205,6 +276,15 @@ export class BrowserContentCatalog implements ContentCatalog {
             `${this.contentUrl}${revision}/${path}`,
         );
         validateEnvelopeVersion(value, this.version);
+        validateFormat(value);
+        // Strip payload fields only here; the complete envelope is checked by its reader.
+        const identity = manifestSchema.strip().safeParse(value);
+        if (!identity.success)
+            throw new ContentError(
+                "invalid-content",
+                "Invalid content localization identity.",
+            );
+        validateLocalization(identity.data.localization, this.localization);
         return value;
     }
 }

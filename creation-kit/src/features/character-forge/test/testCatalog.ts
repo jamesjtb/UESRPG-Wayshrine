@@ -24,8 +24,8 @@ export function fixtureCatalog(
 ) {
   const races: Record<string, Race> = {
     altmer: {
-      label: "{LOCALE.Race.Altmer}",
-      description: "{LOCALE.Description.Altmer}",
+      label: "Altmer",
+      description: "An Altmer description.",
       baselineCharacteristics,
       racialTraits: [
         { traitKey: "magicWeakness", params: { type: "magic", X: 2 } },
@@ -67,7 +67,7 @@ export function fixtureCatalog(
     skill: {
       alchemy: {
         skillKey: "alchemy",
-        label: "{LOCALE.Skill.Alchemy}",
+        label: "Alchemy",
         governingCharacteristics: ["int"],
       },
       alteration: { skillKey: "alteration", governingCharacteristics: ["wp"] },

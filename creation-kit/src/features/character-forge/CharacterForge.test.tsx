@@ -65,16 +65,25 @@ describe("Character Forge race editing", () => {
     const error = vi.mocked(console.error);
     const fixture = fixtureCatalog();
     let fail = true;
+    const manifest = {
+      version: fixture.version,
+      artifactFormat: 2,
+      localization: {
+        language: "en",
+        sourceRevision: "a".repeat(64),
+        allowEnglishFallback: false,
+      },
+    };
     const fetchContent = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
-      if (url.endsWith("manifest.json")) return Response.json(fixture.version);
+      if (url.endsWith("manifest.json")) return Response.json(manifest);
       const kind = contentKinds.find((candidate) =>
         url.includes(`/${candidate}/`),
       );
       if (!kind) throw new Error(`Unexpected fixture URL: ${url}`);
       if (url.endsWith("index.json")) {
         return Response.json({
-          version: fixture.version,
+          ...manifest,
           kind,
           entries: await fixture.list(kind),
         });
@@ -86,7 +95,7 @@ describe("Character Forge race editing", () => {
       const filename = new URL(url).pathname.split("/").at(-1)!;
       const key = decodeURIComponent(filename.slice(0, -".json".length));
       return Response.json({
-        version: fixture.version,
+        ...manifest,
         kind,
         key,
         definition: await fixture.get(kind, key),
@@ -228,7 +237,7 @@ describe("Character Forge race editing", () => {
     expect(preview().queryByText(/Baselines only/)).toBeNull();
     expect(screen.getByText("Choose 1").tagName).toBe("STRONG");
     expect(screen.queryByText(/Choose exactly/)).toBeNull();
-    expect(screen.queryByText(/\{LOCALE/)).toBeNull();
+    expect(preview().getByText("An Altmer description.")).toBeTruthy();
     await user.click(screen.getByRole("checkbox", { name: "Alchemy" }));
     expect(await preview().findByText("Alchemy (Novice)")).toBeTruthy();
     expect(stepNavigation.getByRole("button", { name: "Back" })).toHaveProperty(

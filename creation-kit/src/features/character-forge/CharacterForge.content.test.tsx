@@ -185,17 +185,25 @@ describe("Character Forge content validation", () => {
     async (field) => {
       const fixture = fixtureCatalog();
       const response = deferred<Response>();
+      const manifest = {
+        version: fixture.version,
+        artifactFormat: 2,
+        localization: {
+          language: "en",
+          sourceRevision: "a".repeat(64),
+          allowEnglishFallback: false,
+        },
+      };
       const fetchContent = vi.fn<typeof fetch>(async (input) => {
         const url = String(input);
-        if (url.endsWith("manifest.json"))
-          return Response.json(fixture.version);
+        if (url.endsWith("manifest.json")) return Response.json(manifest);
         const kind = contentKinds.find((candidate) =>
           url.includes(`/${candidate}/`),
         );
         if (!kind) throw new Error(`Unexpected fixture URL: ${url}`);
         if (url.endsWith("index.json"))
           return Response.json({
-            version: fixture.version,
+            ...manifest,
             kind,
             entries: await fixture.list(kind),
           });
@@ -216,6 +224,7 @@ describe("Character Forge content validation", () => {
       await act(async () =>
         response.resolve(
           Response.json({
+            ...manifest,
             version,
             kind: "race",
             key: "altmer",

@@ -6,23 +6,45 @@ import {
 import { z } from "zod";
 
 // Bump when the transport layout or encoding changes, even if Core does not.
-export const CONTENT_ARTIFACT_FORMAT = 1;
+export const CONTENT_ARTIFACT_FORMAT = 2;
 export const contentKinds = ["race", "skill", "trait"] as const;
 const kindSchema = z.enum(contentKinds);
 
-export const manifestSchema = contentVersionSchema.extend({
+const versionSchema = contentVersionSchema.extend({
   schemaVersion: z.literal(CONTENT_SCHEMA_VERSION),
 });
 
+export const languageSchema = z.string().refine((language) => {
+  try {
+    return Intl.getCanonicalLocales(language)[0] === language;
+  } catch {
+    return false;
+  }
+}, "Expected an exact canonical BCP 47 language tag.");
+
+export const localizationSchema = z.strictObject({
+  language: languageSchema,
+  sourceRevision: z.string().regex(/^[a-f0-9]{64}$/),
+  allowEnglishFallback: z.boolean(),
+});
+
+const identity = {
+  artifactFormat: z.literal(CONTENT_ARTIFACT_FORMAT),
+  version: versionSchema,
+  localization: localizationSchema,
+};
+
+export const manifestSchema = z.strictObject(identity);
+
 export const indexArtifactSchema = z.strictObject({
-  version: manifestSchema,
+  ...identity,
   kind: kindSchema,
   entries: contentIndexSchema,
 });
 
 // Transport only: readers validate the payload with Core's parseContentDefinition.
 export const definitionArtifactSchema = z.strictObject({
-  version: manifestSchema,
+  ...identity,
   kind: kindSchema,
   key: z.string().min(1),
   definition: z.unknown(),

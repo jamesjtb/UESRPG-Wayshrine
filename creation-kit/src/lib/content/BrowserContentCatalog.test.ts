@@ -4,21 +4,32 @@ import { deferred } from "../../test/content";
 import { BrowserContentCatalog } from "./BrowserContentCatalog";
 
 const version = { schemaVersion: 1, revision: "revision-one" };
+const localization = {
+  language: "en",
+  sourceRevision: "a".repeat(64),
+  allowEnglishFallback: false,
+};
+const manifest = { version, localization, artifactFormat: 2 };
 const trait = { label: "Trait", description: "Description", params: ["X"] };
 const index = {
-  version,
+  ...manifest,
   kind: "trait",
   entries: [{ key: "trait", label: "Trait" }],
 };
-const definition = { version, kind: "trait", key: "trait", definition: trait };
+const definition = {
+  ...manifest,
+  kind: "trait",
+  key: "trait",
+  definition: trait,
+};
 const baseUrl = "https://example.test/tools/";
-const manifestUrl = `${baseUrl}content/manifest.json`;
-const indexUrl = `${baseUrl}content/${version.revision}/trait/index.json`;
-const definitionUrl = `${baseUrl}content/${version.revision}/trait/definitions/trait.json`;
+const manifestUrl = `${baseUrl}content/en/manifest.json`;
+const indexUrl = `${baseUrl}content/en/${version.revision}/trait/index.json`;
+const definitionUrl = `${baseUrl}content/en/${version.revision}/trait/definitions/trait.json`;
 
 function fixture() {
   const responses = new Map<string, unknown>([
-    [manifestUrl, version],
+    [manifestUrl, manifest],
     [indexUrl, index],
     [definitionUrl, definition],
   ]);
@@ -34,6 +45,75 @@ function fixture() {
 }
 
 describe("BrowserContentCatalog", () => {
+  it("selects an explicit canonical language and pins localization metadata", async () => {
+    const { fetchContent, responses } = fixture();
+    const french = {
+      ...manifest,
+      localization: { ...localization, language: "fr" },
+    };
+    responses.set(`${baseUrl}content/fr/manifest.json`, french);
+    const catalog = await BrowserContentCatalog.create({
+      baseUrl,
+      language: "fr",
+      fetch: fetchContent,
+    });
+    expect(catalog.localization).toEqual(french.localization);
+    expect(Object.isFrozen(catalog.localization)).toBe(true);
+    expect(fetchContent).toHaveBeenCalledExactlyOnceWith(
+      `${baseUrl}content/fr/manifest.json`,
+    );
+    await expect(
+      BrowserContentCatalog.create({
+        baseUrl,
+        language: "EN",
+        fetch: fetchContent,
+      }),
+    ).rejects.toMatchObject({ code: "invalid-content" });
+    responses.set(`${baseUrl}content/fr/manifest.json`, manifest);
+    await expect(
+      BrowserContentCatalog.create({
+        baseUrl,
+        language: "fr",
+        fetch: fetchContent,
+      }),
+    ).rejects.toMatchObject({ code: "content-version-mismatch" });
+  });
+
+  it.each(["index", "definition"])(
+    "rejects mixed localization and incompatible formats in %s",
+    async (resource) => {
+      const { create, responses } = fixture();
+      const catalog = await create();
+      const url = resource === "index" ? indexUrl : definitionUrl;
+      const artifact = resource === "index" ? index : definition;
+      for (const changed of [
+        { language: "fr" },
+        { sourceRevision: "b".repeat(64) },
+        { allowEnglishFallback: true },
+      ]) {
+        responses.set(url, {
+          ...artifact,
+          localization: { ...localization, ...changed },
+        });
+        await expect(catalog.get("trait", "trait")).rejects.toMatchObject({
+          code: "content-version-mismatch",
+        });
+      }
+      responses.set(url, { ...artifact, artifactFormat: 1 });
+      await expect(catalog.get("trait", "trait")).rejects.toMatchObject({
+        code: "incompatible-content",
+      });
+    },
+  );
+
+  it("rejects unsupported manifest formats", async () => {
+    const { create, responses } = fixture();
+    responses.set(manifestUrl, { ...manifest, artifactFormat: 1 });
+    await expect(create()).rejects.toMatchObject({
+      code: "incompatible-content",
+    });
+  });
+
   it("loads only the manifest, relevant lightweight index, and requested definition", async () => {
     const { create, fetchContent } = fixture();
     const catalog = await create();
@@ -65,7 +145,7 @@ describe("BrowserContentCatalog", () => {
 
   it.each([
     {
-      value: { schemaVersion: 2, revision: "new" },
+      value: { ...manifest, version: { schemaVersion: 2, revision: "new" } },
       code: "incompatible-content",
     },
     { value: { schemaVersion: 0, revision: "new" }, code: "invalid-content" },
@@ -173,7 +253,7 @@ describe("BrowserContentCatalog", () => {
       window.history.replaceState(null, "", "/tools/#/character-forge");
       const { fetchContent, responses } = fixture();
       responses.set(indexUrl, { ...index, entries: [{ key, label: "Trait" }] });
-      const url = `${baseUrl}content/${version.revision}/trait/definitions/${filename}`;
+      const url = `${baseUrl}content/en/${version.revision}/trait/definitions/${filename}`;
       responses.set(url, { ...definition, key });
       const catalog = await BrowserContentCatalog.create({
         baseUrl: new URL("./", baseUrl).href,
@@ -188,10 +268,10 @@ describe("BrowserContentCatalog", () => {
     window.history.replaceState(null, "", "/tools/#/character-forge");
     const fetchContent = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(Response.json(version));
+      .mockResolvedValue(Response.json(manifest));
     await BrowserContentCatalog.create({ baseUrl: "./", fetch: fetchContent });
     expect(fetchContent).toHaveBeenCalledWith(
-      `${window.location.origin}/tools/content/manifest.json`,
+      `${window.location.origin}/tools/content/en/manifest.json`,
     );
   });
 
@@ -271,24 +351,24 @@ describe("BrowserContentCatalog", () => {
         },
       ],
     };
-    responses.set(`${baseUrl}content/${version.revision}/race/index.json`, {
-      version,
+    responses.set(`${baseUrl}content/en/${version.revision}/race/index.json`, {
+      ...manifest,
       kind: "race",
       entries: [{ key: "race", label: "Race" }],
     });
     responses.set(
-      `${baseUrl}content/${version.revision}/race/definitions/race.json`,
-      { version, kind: "race", key: "race", definition: race },
+      `${baseUrl}content/en/${version.revision}/race/definitions/race.json`,
+      { ...manifest, kind: "race", key: "race", definition: race },
     );
-    responses.set(`${baseUrl}content/${version.revision}/skill/index.json`, {
-      version,
+    responses.set(`${baseUrl}content/en/${version.revision}/skill/index.json`, {
+      ...manifest,
       kind: "skill",
       entries: [{ key: "skill", label: "Skill" }],
     });
     responses.set(
-      `${baseUrl}content/${version.revision}/skill/definitions/skill.json`,
+      `${baseUrl}content/en/${version.revision}/skill/definitions/skill.json`,
       {
-        version,
+        ...manifest,
         kind: "skill",
         key: "skill",
         definition: { skillKey: "skill", governingCharacteristics: ["int"] },

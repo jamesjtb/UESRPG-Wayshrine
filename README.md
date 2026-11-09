@@ -125,62 +125,51 @@ the other five planned tools remain disabled.
 ### Creation Kit static content
 
 `dev` and `build` first run `pnpm --filter @wayshrine/creation-kit generate:content`.
-The compiler reads sorted `.yml` and `.yaml` files directly in
-`core/content/{races,skills,traits}/`, rejects malformed or duplicate definitions,
-and uses Core's definition, choice, and reference validators. These are the only
-content inputs; top-level map keys are stable definition keys, not filenames.
+The default publishes English using `core/content/{races,skills,traits,birthsigns}/`
+and `core/locales/`. All authored domains and supplied locale shards are validated;
+only races, skills, and traits are exported as playable catalog definitions.
 Restart the dev server after editing YAML; there is no content watcher yet.
 
-Generated files live in ignored `creation-kit/public/content/` and are copied to
-`dist/content/` by Vite, with no YAML parser or authored YAML in the browser bundle:
+To edit or contribute text, change the appropriate shard under
+`core/locales/<language>/{races,skills,traits,birthsigns}/`. Copy the English shard
+layout for a new language, retaining content keys, `label`/`description` fields,
+and instance placeholders such as `{X}` and `{type}` exactly. Translate prose,
+not mechanical keys or player-authored names. Missing approved prose must remain
+visibly marked `[TEMPORARY: ...]`; do not invent rules text.
+Run `generate:content` for the selected language to validate and compile your edits,
+then run the Core and Creation Kit tests. The
+[authoring contract](docs/development/content-localization.md#locale-authoring-and-explicit-references)
+details coverage and placeholder requirements. Locale-only staged entries do not
+add selectable races or other playable definitions.
 
-- `manifest.json`: `{ schemaVersion, revision }`.
-- `<revision>/<kind>/index.json`: `{ version, kind, entries }`, where `version` is
-  the manifest shape and entries contain only `{ key, label }`.
-- `<revision>/<kind>/definitions/<encoded-key>.json`:
-  `{ version, kind, key, definition }`, with a plain Core definition.
+Select canonical languages explicitly with repeatable `--language` options:
 
-Kinds are `race`, `skill`, and `trait`. Definition filenames use `encodeURIComponent`
-with dots and remaining URI punctuation (`!'()*`) additionally percent-encoded.
-HTTP consumers must URL-encode the resulting filename as one path segment (so
-literal percent signs in filenames survive URL decoding). The `definitions/`
-directory prevents a key named `index` from colliding with the browse index.
-Labels remain authored localization placeholders, falling back to the key when
-absent; there is no translation infrastructure.
+```sh
+pnpm --filter @wayshrine/creation-kit generate:content --language en --language fr
+# Permit missing French leaves to use English, reporting each fallback:
+pnpm --filter @wayshrine/creation-kit generate:content --language en --language fr --allow-english-fallback
+```
 
-The SHA-256 revision covers validated content, Core's schema version, and the
-artifact-format version. Object keys and definition ordering are canonicalized;
-array order remains significant. Filenames, comments, and YAML formatting do not
-affect revisions. Shared transport schemas live in
-`creation-kit/src/lib/content/artifacts.ts`; bump `CONTENT_ARTIFACT_FORMAT` if the
-transport layout or filename encoding changes.
+Strict publication fails if selected translations are incomplete. English coverage
+is always required. Production currently authors English only; other-language
+publication needs contributed locale text or the explicit fallback flag.
+To package a custom selection, run generation as above, then
+`pnpm --filter @wayshrine/creation-kit exec vite build`; the regular `build` command
+regenerates the English default. Run `pnpm --filter @wayshrine/creation-kit typecheck`
+before packaging a custom selection.
 
-The compiler validates all content and prepares every JSON file before changing
-output. On success it deletes and recreates `creation-kit/public/content/`.
-This directory is entirely generated: any files placed there are removed, including
-old revisions. A validation failure leaves previous output untouched; a disk-write
-failure can leave incomplete output. This is a pre-dev/pre-build step, not runtime-safe
-hot publication. Restart/reload after a content update. Keeping one build revision
-on disk is separate from any future browser catalog's memory-retention policy.
+Generated files live in ignored `creation-kit/public/content/`, copied into
+`dist/content/` by Vite. Each language has `<language>/manifest.json` and
+`<language>/<revision>/{race,skill,trait}/` indexes and definitions. Generation
+replaces this entire directory after all selected languages validate. Validation
+failure preserves previous output; disk-write failure can leave incomplete output.
+Restart/reload after an update.
 
-The shared definition envelope schema validates transport metadata only. Content
-readers must explicitly call Core's `parseContentDefinition` for its payload;
-the generator already does this when loading YAML.
-
-The browser catalog initializes from the manifest and pins all later reads to that
-revision. It validates response metadata and uses Core to validate each requested
-definition. Only lightweight indexes remain cached; concurrent definition reads
-share a pending request, then release it on success or failure. Returned values are
-detached, and indexed files that fail to load are errors, not absent keys.
-
-`main.tsx` owns one retryable catalog loader for the application runtime and injects
-it through the app providers. Consumers share that catalog independently of their
-mount/unmount lifetimes. Loading and retryable initialization errors do not block
-Home or navigation. Content changes require a fresh runtime/catalog/creator, not
-polling or swapping an active session's revision.
-
-Node types and YAML/TS execution dependencies are isolated to build-script checks,
-outside Core runtime and Creation Kit's browser TypeScript configuration.
+The application selects English by default. Integrators can initialize
+`BrowserContentCatalog.create({ language: "fr" })` against a compiled French set;
+changing language requires a fresh catalog/runtime/creator. There is no UI picker.
+See the [localization and transport contract](docs/development/content-localization.md)
+for authoring, artifact identity, and adapter behavior.
 
 ### Character Sheet
 

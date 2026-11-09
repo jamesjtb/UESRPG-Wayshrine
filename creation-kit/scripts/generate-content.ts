@@ -2,6 +2,13 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
+import { compileContentLocalization } from "@wayshrine/core/content-localization";
+import type {
+  ContentSource,
+  LocaleSource,
+  LocalizationDiagnostic,
+} from "@wayshrine/core/content-localization";
 import {
   CONTENT_SCHEMA_VERSION,
   parseContentDefinition,
@@ -11,16 +18,17 @@ import type {
   ContentDefinitions,
   ContentKind,
   ContentSummary,
-  ContentVersion,
 } from "@wayshrine/core";
 import { isMap, parseDocument } from "yaml";
 import {
   CONTENT_ARTIFACT_FORMAT,
   contentKinds,
   definitionFilename,
+  languageSchema,
 } from "../src/lib/content/artifacts";
+import type { ContentManifest } from "../src/lib/content/artifacts";
 
-const directories = { race: "races", skill: "skills", trait: "traits" };
+const domains = ["races", "skills", "traits", "birthsigns"] as const;
 
 /** Sort object keys before JSON.stringify; preserve meaningful array ordering. */
 function sortObjectKeys(value: unknown): unknown {
@@ -59,96 +67,237 @@ function prepareDefinition<K extends ContentKind>(
   return parseContentDefinition(kind, key, definition);
 }
 
-async function readDefinitionFile<K extends ContentKind>(
-  path: string,
-  kind: K,
-  definitions: Map<string, ContentDefinitions[K]>,
-) {
+async function readYaml(path: string): Promise<unknown> {
   const document = parseDocument(await readFile(path, "utf8"), {
     uniqueKeys: true,
     stringKeys: true,
   });
-  if (document.errors.length) throw document.errors[0];
-  if (!isMap(document.contents)) throw new Error("Expected a top-level map.");
+  if (document.errors.length)
+    throw new Error(`${path}: ${document.errors[0]!.message}`);
+  if (!isMap(document.contents))
+    throw new Error(`${path}: Expected a top-level map.`);
+  return document.toJS();
+}
 
-  for (const [key, authored] of Object.entries(document.toJS())) {
-    if (definitions.has(key)) throw new Error(`Duplicate ${kind} key: ${key}.`);
-    definitions.set(key, prepareDefinition(kind, key, authored));
+async function optionalDirectory(path: string): Promise<string[]> {
+  try {
+    return (await readdir(path)).sort();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
   }
 }
 
-async function readDefinitions<K extends ContentKind>(root: string, kind: K) {
-  const definitions = new Map<string, ContentDefinitions[K]>();
-  const directory = join(root, directories[kind]);
-  const files = (await readdir(directory))
-    .filter((file) => /\.ya?ml$/.test(file))
-    .sort();
-
-  for (const file of files) {
-    const path = join(directory, file);
-    try {
-      await readDefinitionFile(path, kind, definitions);
-    } catch (cause) {
-      throw new Error(`Invalid content in ${path}.`, { cause });
-    }
+async function readSources(root: string): Promise<ContentSource[]> {
+  const sources: ContentSource[] = [];
+  for (const domain of domains) {
+    sources.push(...(await readDomainSources(root, domain)));
   }
+  return sources;
+}
 
-  const ordered = [...definitions].sort(([left], [right]) =>
-    left < right ? -1 : 1,
-  );
-  return new Map(ordered);
+async function readDomainSources(
+  root: string,
+  domain: ContentSource["domain"],
+): Promise<ContentSource[]> {
+  const sources: ContentSource[] = [];
+  const directory = join(root, domain);
+  for (const file of await optionalDirectory(directory)) {
+    if (!/\.ya?ml$/.test(file)) continue;
+    const source = join(directory, file);
+    sources.push({ domain, source, data: await readYaml(source) });
+  }
+  return sources;
+}
+
+async function readLocales(root: string): Promise<LocaleSource[]> {
+  const sources: LocaleSource[] = [];
+  for (const language of await optionalDirectory(root)) {
+    // Check even empty language directories, before constructing output paths.
+    if (!languageSchema.safeParse(language).success) {
+      throw new Error(
+        `${join(root, language)}: Expected an exact canonical BCP 47 language directory.`,
+      );
+    }
+    const shards = await readSources(join(root, language));
+    sources.push(...shards.map((shard) => ({ ...shard, language })));
+  }
+  return sources;
+}
+
+function hash(value: unknown): string {
+  return createHash("sha256").update(toJson(value)).digest("hex");
+}
+
+function normalizedContent(sources: ContentSource[]) {
+  const result: Record<string, Record<string, unknown>> = Object.create(null);
+  for (const domain of domains) result[domain] = Object.create(null);
+  for (const shard of sources) Object.assign(result[shard.domain]!, shard.data);
+  return result;
+}
+
+/** The shared compiler marks every unconsumed leaf; do not reimplement resolution. */
+function consumedTranslations(
+  locales: LocaleSource[],
+  diagnostics: LocalizationDiagnostic[],
+) {
+  const unused = new Set<string>();
+  for (const item of diagnostics) {
+    if (item.code === "unused-entry")
+      unused.add(JSON.stringify([item.source, item.language, item.path]));
+  }
+  const consumed: Record<string, unknown> = Object.create(null);
+  for (const shard of locales) {
+    addConsumedShard(consumed, shard, unused);
+  }
+  return consumed;
+}
+
+function addConsumedShard(
+  consumed: Record<string, unknown>,
+  shard: LocaleSource,
+  unused: Set<string>,
+) {
+  // Called only after the compiler validates all supplied locale leaves.
+  const entries = shard.data as Record<string, Record<string, string>>;
+  for (const [key, entry] of Object.entries(entries)) {
+    addConsumedEntry(consumed, shard, key, entry, unused);
+  }
+}
+
+function addConsumedEntry(
+  consumed: Record<string, unknown>,
+  shard: LocaleSource,
+  key: string,
+  entry: Record<string, string>,
+  unused: Set<string>,
+) {
+  for (const [field, text] of Object.entries(entry)) {
+    if (
+      unused.has(JSON.stringify([shard.source, shard.language, [key, field]]))
+    )
+      continue;
+    // Temporary status is determined entirely by the preserved text marker.
+    consumed[`${shard.language}.${shard.domain}.${key}.${field}`] = text;
+  }
+}
+
+function runtimeDefinitions<K extends ContentKind>(
+  kind: K,
+  authored: Record<string, unknown>,
+) {
+  const definitions = new Map<string, ContentDefinitions[K]>();
+  for (const key of Object.keys(authored).sort()) {
+    definitions.set(key, prepareDefinition(kind, key, authored[key]));
+  }
+  return definitions;
 }
 
 function addKindArtifacts<K extends ContentKind>(
   files: Map<string, string>,
-  version: ContentVersion,
+  manifest: ContentManifest,
   kind: K,
   definitions: ReadonlyMap<string, ContentDefinitions[K]>,
 ) {
-  const directory = `${version.revision}/${kind}`;
+  const directory = `${manifest.localization.language}/${manifest.version.revision}/${kind}`;
   const entries: ContentSummary[] = [];
   for (const [key, definition] of definitions) {
     entries.push({ key, label: definition.label ?? key });
     const path = `${directory}/definitions/${definitionFilename(key)}`;
-    files.set(path, toJson({ version, kind, key, definition }));
+    files.set(path, toJson({ ...manifest, kind, key, definition }));
   }
-  files.set(`${directory}/index.json`, toJson({ version, kind, entries }));
+  files.set(`${directory}/index.json`, toJson({ ...manifest, kind, entries }));
+}
+
+export interface GenerateContentOptions {
+  localeDirectory?: string;
+  languages?: readonly string[];
+  allowEnglishFallback?: boolean;
+  onDiagnostic?: (diagnostic: LocalizationDiagnostic) => void;
+}
+
+function diagnosticMessage(item: LocalizationDiagnostic): string {
+  return `${item.source}:${item.path.join(".")} [${item.language}/${item.code}] ${item.message}`;
+}
+
+function prepareLanguage(
+  sources: ContentSource[],
+  locales: LocaleSource[],
+  language: string,
+  options: GenerateContentOptions,
+  files: Map<string, string>,
+): ContentManifest {
+  const result = compileContentLocalization({
+    content: sources,
+    locales,
+    language,
+    allowEnglishFallback: options.allowEnglishFallback ?? false,
+  });
+  for (const diagnostic of result.diagnostics)
+    options.onDiagnostic?.(diagnostic);
+  if (!result.success) {
+    const messages = result.diagnostics
+      .filter((item) => item.severity === "error")
+      .map(diagnosticMessage);
+    throw new Error(`Content localization failed:\n${messages.join("\n")}`);
+  }
+  const content = {
+    race: runtimeDefinitions("race", result.definitions.races),
+    skill: runtimeDefinitions("skill", result.definitions.skills),
+    trait: runtimeDefinitions("trait", result.definitions.traits),
+  };
+  const skillKeys = new Set(content.skill.keys());
+  for (const [key, race] of content.race) {
+    const issues = validateRaceContent(race, skillKeys, content.trait);
+    if (issues.length) {
+      const source = sources.find(
+        (shard) =>
+          shard.domain === "races" && Object.hasOwn(shard.data as object, key),
+      )!.source;
+      throw new Error(
+        `${source}:${key}: Invalid race: ${JSON.stringify(issues)}`,
+      );
+    }
+  }
+  const sourceRevision = hash(normalizedContent(sources));
+  const localization = { ...result.metadata, sourceRevision };
+  const revision = hash({
+    artifactFormat: CONTENT_ARTIFACT_FORMAT,
+    schemaVersion: CONTENT_SCHEMA_VERSION,
+    localization,
+    definitions: result.definitions,
+    consumedTranslations: consumedTranslations(locales, result.diagnostics),
+  });
+  const manifest: ContentManifest = {
+    artifactFormat: CONTENT_ARTIFACT_FORMAT,
+    version: { schemaVersion: CONTENT_SCHEMA_VERSION, revision },
+    localization,
+  };
+  files.set(`${language}/manifest.json`, toJson(manifest));
+  for (const kind of contentKinds)
+    addKindArtifacts(files, manifest, kind, content[kind]);
+  return manifest;
 }
 
 /** outputDirectory is entirely generated and is replaced after validation. */
 export async function generateContent(
   sourceDirectory: string,
   outputDirectory: string,
+  options: GenerateContentOptions = {},
 ) {
-  const content = {
-    race: await readDefinitions(sourceDirectory, "race"),
-    skill: await readDefinitions(sourceDirectory, "skill"),
-    trait: await readDefinitions(sourceDirectory, "trait"),
-  };
-
-  const skillKeys = new Set(content.skill.keys());
-  for (const [key, race] of content.race) {
-    const issues = validateRaceContent(race, skillKeys, content.trait);
-    if (issues.length)
-      throw new Error(`Invalid race ${key}: ${JSON.stringify(issues)}`);
+  await readdir(sourceDirectory); // A missing source root must not publish an empty catalog.
+  const sources = await readSources(sourceDirectory);
+  const locales = await readLocales(
+    options.localeDirectory ?? join(sourceDirectory, "../locales"),
+  );
+  const languages = options.languages ?? ["en"];
+  if (!languages.length || new Set(languages).size !== languages.length) {
+    throw new Error("Select at least one language, without duplicates.");
   }
-
-  const revisionInput = {
-    artifactFormat: CONTENT_ARTIFACT_FORMAT,
-    schemaVersion: CONTENT_SCHEMA_VERSION,
-    race: [...content.race],
-    skill: [...content.skill],
-    trait: [...content.trait],
-  };
-  const revision = createHash("sha256")
-    .update(toJson(revisionInput))
-    .digest("hex");
-  const version = { schemaVersion: CONTENT_SCHEMA_VERSION, revision };
-
   const files = new Map<string, string>();
-  files.set("manifest.json", toJson(version));
-  for (const kind of contentKinds) {
-    addKindArtifacts(files, version, kind, content[kind]);
+  const manifests: ContentManifest[] = [];
+  for (const language of languages) {
+    manifests.push(prepareLanguage(sources, locales, language, options, files));
   }
 
   // Prepare everything above before removing any previous generated output.
@@ -158,15 +307,29 @@ export async function generateContent(
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, contents);
   }
-  return version;
+  return manifests;
 }
 
 if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
+  const { values } = parseArgs({
+    options: {
+      language: { type: "string", multiple: true },
+      "allow-english-fallback": { type: "boolean", default: false },
+    },
+  });
   await generateContent(
     fileURLToPath(new URL("../../core/content/", import.meta.url)),
     fileURLToPath(new URL("../public/content/", import.meta.url)),
+    {
+      languages: values.language ?? ["en"],
+      allowEnglishFallback: values["allow-english-fallback"],
+      onDiagnostic: (diagnostic) => {
+        if (diagnostic.code === "fallback-used")
+          console.warn(diagnosticMessage(diagnostic));
+      },
+    },
   );
 }

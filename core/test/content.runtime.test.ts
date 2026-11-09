@@ -95,7 +95,12 @@ describe("authored content", () => {
     if (result.ok) {
       expect(result.value.skills).toEqual([
         {
-          skill: { skillKey: "necromancy", governingCharacteristics: ["int"] },
+          skill: {
+            skillKey: "necromancy",
+            label: "{LOCALE.skills.necromancy.label}",
+            description: "{LOCALE.skills.necromancy.description}",
+            governingCharacteristics: ["int"],
+          },
           skillRank: SkillRank.Novice,
         },
       ]);

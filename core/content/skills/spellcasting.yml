@@ -1,21 +1,35 @@
 alteration:
+  label: "{LOCALE.skills.alteration.label}"
+  description: "{LOCALE.skills.alteration.description}"
   governingCharacteristics:
     - wp
 conjuration:
+  label: "{LOCALE.skills.conjuration.label}"
+  description: "{LOCALE.skills.conjuration.description}"
   governingCharacteristics:
     - wp
 destruction:
+  label: "{LOCALE.skills.destruction.label}"
+  description: "{LOCALE.skills.destruction.description}"
   governingCharacteristics:
     - wp
 illusion:
+  label: "{LOCALE.skills.illusion.label}"
+  description: "{LOCALE.skills.illusion.description}"
   governingCharacteristics:
     - wp
 mysticism:
+  label: "{LOCALE.skills.mysticism.label}"
+  description: "{LOCALE.skills.mysticism.description}"
   governingCharacteristics:
     - wp
 necromancy:
+  label: "{LOCALE.skills.necromancy.label}"
+  description: "{LOCALE.skills.necromancy.description}"
   governingCharacteristics:
     - int
 restoration:
+  label: "{LOCALE.skills.restoration.label}"
+  description: "{LOCALE.skills.restoration.description}"
   governingCharacteristics:
     - wp

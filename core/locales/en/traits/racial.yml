@@ -1,0 +1,8 @@
+mentalStrength:
+  label: Mental Strength
+  description: |-
+    Altmer ignore penalties to Willpower tests made to resist paralysis.
+inscrutable:
+  label: Inscrutable
+  description: |-
+    Argonians receive a -10 penalty to Persuade tests made to interact with non-Argonians. However, Observe tests made to try to distinguish their motives are made with a -10 penalty.

@@ -3,9 +3,10 @@
 ## Status and scope
 
 This document records the existing content inventory and the **proposed** authoring
-and compilation contract. Localization is not implemented. No locale catalogs,
-compiler changes, runtime changes, or translated rules text accompany this document.
-Statements under “Proposed contract” describe later work, not current capabilities.
+and compilation contract. English locale text is authored for traits, races, skills,
+and birthsigns. Localization compilation and runtime resolution are not
+implemented. Statements under “Proposed contract” describe the intended contract,
+not implemented compilation capabilities.
 
 Cover all currently authored races, traits, skills, and birthsigns, including
 birthsign authoring even though birthsigns are not a runtime `ContentCatalog` kind.
@@ -14,7 +15,7 @@ language pickers, Foundry pack compilation, and birthsign rules/workflow expansi
 are outside this scope.
 
 English is authoritative. Contributors translate that source into their other
-native languages. Transfer of actual approved rules prose is **later work**, not a
+native languages. Transfer of remaining approved rules prose is not a
 prerequisite for delivering the localization infrastructure. Until it is available,
 use explicitly marked temporary text; never reconstruct rules from mechanical data
 or invent prose to make coverage appear complete.
@@ -22,7 +23,10 @@ or invent prose to make coverage appear complete.
 ## Current implementation
 
 - `core/content/` contains six YAML files. Top-level map keys identify definitions;
-  filenames do not. There is no `core/locales/` directory or locale resolver.
+  filenames do not. `core/locales/en/traits/`, `core/locales/en/races/`,
+  `core/locales/en/skills/`, and `core/locales/en/birthsigns/` contain English text;
+  there is no locale resolver. Race locale authoring includes staged entries
+  without mechanical definitions; those entries are not playable content.
 - `Race`, `Trait`, and `Birthsign` require `label` and `description`; `Skill` makes
   both optional. Trait parameter declarations are names only. Applied parameter
   values are `string | number`, without semantic categories.
@@ -52,20 +56,21 @@ or invent prose to make coverage appear complete.
 Counts below describe definitions, not implemented game-system completeness.
 Every existing display reference has the exact form
 `{LOCALE.<domain>.<contentKey>.<field>}` with `field` equal to `label` or
-`description`. There are no inline rules descriptions in these files and no locale
-values to resolve the references.
+`description`. There are no inline rules descriptions in these content files.
+English locale values are authored for traits, races, skills, and birthsigns; reference
+resolution remains unimplemented.
 
-| Source under `core/content/` | Entries | Display fields today       | Proposed coverage                       |
-| ---------------------------- | ------: | -------------------------- | --------------------------------------- |
-| `races/core.yml`             |       2 | Both fields are references | 4 English keys                          |
-| `traits/core.yml`            |      44 | Both fields are references | 88 English keys                         |
-| `traits/racial.yml`          |       2 | Both fields are references | 4 English keys                          |
-| `skills/standard.yml`        |      20 | Both fields absent         | Add 40 explicit references/English keys |
-| `skills/spellcasting.yml`    |       7 | Both fields absent         | Add 14 explicit references/English keys |
-| `birthsigns/core.yml`        |      12 | Both fields are references | 24 English keys, authoring only         |
+| Source under `core/content/` | Entries | Display fields today       | Proposed coverage               |
+| ---------------------------- | ------: | -------------------------- | ------------------------------- |
+| `races/core.yml`             |       2 | Both fields are references | 4 English keys                  |
+| `traits/core.yml`            |      44 | Both fields are references | 88 English keys                 |
+| `traits/racial.yml`          |       2 | Both fields are references | 4 English keys                  |
+| `skills/standard.yml`        |      20 | Both fields are references | 40 English keys                 |
+| `skills/spellcasting.yml`    |       7 | Both fields are references | 14 English keys                 |
+| `birthsigns/core.yml`        |      12 | Both fields are references | 24 English keys, authoring only |
 
-There are 120 existing display references and 54 absent skill display fields:
-174 label/description keys in total. Canonical parameter-display terms are deferred.
+There are 174 existing label/description display references in total.
+Canonical parameter-display terms are deferred.
 English key coverage does not mean approved rules prose has been transferred.
 
 ### Races and their references
@@ -79,7 +84,11 @@ English key coverage does not mean approved rules prose has been transferred.
 
 The existing trait/skill targets are present. Baseline characteristic keys and
 numbers, choice IDs, counts, option order, and trait references are mechanical data,
-not translation keys. No other races are authored in this inventory.
+not translation keys. No other mechanical race definitions are authored in this
+inventory. Additional race locale entries stage approved book prose under
+provisional keys; they do not add definitions. Imperial Colovian/Nibenese material
+and the Khajiit overview/Suthay-Raht material remain within their parent race
+descriptions. Variant implementation is future work, not a locale schema feature.
 
 ### Traits and parameters
 
@@ -107,8 +116,8 @@ The 24 parameterized traits declare:
 All other traits declare no parameters. Only `diseaseResistance`, `powerWell`,
 `weakness`, `immunity`, and `spellAbsorption` have parameterized applications in the
 authored races/birthsigns. Existing applications use numeric `X` and string `type`
-values `magic`, `poison`, or `fire`. No actual locale template exists yet, so there
-are no authored `{X}` occurrences to validate against these declarations.
+values `magic`, `poison`, or `fire`. English trait templates preserve declared
+instance placeholders such as `{X}` for later applied formatting.
 
 Do not infer that every `X` is numeric from its name, that every `type` shares one
 vocabulary, or that `damage`/`range` are numbers, dice expressions, units, or free
@@ -123,8 +132,9 @@ Standard keys: `acrobatics`, `alchemy`, `athletics`, `combatStyle`, `command`,
 Spellcasting keys: `alteration`, `conjuration`, `destruction`, `illusion`,
 `mysticism`, `necromancy`, `restoration`.
 
-All 27 lack both display fields. Governing characteristic references are mechanical
-keys. `combatStyle` and `profession` permit custom names; `profession` also permits
+All 27 have explicit references for both display fields. Governing characteristic
+references are mechanical keys. `combatStyle` and `profession` permit custom names;
+`profession` also permits
 a chosen governing characteristic. These player answers are not catalog prose to
 translate. Do not infer skill descriptions from names or characteristics.
 
@@ -163,10 +173,21 @@ birthsign catalog support now.
   `{LOCALE.races.altmer.label}`, `{LOCALE.traits.weakness.description}`,
   `{LOCALE.skills.alchemy.label}`, `{LOCALE.birthsigns.theWarrior.description}`.
   Do not replace these with implicit key derivation or rename stable content keys.
-- Store locale YAML at `core/locales/<language>/<domain>.yml`, using plural domain
-  names `races`, `traits`, `skills`, and `birthsigns`. A file contains a map of
-  content keys to `label`/`description` string leaves; the filename supplies the
-  reference's domain. Both trait source files share `traits.yml`.
+- Traits mirror their source split at
+  `core/locales/<language>/traits/core.yml` and `traits/racial.yml`. Races use
+  `core/locales/<language>/races/core.yml`, `races/furstocks.yml`, and
+  `races/expanded.yml`. Skills mirror their source split at
+  `core/locales/<language>/skills/standard.yml` and `skills/spellcasting.yml`.
+  Birthsigns group each guardian with its three charges at
+  `core/locales/<language>/birthsigns/warrior.yml`, `birthsigns/mage.yml`, and
+  `birthsigns/thief.yml`.
+  Merge each domain's shards into one logical domain, rejecting duplicate content
+  keys across shards. Each file contains a map of
+  content keys to `label`/`description` string leaves, without a domain wrapper.
+  The file layout supplies the reference's domain; sharding does not change
+  `{LOCALE.traits.<contentKey>.<field>}`, `{LOCALE.races.<contentKey>.<field>}`, or
+  `{LOCALE.skills.<contentKey>.<field>}`, or
+  `{LOCALE.birthsigns.<contentKey>.<field>}` references.
 - Use canonical BCP 47 language tags for directory/artifact names: `en` is the
   authoritative source; examples of other names are `fr`, `pt-BR`, `zh-Hant`.
   Validate canonical spelling, reject aliases/case-colliding duplicates, and do not
@@ -180,7 +201,13 @@ birthsign catalog support now.
 - English must contain every required display key for every authored definition,
   including skills and birthsigns, irrespective of runtime export kinds. Non-English
   files may be incomplete while contributors work. Reject duplicate YAML keys and
-  invalid/non-string leaves; report unreferenced keys to expose spelling mistakes.
+  invalid/non-string leaves. Coverage requirements apply to referenced authored
+  content. Approved locale entries may be staged before their mechanical
+  definitions exist, without a separate manifest or staged-entry schema. Validate
+  their shape, syntax, and duplicate keys as usual; report unused entries
+  informationally, not as publication errors. Staged entries do not become runtime
+  definitions and are not exported as playable content. This does not permit
+  mechanical references to target absent required definitions.
 
 ### Temporary text versus missing keys
 

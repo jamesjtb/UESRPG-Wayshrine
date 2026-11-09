@@ -1,0 +1,244 @@
+acrobatics:
+  label: Acrobatics
+  description: |-
+    Example Specializations: Contortion, Balance, Jumping
+
+    Acrobatics covers the spectrum of physical activities involving explosive body movements and feats of flexibility and balance. Your GM may ask you to test Acrobatics when you try to accomplish tasks like the following...
+
+    - Leaping deftly between rooftops or over an enemy
+    - Escaping from bonds
+    - Squeezing into a small space
+    - Balancing on the edge of a cliff
+
+    For rules regarding jumping, see Movement (page 115).
+alchemy:
+  label: Alchemy
+  description: |-
+    Example Specializations: Healing, Fortifying, Poisons
+
+    Alchemy is the arcane art of brewing potions and poisons by combining ingredients in order to exploit their magical effects. This skill can be used to create a variety of concoctions with dramatic effects ranging from potions of levitation or healing to magical poisons. Your GM may ask you to test Alchemy when you try to accomplish tasks like the following...
+
+    - Brewing a potion or poison
+    - Identifying magical ingredients
+    - Identifying the effects of an unknown potion
+    - Creating alchemical explosives
+
+    The rules for potions are found under Alchemy in Chapter 6.
+athletics:
+  label: Athletics
+  description: |-
+    Example Specializations: Running, Swimming, Climbing
+
+    Athletics represents a character’s ability to perform physically taxing activities, often under stress or with little to no preparation. Your GM may ask you to test Athletics when you try to accomplish tasks like the following...
+
+    - Jumping a particularly long distance through brute strength
+    - Walking a long distance without stopping
+    - Lifting a heavy object
+    - Climbing up the side of a cliff
+
+    For more information, see Movement & Size in Chapter 5.
+combatStyle:
+  label: Combat Style [Field]
+  description: |-
+    Example Specializations: Dueling, Mounted Combat, Formation Fighting
+
+    For the purposes of game balance, allowing characters to specialize in the use of specific weapons is not generally recommended.
+
+    Fighting skills are packaged into Combat Styles, which represent the complete package of training, tactics, and experience that constitutes a specific style of combat. Combat Styles can be associated with culture, careers, or even schools of combat. Specifically, individual Combat Styles are represented by the Combat Style [Field] skill, where the field represents the name of the combat style. This skill is used to make melee or ranged attack and defense tests in combat when using the equipment associated with the style. For full information on Combat Styles, see Combat Styles (page 69).
+command:
+  label: Command
+  description: |-
+    Example Specializations: Battlefield Commander, Inspiration
+
+    Command measures a character’s skill at coordinating allies, inspiring them and, if necessary, instilling fear in order to motivate them. Your GM may ask you to test Command when you try to accomplish tasks like the following...
+
+    - Giving effective orders during a battle
+    - Organizing civilians to defend their homes
+    - Riling up a crowd with an inspiring speech
+    - Convincing cowards to stand and fight
+commerce:
+  label: Commerce
+  description: |-
+    Example Specializations: Haggling, Acquisition, Sales
+
+    Commerce reflects a character’s ability to engage in business related activities and covers anything involving the practical application of economics. Your GM may ask you to test Commerce when you try to accomplish tasks like the following...
+
+    - Haggling for a better price on an item
+    - Locating an item for sale
+    - Running a business
+    - Appraising an item
+
+    The rules for using the Commerce skill to buy and sell items are handled in Pricing & Acquisition in Chapter 7.
+deceive:
+  label: Deceive
+  description: |-
+    Example Specializations: Blathering, Impersonation
+
+    Deceive measures a character’s aptitude for fooling others into believing something that is not true. A Deceive test should only be required if the character believes that they are lying. This test can be opposed by a Logic test or an Observe test, depending on the nature of the deception. Your GM may ask you to test Deceive when you try to accomplish tasks like the following...
+
+    - Pretend to be someone you are not
+    - Talk your way out of trouble
+    - Lie about something
+    - Pretend to be an expert on a subject
+enchant:
+  label: Enchant
+  description: |-
+    Example Specializations: Destruction Enchantments, Enchanting Weapons, Creating Scrolls
+
+    Enchanting is the arcane art of creating enchanted items by binding the energy contained within soul gems to another physical object. Your GM may ask you to test Enchant when you try to accomplish tasks like the following...
+
+    - Create an enchanted item
+    - Identify the effects of an enchantment
+    - Learn how to use a mysterious enchanted item
+    - Repair an enchanted item
+
+    The specific uses of the Enchanting skill for creating enchanted items are handled under Enchanting in Chapter 6.
+evade:
+  label: Evade
+  description: |-
+    Characters may not acquire specializations for this skill.
+
+    Evade measures a character’s ability to escape from observed, impending danger through the use of fluid movement and quick reaction times. This skill is most often used to defend against attacks in combat, or to avoid other physical dangers. Your GM may ask you to test Evade when you try to accomplish tasks like the following...
+
+    - Duck beneath an incoming spell
+    - Dodge a sword swing
+    - Avoid falling debris
+    - Stay out of reach of multiple attackers
+
+    For rules regarding its use in combat, see Combat in Chapter 5.
+investigate:
+  label: Investigate
+  description: |-
+    Example Specializations: Canvassing, Research
+
+    Investigate reflects the character’s skill at conducting an investigation. This encompasses everything from simple inquiries to coordinating a complex investigation and searching through piles of clues to find an answer. Your GM may ask you to test Investigate when you try to accomplish tasks like the following...
+
+    - Gather information from a crowd
+    - Sift through an archive searching for information
+    - Locate a person or place in a large city
+    - Use clues to solve a mystery
+logic:
+  label: Logic
+  description: |-
+    Example Specializations: Puzzles, Gambling, Riddles
+
+    The Logic skill represents a character’s ability to think logically, solve puzzles, and dissect information rationally and quickly. Your GM may ask you to test Logic when you try to accomplish tasks like the following...
+
+    - Solve a puzzle or riddle
+    - Perform mathematical calculations
+    - Make sense of a confusing situation
+    - Realize something simple you may have overlooked
+    - Improve your odds in a game of chance
+lore:
+  label: Lore
+  description: |-
+    Example Specializations: Art, Daedra, History, Magic, Legends, The Black Marsh, Warfare, Altmer
+
+    Lore represents a character’s ability to recall information of all types. This includes any knowledge that they would possess due to their education or experience and is meant to represent a character’s general knowledge.
+
+    Specializations in this skill reflect a character’s focus on one particular subject. Remember that “general knowledge and education” is a relative term: no matter how smart a character is, they shouldn’t be able to roll to recall an obscure fact unless they would have reasonably encountered the fact before. Your GM may ask you to test Lore when you try to accomplish tasks like the following...
+
+    - Remember specific details about something you learned
+    - Identify a creature that you have only read about
+    - Reconcile new information with what you already know
+    - Find similarities between two ancient legends
+navigate:
+  label: Navigate
+  description: |-
+    Example Specializations: Cartography, Marine Navigation, Direction Sense
+
+    The Navigate skill reflects a character’s ability to plot and follow a course from one point to another, as well as the ability to provide directions and lead others along the plotted course. Your GM may ask you to test Navigation when you try to accomplish tasks like the following...
+
+    - Find your way out of a dungeon
+    - Plot a course for a ship
+    - Create a map of a mountain range
+    - Lead your party through a fores
+observe:
+  label: Observe
+  description: |-
+    Example Specializations: Awareness, Scrutiny, Searching, Hearing, Smell, Sight
+
+    Observe represents a character’s general awareness of their surroundings and their ability to notice things that others might dismiss. Your GM may ask you to test Observe when you try to accomplish tasks like the following...
+
+    - Spot an ambush before it happens
+    - Identify when someone is acting strangely
+    - Locate a hidden switch or trap in a room
+    - Notice a strange creature in the distance
+persuade:
+  label: Persuade
+  description: |-
+    Example Specializations: Charm, Intimidation, Seduction
+
+    Persuade is a measure of the character’s knack for influencing people through strength of personality or threat of intimidation. Persuade tests are most often opposed by Willpower tests if the target wishes to resist. Your GM may ask you to test Persuade when you try to accomplish tasks like the following...
+
+    - Impressing others with tales of one’s accomplishments
+    - Intimidate someone into doing what you want
+    - Making a new friend, or seducing a person of interest
+    - Convincing others to agree with you
+profession:
+  label: Profession [Field]
+  description: |-
+    Profession [Field] represents the character’s formal or informal training and experience in a specific profession. It is used to perform work related tasks, or to reference specialized knowledge that someone trained in that profession might have. The following table contains a list of common fields and their governing characteristics. Feel free to invent your own with GM permission.
+
+    ### Profession Fields
+
+    | Field | Governing Characteristic |
+    | --- | --- |
+    | Acting | Personality |
+    | Animal Training | Intelligence |
+    | Art | Personality |
+    | Bureaucracy | Intelligence |
+    | (Physical Crafts) | Agility |
+    | Engineering | Intelligence |
+    | Linguistics | Intelligence |
+    | Medicine | Intelligence |
+    | Musicianship | Agility |
+    | Seamanship | Intelligence |
+    | Smithing | Strength |
+
+    For information regarding the use of the Profession [Medicine] skill to care for injured characters, see Physical Health in Chapter 5. For information regarding the various crafting oriented professions, see Crafting in Chapter 7.
+ride:
+  label: Ride
+  description: |-
+    Example Specializations: Horse Racing, Mounted Fighter
+
+    The Ride skill is a measure of your character’s ability to control various mounts. The difficulty is associated with the demands being placed upon the creature and its level of familiarity to the rider. Your GM may ask you to test Ride when you try to accomplish tasks like the following...
+
+    - Push a horse to ride faster.
+    - Leap over an obstacle on a mount.
+    - Attempt to ride a strange beast.
+stealth:
+  label: Stealth
+  description: |-
+    Example Specializations: Camouflage, Shadowing, Infiltration
+
+    Stealth is a measure of a character’s ability to remain unnoticed in a variety of settings and environments through the employment of specific techniques. This test can be opposed by an Observe test when appropriate. Your GM may ask you to test Stealth when you try to accomplish tasks like the following...
+
+    - Shadowing someone through a marketplace
+    - Sneaking up on an enemy camp
+    - Camouflaging yourself in the undergrowth
+    - Sneaking past a sleeping monster
+
+    For rules regarding the use of Stealth in combat, see Combat in Chapter 5.
+subterfuge:
+  label: Subterfuge
+  description: |-
+    Example Specializations: Lockpicking, Sleight of Hand, Traps
+
+    The Subterfuge skill is a measure of the character’s ability to use artifice, guile, and manual dexterity to circumvent normal limits and restrictions. Your GM may ask you to test Subterfuge when you try to accomplish tasks like the following...
+
+    - Disguising yourself as someone else
+    - Picking a lock on a door
+    - Palming a small object unnoticed
+    - Disarming a trap
+survival:
+  label: Survival
+  description: |-
+    Example Specializations: Desert Survival, Foraging, Tracking
+
+    The Survival skill is a measure of a character’s ability to subsist away from civilization. The difficulty is associated with the local environmental constraints. Your GM may ask you to test Survival when you try to accomplish tasks like the following...
+
+    - Gathering food and water from the environment
+    - Tracking a person or animal through the woods
+    - Identifying dangerous plants
+    - Applying first aid to a character in order to stabilize them.

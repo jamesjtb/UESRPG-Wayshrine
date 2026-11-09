@@ -1,0 +1,32 @@
+alfiq:
+  label: Alfiq
+  description: |-
+    A quadrupedal form of Khajiit, the Alfiq is, in many respects, similar to a common housecat. Although diminutive in form, the Alfiq retain the keen intelligence of the Khajiiti, having the ability to understand the spoken word of others, although unable to respond.
+cathay:
+  label: Cathay
+  description: |-
+    The Cathay are similar to the Suthay-Raht in appearance and bi-pedalism, however possess greater stature and strength, and are often described by non-khajiit races as “jaguar-men.”
+ohmes:
+  label: Ohmes
+  description: |-
+    Similar in many ways to the Bosmer, although generally of lesser stature. In order to avoid being mistaken as one of the Bosmer many Ohmes tattoo their faces to resemble a feline-aspect. The Ohmes is the most common form seen outside of the province of Elsweyr, taking advantage of other races’ preference to their appearance to serve in positions of ambassadorship and trade.
+ohmesRaht:
+  label: Ohmes-Raht
+  description: |-
+    Similar to the race of men, save for their short, light-colored fur, the Ohmes-raht may easily be mistaken as men at a distance. Unlike the many other species of Khajiit who walk like cats upon the balls of their feet, the Ohmes-raht walk upon their heels. They often serve in positions of ambassadorship and trade.
+dagiRaht:
+  label: Dagi-Raht
+  description: |-
+    Similar in all respects to the Dagi, while somewhat larger, however not overly so as they are able to dwell in higher tree branches of the Tenmar forest, like the Dagi. It can be assumed that, like their smaller cousins, they are naturally skilled in the use of magic.
+pahmar:
+  label: Pahmar
+  description: |-
+    The Pahmar are similar in appearance and size to tigers. It is unknown exactly how they communicate, but most believe it is by means of a more primal form of Ta’agra.
+senche:
+  label: Senche
+  description: |-
+    The Senche are the size of horses, and often used as steeds by smaller breeds. It is unknown exactly how they communicate, but most believe it is by means of a more primal form of Ta’agra.
+tojay:
+  label: Tojay
+  description: |-
+    Tojay live in the marshes and jungle regions of southern Elsweyr.

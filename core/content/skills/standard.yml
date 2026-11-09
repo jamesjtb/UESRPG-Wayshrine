@@ -1,75 +1,115 @@
 acrobatics:
+  label: "{LOCALE.skills.acrobatics.label}"
+  description: "{LOCALE.skills.acrobatics.description}"
   governingCharacteristics:
     - str
     - ag
 alchemy:
+  label: "{LOCALE.skills.alchemy.label}"
+  description: "{LOCALE.skills.alchemy.description}"
   governingCharacteristics:
     - int
 athletics:
+  label: "{LOCALE.skills.athletics.label}"
+  description: "{LOCALE.skills.athletics.description}"
   governingCharacteristics:
     - str
     - end
 combatStyle:
+  label: "{LOCALE.skills.combatStyle.label}"
+  description: "{LOCALE.skills.combatStyle.description}"
   hasCustomName: true
   governingCharacteristics:
     - str
     - ag
 command:
+  label: "{LOCALE.skills.command.label}"
+  description: "{LOCALE.skills.command.description}"
   governingCharacteristics:
     - str
     - int
     - prs
 commerce:
+  label: "{LOCALE.skills.commerce.label}"
+  description: "{LOCALE.skills.commerce.description}"
   governingCharacteristics:
     - int
     - prs
 deceive:
+  label: "{LOCALE.skills.deceive.label}"
+  description: "{LOCALE.skills.deceive.description}"
   governingCharacteristics:
     - int
     - prs
 enchant:
+  label: "{LOCALE.skills.enchant.label}"
+  description: "{LOCALE.skills.enchant.description}"
   governingCharacteristics:
     - int
 evade:
+  label: "{LOCALE.skills.evade.label}"
+  description: "{LOCALE.skills.evade.description}"
   governingCharacteristics:
     - ag
 investigate:
+  label: "{LOCALE.skills.investigate.label}"
+  description: "{LOCALE.skills.investigate.description}"
   governingCharacteristics:
     - int
     - prc
 logic:
+  label: "{LOCALE.skills.logic.label}"
+  description: "{LOCALE.skills.logic.description}"
   governingCharacteristics:
     - int
     - prc
 lore:
+  label: "{LOCALE.skills.lore.label}"
+  description: "{LOCALE.skills.lore.description}"
   governingCharacteristics:
     - int
 navigate:
+  label: "{LOCALE.skills.navigate.label}"
+  description: "{LOCALE.skills.navigate.description}"
   governingCharacteristics:
     - int
     - prc
 observe:
+  label: "{LOCALE.skills.observe.label}"
+  description: "{LOCALE.skills.observe.description}"
   governingCharacteristics:
     - prc
 persuade:
+  label: "{LOCALE.skills.persuade.label}"
+  description: "{LOCALE.skills.persuade.description}"
   governingCharacteristics:
     - str
     - prs
 profession:
+  label: "{LOCALE.skills.profession.label}"
+  description: "{LOCALE.skills.profession.description}"
   chooseGoverningCharacteristic: true
   hasCustomName: true
 ride:
+  label: "{LOCALE.skills.ride.label}"
+  description: "{LOCALE.skills.ride.description}"
   governingCharacteristics:
     - ag
 stealth:
+  label: "{LOCALE.skills.stealth.label}"
+  description: "{LOCALE.skills.stealth.description}"
   governingCharacteristics:
     - ag
     - prc
 subterfuge:
+  label: "{LOCALE.skills.subterfuge.label}"
+  description: "{LOCALE.skills.subterfuge.description}"
   governingCharacteristics:
     - ag
     - int
 survival:
+  label: "{LOCALE.skills.survival.label}"
+  description: "{LOCALE.skills.survival.description}"
   governingCharacteristics:
     - int
     - prc

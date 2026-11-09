@@ -1,0 +1,106 @@
+alteration:
+  label: Alteration
+  description: |-
+    Example Specializations: Burden, Armor, Repair
+
+    This skill influences the use of spells from the school of Alteration. As a school, Alteration focuses on altering the physical and magical properties of things. Your GM may ask you to test Alteration when you try to accomplish tasks like the following...
+
+    - Cast an Alteration spell
+    - Identify the effects of Alteration magic
+
+    For detailed rules regarding the use of this skill, see Chapter 6.
+
+    ### Spellcasting Skills
+
+    The skills in this section are used when casting spells from their respective spell schools. See Casting Spells (page 128) for more information about casting spells.
+
+    Adding specializations to spellcasting skills is more specific than in the standard skills. Characters who wish to add a specialization to a spellcasting school may choose a conventional or unconventional spell that they know to specialize in. When any level of that spell is cast, standard rules for Specializations apply.
+conjuration:
+  label: Conjuration
+  description: |-
+    Example Specializations: Summon Atronach, Sunder Binding
+
+    This skill influences the use of spells from the school of Conjuration. As a school, Conjuration focuses on calling upon and interacting with various otherworldly entities. Your GM may ask you to test Conjuration when you try to accomplish tasks like the following...
+
+    - Cast a Conjuration spell
+    - Identify a summoned entity
+
+    For detailed rules regarding the use of this skill, see Chapter 6.
+
+    ### Spellcasting Skills
+
+    The skills in this section are used when casting spells from their respective spell schools. See Casting Spells (page 128) for more information about casting spells.
+
+    Adding specializations to spellcasting skills is more specific than in the standard skills. Characters who wish to add a specialization to a spellcasting school may choose a conventional or unconventional spell that they know to specialize in. When any level of that spell is cast, standard rules for Specializations apply.
+destruction:
+  label: Destruction
+  description: |-
+    Example Specializations: Fire Bolt, Shock Ball, Disintegrate Armor
+
+    This skill influences the use of spells from the school of Destruction. As a school, Destruction focuses on harming targeted objects and beings through the use of various kinds of elemental and magical attacks. Your GM may ask you to test Destruction when you try to accomplish tasks like the following...
+
+    - Cast a Destruction spell
+    - Identify the effects of Destruction magic
+
+    For detailed rules regarding the use of this skill, see Chapter 6.
+
+    ### Spellcasting Skills
+
+    The skills in this section are used when casting spells from their respective spell schools. See Casting Spells (page 128) for more information about casting spells.
+
+    Adding specializations to spellcasting skills is more specific than in the standard skills. Characters who wish to add a specialization to a spellcasting school may choose a conventional or unconventional spell that they know to specialize in. When any level of that spell is cast, standard rules for Specializations apply.
+illusion:
+  label: Illusion
+  description: |-
+    Example Specializations: Blind, Horror, Sanctuary
+
+    This skill influences the use of spells from the school of Illusion. As a school, Illusion focuses on manipulation and deception to affect the minds of targets and the light around them. Your GM may ask you to test Illusion when you try to accomplish tasks like the following...
+
+    - Cast an Illusion spell
+    - Identify the effects of Illusion magic
+
+    For detailed rules regarding the use of this skill, see Chapter 6.
+
+    ### Spellcasting Skills
+
+    The skills in this section are used when casting spells from their respective spell schools. See Casting Spells (page 128) for more information about casting spells.
+
+    Adding specializations to spellcasting skills is more specific than in the standard skills. Characters who wish to add a specialization to a spellcasting school may choose a conventional or unconventional spell that they know to specialize in. When any level of that spell is cast, standard rules for Specializations apply.
+mysticism:
+  label: Mysticism
+  description: |-
+    Example Specializations: Recall, Absorb Magicka, Soul Trap
+
+    This skill influences the use of spells from the school of Mysticism. As a school, Mysticism is a rather obscure discipline focused on manipulating magicka itself to produce a number of exotic effects. Your GM may ask you to test Mysticism when you try to accomplish tasks like the following...
+
+    - Cast a Mysticism spell
+    - Identify the effects of Mysticism magic
+
+    For detailed rules regarding the use of this skill, see Chapter 6.
+
+    ### Spellcasting Skills
+
+    The skills in this section are used when casting spells from their respective spell schools. See Casting Spells (page 128) for more information about casting spells.
+
+    Adding specializations to spellcasting skills is more specific than in the standard skills. Characters who wish to add a specialization to a spellcasting school may choose a conventional or unconventional spell that they know to specialize in. When any level of that spell is cast, standard rules for Specializations apply.
+necromancy:
+  label: Necromancy
+  description: |-
+    Necromancy is the dark art of death magic, and of raising the dead and creating undead monstrosities. Necromancy is fuelled by black magicks and feeds on the living, and serves as an enticing shortcut to power for the less scrupulous mages that roam Tamriel.
+restoration:
+  label: Restoration
+  description: |-
+    Example Specializations: Heal Ally, Replenish, Resistance to Fire
+
+    This skill influences the use of spells from the school of Restoration. Restoration is focused on healing and restoring targets and harming the undead. Your GM may ask you to test Restoration when you try to accomplish tasks like the following...
+
+    - Cast a Restoration spell
+    - Identify the effects of Restoration magic
+
+    For rules regarding the use of this skill, see Chapter 6.
+
+    ### Spellcasting Skills
+
+    The skills in this section are used when casting spells from their respective spell schools. See Casting Spells (page 128) for more information about casting spells.
+
+    Adding specializations to spellcasting skills is more specific than in the standard skills. Characters who wish to add a specialization to a spellcasting school may choose a conventional or unconventional spell that they know to specialize in. When any level of that spell is cast, standard rules for Specializations apply.

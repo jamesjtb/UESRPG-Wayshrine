@@ -1,0 +1,218 @@
+amphibious:
+  label: Amphibious
+  description: |-
+    The character can breathe water and ignores the skill cap placed on their combat rolls by their Athletics skill when fighting in water.
+bestial:
+  label: Bestial
+  description: |-
+    The character has no need to make Survival skill tests in their natural habitat, but they must test Willpower to avoid fleeing combat if the GM feels that it’s appropriate (for example, if the creature would feel intimidated by its foe).
+blind:
+  label: Blind
+  description: |-
+    The character has the blinded condition while they have this trait. See the Conditions section in Chapter 5 for rules on this condition.
+bound:
+  label: Bound
+  description: |-
+    This creature is bound by the will of their master. They must obey the commands of their master, except they will always prioritize defending themselves. Additionally, if the bound creature's master or their master's allies intentionally take hostile or harmful action against them for any reason, they immediately turn hostile and lose the bound trait.
+
+    Items with this trait use their creator’s Willpower score when forced to roll any relevant test (except Combat Style). These items are practically weightless, counting as having an effective ENC rating of 0.
+climber:
+  label: Climber ({X})
+  description: |-
+    The character can climb walls and ceilings as if open ground. Their Climb Speed is now set to {X}m.
+crawler:
+  label: Crawler
+  description: |-
+    Rather than walking, a character with this trait crawls. They halve their normal Speed (round up) and take no penalties for moving through difficult terrain.
+darkSight:
+  label: Dark Sight
+  description: |-
+    A character with this trait can see normally even in areas with total darkness and never takes penalties for acting in areas with dim or no lighting.
+dawnCursed:
+  label: Dawn-Cursed ({X})
+  description: |-
+    Characters with this trait are fatally sensitive to sunlight. While in direct sunlight, the character suffers {X} damage per round which ignores all damage mitigation. If the character covers themselves completely with clothing and a hood with sufficient coverage, this damage is reduced to {X} per hour in the sunlight.
+
+    If the vampire is under full cover which would block out all sunlight, like a fully covered wagon or inside a building, they take no damage.
+deaf:
+  label: Deaf
+  description: |-
+    The character has the deafened condition while they have this trait. See the Conditions section in Chapter 5 for rules on this condition.
+diseaseResistance:
+  label: Disease Resistance ({X}%)
+  description: |-
+    Whenever a character with this trait would be infected by a common disease, roll a d100. If the roll is less than or equal to {X}, the character doesn’t get the disease.
+diseased:
+  label: Diseased (+/- {X})
+  description: |-
+    If a character with this trait deals at least 1 point of damage (after mitigation) with their natural weapons to a target without the Diseased trait, then the affected target must test Endurance +/- {X} or contract a common disease.
+flyer:
+  label: Flyer ({X})
+  description: |-
+    The character can fly. They have a Speed equal to {X} when flying.
+frightening:
+  label: Frightening ({X})
+  description: |-
+    Those who encounter this character must immediately make a Panic ({X}) test.
+fromBeyond:
+  label: From Beyond
+  description: |-
+    The character is immune to the effects of disease, fear, toxins, and any mind-affecting magic (i.e. illusions).
+immunity:
+  label: Immunity ({type})
+  description: |-
+    The character is immune to any effects of the type specified in parenthesis. The character may have multiple instances of this trait for different effects {type}.
+incorporeal:
+  label: Incorporeal
+  description: |-
+    Incorporeal characters are spirits, faintly visible and capable of moving through objects. They gain the Flyer (Speed) trait and may use it to freely move through solid objects. They can be targeted by attacks, but they cannot suffer damage except from magic damage or damage from attacks with the Magic quality.
+
+    Incorporeal characters do not normally affect the world, but they can use magic and make attacks that are capable of damaging non-incorporeal beings. Attacks from Incorporeal characters ignore all AR from any armor that does not have the Magic quality and cannot be blocked by shields without that quality.
+naturalToughness:
+  label: Natural Toughness ({X})
+  description: |-
+    The character with this trait is naturally tough and reduces incoming damage of all types by {X}. This functions like AR for the purposes of reducing damage, but it does not count as armor.
+naturalWeapons:
+  label: Natural Weapons ({type}, {damage}, {range})
+  description: |-
+    The character with this trait has unique natural weapons of some kind. The {type}, {damage}, and {range} together specify the complete profile for the character’s natural weapons. This overrides the default natural weapons profile and they cannot be disarmed. Default Natural Weapons profiles can be found in Unarmed Combat on page 104. Natural Weapons cannot be enchanted.
+powerWell:
+  label: Power Well ({X})
+  description: |-
+    Characters with this trait have more magicka than usual. The size of their Magicka Pool is increased by {X}. If the character would receive this trait twice, combine the {X} values.
+quadruped:
+  label: Quadruped
+  description: |-
+    Characters with this trait move up to twice their speed when they use the Dash action and three times their speed when they use the Sprint stamina ability.
+regeneration:
+  label: Regeneration ({X})
+  description: |-
+    Characters with this trait heal very quickly. They may make an Endurance test at the start of each round to heal {X} HP. This does not count as magical healing unless applied by some magical source.
+resistance:
+  label: Resistance ({type}, {X})
+  description: |-
+    Characters with this trait reduce damage of {type} type by {X} after any other mitigation and gain a +10 bonus per {X} to tests made to resist non-damaging effects of the listed type.
+
+    In cases where the character is not making the {type} related test, but rather a {type} related roll is being made against one of their Characteristics, increase that characteristic by 10 times {X} for the purposes of resolving that roll.
+resistNormalWeapons:
+  label: Resist Normal Weapons ({X})
+  description: |-
+    Characters with this trait are resistant to mundane weapons. If the character suffers damage from a weapon/attack without the Magic quality, reduce that damage by {X} after any other mitigation.
+runningOutOfLuck:
+  label: Running Out of Luck
+  description: |-
+    The character’s luck is running out. Whenever they would burn any amount of Luck, burn twice that amount. If the character does not have this much Luck remaining, just burn all remaining Luck.
+savage:
+  label: Savage
+  description: |-
+    The character treats weapons that they wield (including Natural Weapons) as if they had the Proven Weapon Quality. If the Weapon has the Primitive Quality, then the character treats the weapon as having neither Quality.
+silverScarred:
+  label: Silver-Scarred ({X})
+  description: |-
+    Any damage inflicted on a character with this trait after mitigation by an attack from a silver weapon is increased by {X} before calculating the effects of the damage.
+skeletal:
+  label: Skeletal
+  description: |-
+    Characters with this trait have purely skeletal forms. Attempts to hit them with ranged weapons suffer a -20 penalty. Characters with this trait also automatically gain the Undead trait as well and are immune to the Burning (X) condition.
+spellAbsorption:
+  label: Spell Absorption ({X})
+  description: |-
+    Characters with this trait absorb a portion of the magic directed at them to fuel their own magicka reserves. Whenever magic from another source/character affects them, roll a d10. If the value is less than or equal to {X}, the magic has no effect on them; instead, they regain missing MP up to the cost of the magic.
+
+    If a character with this trait would be affected by the Reflect spell, then the effects of each should be resolved in the reverse order to which they were applied.
+
+    For example, if a character with this trait has the Reflect spell effect applied to them after this trait is applied, then when the character is affected by another spell effect they would resolve Reflect against that effect first, then Spell Aborption if the effect is not reflected.
+strongJaws:
+  label: Strong Jaws
+  description: |-
+    A Bite attack made by this character that deals damage automatically starts a Grapple test. The test to contest this Grapple is made against the original test made by the attacker. If the target Counter Attacks againt a Bite attack, the Counter Attack ignores the creature’s AR and Natural Toughness trait.
+stuntedMagicka:
+  label: Stunted Magicka
+  description: |-
+    Characters with this trait do not regenerate magicka naturally and halve the benefits (round down) gained from Spell Restraint.
+summoned:
+  label: Summoned
+  description: |-
+    This creature or item has been conjured from another plane of existence. Upon its death or destruction, it returns to where it came from immediately.
+sunScarred:
+  label: Sun-Scarred ({X})
+  description: |-
+    Any damage inflicted on a character with this trait after mitigation by an attack that counts as sunlight is increased by {X} before calculating the effects of the damage.
+
+    If this character is exposed to normal sunlight they lose 1 SP each hour. Cloud cover or other such weather halves the rate of SP loss. The character must spend an hour in a dark place before they can remove levels of fatigue/regain SP lost in this manner.
+swimmer:
+  label: Swimmer
+  description: |-
+    The character’s Swim Speed is doubled.
+telepathy:
+  label: Telepathy ({X})
+  description: |-
+    Characters with this trait can communicate with others telepathically. They are capable of “broadcasting” thoughts to a maximum number of characters equal to their WB within a number of meters equal to one hundred times their WB. They must have line of sight to the character to whom they are broadcasting, unless the target character has this trait as well.
+
+    Characters with this trait can make a Perception test as a Free Action to attempt to locate other characters with this trait within their broadcast range, though this test can be opposed by a Willpower test if a character wishes to remain hidden.
+
+    The strength {X} of this trait determines the complexity of the thoughts they can broadcast.
+
+    Telepathic Strength table:
+
+    | {X} | Maximum Message Complexity |
+    | --- | --- |
+    | 1 | A single word |
+    | 2 | A short sentence. |
+    | 3 | A full sentence. |
+    | 4 | Up to five sentences. |
+    | 5 | As many words as the character desires. |
+    | 6 | Images. |
+    | 7+ | Complex feelings and concepts. |
+
+    This trait can stack by adding together values of {X}.
+thickSkull:
+  label: Thick Skull
+  description: |-
+    Immune to Stun and Dazed.
+vicious:
+  label: Vicious ({X})
+  description: |-
+    The creature treats their SB as being {X} for the purposes of resolving damage. This does not effect the character's Strength Characteristic Score.
+telekinesis:
+  label: Telekinesis ({X})
+  description: |-
+    Characters with this trait can move objects with their mind within a range of 10 * {X} meters. This can only be used to move fairly small objects (at most a large crate or barrel) at a speed of about 1 meter per second (6 per round).
+
+    The character can also throw an object at an opponent. This is a Primary Action and a Ranged Attack, and it uses Mysticism (Willpower) for the test. Any object used in this manner counts as an improvised weapon and can only be thrown a distance of WB * 2 meters.
+terrifying:
+  label: Terrifying ({X})
+  description: |-
+    Those who encounter this character must immediately make a Horror ({X}) test.
+tough:
+  label: Tough ({X})
+  description: |-
+    Increase Wound Threshold by {X}.
+
+    Optional Rule Note: Alternate Wounds
+
+    If you’re using the rules for Alternate Wounds found in Physical Health on page 108, replace the text for the Tough trait with "Character gains a +(10 * {X}) bonus to Shock Tests".
+weakBones:
+  label: Weak Bones ({X})
+  description: |-
+    Reduce Wound Threshold by {X}.
+weakness:
+  label: Weakness ({type}, {X})
+  description: |-
+    Characters with this trait are weak to a certain damage or effect type. They increase damage of {type} type by {X} after any other mitigation and suffer a -10 penalty per {X} to tests made to resist non-damaging effects of this type.
+
+    If this trait would stack for a single damage type, instead only apply the highest value of {X}. Different values of {type} damage type are considered different traits.
+
+    In cases where the character is not making the {type} related test, but rather a {type} related roll is being made against one of their Characteristics, decrease that characteristic by 10 times {X} for the purposes of resolving that roll.
+undead:
+  label: Undead
+  description: |-
+    Characters with this trait are mere walking corpses. They do not breathe or require organs to function. They are immune to things such as disease, poison, passive wound effects, aging, fatigue, and a number of conditions including but not limited to dazed, deafened, and organ damage. Use common sense when deciding what can and cannot affect characters with this trait. The character cannot spend Stamina Points if doing so would bring their current SP to below 0.
+undying:
+  label: Undying
+  description: |-
+    Characters are free from most concerns of the living. They are immune to disease and the effects of aging.
+unnaturalSenses:
+  label: Unnatural Senses ({type}, {X})
+  description: |-
+    The character with this trait can perceive its surroundings using additional and/or different senses than the usual. Their Senses allow them to detect the things specified by {type} within range of {X} meters (even through solid objects). If {type} is “all” then their Senses have been replaced entirely, and they can simply see “normally” through solid objects up to {X} meters away.

@@ -6,9 +6,9 @@ import { ToContinue } from "./ToContinue";
 import type { UserAction } from "./ToContinue";
 
 const actions = [
-  { id: "race", label: "Choose a race" },
-  { id: "skills", label: "Choose racial skills" },
-  { id: "luck", label: "Roll Luck" },
+  { id: "race", label: "choose a race" },
+  { id: "skills", label: "choose racial skills" },
+  { id: "luck", label: "roll Luck" },
 ] as const;
 
 function toContinue(nextActions: readonly UserAction[] = actions) {
@@ -35,12 +35,12 @@ describe("ToContinue", () => {
     render(toContinue());
 
     const control = screen.getByRole("button", {
-      name: "Choose a race 2 more",
+      name: "To continue, choose a race +2 more",
     });
     expect(control.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("list")).toBeNull();
-    expect(screen.queryByText("Choose racial skills")).toBeNull();
-    expect(screen.queryByText("Resolve before continuing:")).toBeNull();
+    expect(screen.queryByText("choose racial skills")).toBeNull();
+    expect(control.textContent).toBe("To continue, choose a race +2 more");
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(control.querySelector("button")).toBeNull();
     expect(control.getAttribute("data-chevron-position")).toBe("right");
@@ -56,11 +56,11 @@ describe("ToContinue", () => {
 
     await user.click(screen.getByRole("button"));
     const control = screen.getByRole("button", {
-      name: "Resolve before continuing:",
+      name: "To continue:",
     });
     expect(control.getAttribute("aria-expanded")).toBe("true");
     const panel = screen.getByRole("region", {
-      name: "Resolve before continuing:",
+      name: "To continue:",
     });
     expect(panel.id).toBe(control.getAttribute("aria-controls"));
     expect(panel.getAttribute("aria-labelledby")).toBe(control.id);
@@ -68,17 +68,52 @@ describe("ToContinue", () => {
       within(panel)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual(actions.map((action) => action.label));
+    ).toEqual(["Choose a race", "Choose racial skills", "Roll Luck"]);
     expect(screen.getAllByText("Choose a race")).toHaveLength(1);
-    expect(screen.getByText("Resolve before continuing:")).toBeTruthy();
+    expect(screen.getByText("To continue:")).toBeTruthy();
     expect(screen.queryByText(/\d+ more/)).toBeNull();
 
     await user.click(control);
     expect(control.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("list")).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Choose a race 2 more" }),
+      screen.getByRole("button", {
+        name: "To continue, choose a race +2 more",
+      }),
     ).toBeTruthy();
+  });
+
+  it("capitalizes only expanded initials without changing source labels or acronyms", async () => {
+    const user = userEvent.setup();
+    const sourceActions = [
+      Object.freeze({ id: "luck", label: "roll Luck via API" }),
+      Object.freeze({ id: "api", label: "API selection required" }),
+      Object.freeze({ id: "empty", label: "" }),
+    ];
+    render(toContinue(sourceActions));
+    const control = screen.getByRole("button", {
+      name: "To continue, roll Luck via API +2 more",
+    });
+
+    await user.click(control);
+    const panel = screen.getByRole("region", { name: "To continue:" });
+    expect(
+      within(panel)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Roll Luck via API", "API selection required", ""]);
+    expect(sourceActions.map((action) => action.label)).toEqual([
+      "roll Luck via API",
+      "API selection required",
+      "",
+    ]);
+
+    await user.click(control);
+    expect(
+      screen.getByRole("button", {
+        name: "To continue, roll Luck via API +2 more",
+      }),
+    ).toBe(control);
   });
 
   it("supports Tab, Enter and Space without moving focus from the control", async () => {
@@ -100,7 +135,10 @@ describe("ToContinue", () => {
   it("renders one action without a count, list or toggle", () => {
     render(toContinue([actions[1]]));
 
-    expect(screen.getByText("Choose racial skills")).toBeTruthy();
+    expect(screen.getByText("choose racial skills")).toBeTruthy();
+    expect(screen.getByTestId("to-continue").textContent).toBe(
+      "To continue, choose racial skills",
+    );
     expect(screen.queryByText(/\d+ more/)).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByRole("list")).toBeNull();
@@ -123,35 +161,36 @@ describe("ToContinue", () => {
   it("uses the shared loading indicator for a single pending action", () => {
     render(
       toContinue([
-        { id: "race", label: "Loading race selection", loading: true },
+        { id: "race", label: "loading race selection", loading: true },
       ]),
     );
     const status = screen.getByRole("status", {
-      name: "Loading race selection",
+      name: "loading race selection",
     });
     expect(status.querySelector(".mantine-Loader-root")).not.toBeNull();
-    expect(screen.queryByText("Loading race selection")).toBeNull();
+    expect(screen.getByText("To continue,")).toBeTruthy();
+    expect(screen.queryByText("loading race selection")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("renders pending summaries and list entries with meaningful loading labels", async () => {
     const user = userEvent.setup();
     const pendingActions: readonly UserAction[] = [
-      { id: "skills", label: "Loading available skills", loading: true },
-      { id: "other", label: "Choose another racial skill" },
+      { id: "skills", label: "loading available skills", loading: true },
+      { id: "other", label: "choose another racial skill" },
     ];
     const view = render(toContinue(pendingActions));
     const control = screen.getByRole("button", {
-      name: "Loading available skills 1 more",
+      name: "To continue, loading available skills +1 more",
     });
     expect(
       within(control)
-        .getByRole("status", { name: "Loading available skills" })
+        .getByRole("status", { name: "loading available skills" })
         .querySelector(".mantine-Loader-root"),
     ).not.toBeNull();
     await user.click(control);
     const panel = screen.getByRole("region", {
-      name: "Resolve before continuing:",
+      name: "To continue:",
     });
     expect(within(control).queryByRole("status")).toBeNull();
     expect(
@@ -162,7 +201,7 @@ describe("ToContinue", () => {
     expect(within(panel).getAllByRole("listitem")).toHaveLength(2);
     view.rerender(
       toContinue([
-        { id: "skills", label: "There is a problem with the selected skill" },
+        { id: "skills", label: "there is a problem with the selected skill" },
         pendingActions[1]!,
       ]),
     );
@@ -174,7 +213,7 @@ describe("ToContinue", () => {
     await user.click(control);
     expect(
       screen.getByRole("button", {
-        name: "There is a problem with the selected skill 1 more",
+        name: "To continue, there is a problem with the selected skill +1 more",
       }),
     ).toBe(control);
   });
@@ -184,7 +223,7 @@ describe("ToContinue", () => {
     const view = render(toContinue());
     view.rerender(toContinue([actions[2], actions[1]]));
     const control = screen.getByRole("button", {
-      name: "Roll Luck 1 more",
+      name: "To continue, roll Luck +1 more",
     });
     expect(control.getAttribute("aria-expanded")).toBe("false");
 
@@ -192,14 +231,14 @@ describe("ToContinue", () => {
     view.rerender(
       toContinue([
         actions[1],
-        { id: "luck", label: "Assign Luck" },
-        { id: "favored", label: "Choose favored characteristics" },
+        { id: "luck", label: "assign Luck" },
+        { id: "favored", label: "choose favored characteristics" },
       ]),
     );
     expect(control.getAttribute("aria-expanded")).toBe("true");
     expect(
       screen.getByRole("button", {
-        name: "Resolve before continuing:",
+        name: "To continue:",
       }),
     ).toBe(control);
     expect(
@@ -209,12 +248,12 @@ describe("ToContinue", () => {
       "Assign Luck",
       "Choose favored characteristics",
     ]);
-    expect(screen.queryByText("Roll Luck")).toBeNull();
+    expect(screen.queryByText("roll Luck")).toBeNull();
 
     view.rerender(toContinue([actions[1], actions[2]]));
     expect(control.getAttribute("aria-expanded")).toBe("true");
     view.rerender(toContinue([actions[2]]));
-    expect(screen.getByText("Roll Luck")).toBeTruthy();
+    expect(screen.getByText("roll Luck")).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
     view.rerender(toContinue([]));
     expect(screen.getByTestId("to-continue").childNodes).toHaveLength(0);

@@ -127,7 +127,7 @@ it("acknowledges a race-index failure while closed and retries only on request",
   renderForge(catalog, undefined, "default");
   await openWizard();
   expect(
-    await screen.findAllByRole("status", { name: "Loading races" }),
+    await screen.findAllByRole("status", { name: /loading races/i }),
   ).toHaveLength(2);
   await closeWizard();
   await act(async () => pending.reject(new Error("offline")));

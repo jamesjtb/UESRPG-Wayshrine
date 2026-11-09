@@ -47,9 +47,7 @@ function expectActionsBelowTitle(title: string, text: string) {
 }
 
 function expandedLabels() {
-  return within(
-    screen.getByRole("region", { name: "Resolve before continuing:" }),
-  )
+  return within(screen.getByRole("region", { name: "To continue:" }))
     .getAllByRole("listitem")
     .map((item) => item.textContent);
 }
@@ -59,8 +57,8 @@ it("places pending racial choices below the title and removes only resolved grou
   renderActionsForge();
   await openWizard();
   await screen.findByRole("combobox", { name: "Race" });
-  expectActionsBelowTitle("Select Race", "Choose a race");
-  expect(screen.getAllByText("Choose a race")).toHaveLength(1);
+  expectActionsBelowTitle("Select Race", "To continue, choose a race");
+  expect(screen.getAllByText("choose a race")).toHaveLength(1);
   expect(screen.getByRole("combobox", { name: "Race" })).toHaveProperty(
     "placeholder",
     "Choose a race",
@@ -68,9 +66,9 @@ it("places pending racial choices below the title and removes only resolved grou
   expect(screen.queryByRole("status")).toBeNull();
   await selectRace("Many choices");
   const toggle = await screen.findByRole("button", {
-    name: "Choose 2 skills 1 more",
+    name: "To continue, choose 2 skills +1 more",
   });
-  expectActionsBelowTitle("Select Race", "Choose 2 skills");
+  expectActionsBelowTitle("Select Race", "choose 2 skills");
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
     true,
@@ -81,12 +79,12 @@ it("places pending racial choices below the title and removes only resolved grou
   await user.click(pair.getByRole("checkbox", { name: "Alchemy" }));
   expect(
     screen.getByRole("button", {
-      name: "Resolve before continuing:",
+      name: "To continue:",
     }),
   ).toBe(toggle);
   await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
   await waitFor(() => expect(screen.queryByText("Choose 2 skills")).toBeNull());
-  expectActionsBelowTitle("Select Race", "Choose 1 skill");
+  expectActionsBelowTitle("Select Race", "choose 1 skill");
   expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   await user.click(
     within(screen.getByRole("group", { name: "Choose 1" })).getByRole(
@@ -100,15 +98,15 @@ it("places pending racial choices below the title and removes only resolved grou
       false,
     ),
   );
-  expect(screen.queryByText("Choose 1 skill")).toBeNull();
+  expect(screen.queryByText("choose 1 skill")).toBeNull();
   await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
-  expectActionsBelowTitle("Select Race", "Choose 2 skills");
+  expectActionsBelowTitle("Select Race", "choose 2 skills");
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
     true,
   );
   await user.click(pair.getByRole("checkbox", { name: "Alteration" }));
-  await waitFor(() => expect(screen.queryByText("Choose 2 skills")).toBeNull());
+  await waitFor(() => expect(screen.queryByText("choose 2 skills")).toBeNull());
   expect(
     screen.getByRole("heading", { name: "Select Race" }).nextElementSibling
       ?.tagName,
@@ -130,16 +128,16 @@ it("uses shared indicators until race browsing and selection settle successfully
   const title = screen.getByRole("heading", { name: "Select Race" });
   const browsing = within(title.nextElementSibling! as HTMLElement).getByRole(
     "status",
-    { name: "Loading races" },
+    { name: "loading races" },
   );
   expect(browsing.querySelector(".mantine-Loader-root")).not.toBeNull();
   await act(async () => indexGate.resolve());
-  expectActionsBelowTitle("Select Race", "Choose a race");
+  expectActionsBelowTitle("Select Race", "choose a race");
   expect(screen.queryByRole("status", { name: "Loading races" })).toBeNull();
   await selectRace("Argonian");
   const selection = within(title.nextElementSibling! as HTMLElement).getByRole(
     "status",
-    { name: "Loading race selection" },
+    { name: "loading race selection" },
   );
   expect(selection.querySelector(".mantine-Loader-root")).not.toBeNull();
   await act(async () => raceGate.resolve());
@@ -150,9 +148,9 @@ it("uses shared indicators until race browsing and selection settle successfully
     ),
   );
   expect(
-    screen.queryByRole("status", { name: "Loading race selection" }),
+    screen.queryByRole("status", { name: "loading race selection" }),
   ).toBeNull();
-  expect(screen.queryByText("Choose a race")).toBeNull();
+  expect(screen.queryByText("choose a race")).toBeNull();
   expect(
     title.nextElementSibling?.classList.contains("mantine-Paper-root"),
   ).toBe(false);
@@ -168,7 +166,7 @@ it("shows race load/retry blockers below the title without replacing inline reco
   const title = screen.getByRole("heading", { name: "Select Race" });
   expect(
     within(title.nextElementSibling! as HTMLElement).getByRole("status", {
-      name: "Loading race selection",
+      name: "loading race selection",
     }),
   ).toBeTruthy();
   expect(screen.queryByText(/Wait for .* to load/)).toBeNull();
@@ -176,7 +174,7 @@ it("shows race load/retry blockers below the title without replacing inline reco
   await act(async () => gate.reject(new Error("offline")));
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: "OK" }));
-  expectActionsBelowTitle("Select Race", "Retry or cancel race selection");
+  expectActionsBelowTitle("Select Race", "retry or cancel race selection");
   expect(
     screen.getByRole("button", { name: "Retry race selection" }),
   ).toBeTruthy();
@@ -189,7 +187,7 @@ it("shows race load/retry blockers below the title without replacing inline reco
   );
   await sheet().findByText("Argonian");
   await waitFor(() =>
-    expect(screen.queryByText("Retry or cancel race selection")).toBeNull(),
+    expect(screen.queryByText("retry or cancel race selection")).toBeNull(),
   );
   expect(errorLog).toHaveBeenCalled();
 });
@@ -201,11 +199,11 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   await sheet().findByText("Argonian");
   await user.click(screen.getByRole("button", { name: "Next" }));
   const toggle = screen.getByRole("button", {
-    name: "Choose two favored characteristics 3 more",
+    name: "To continue, choose two favored characteristics +3 more",
   });
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Choose two favored characteristics",
+    "choose two favored characteristics",
   );
   await user.click(toggle);
   expect(expandedLabels()).toEqual([
@@ -218,7 +216,7 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   await user.click(screen.getByRole("button", { name: "Favor Endurance" }));
   expect(
     screen.getByRole("button", {
-      name: "Resolve before continuing:",
+      name: "To continue:",
     }),
   ).toBe(toggle);
   await user.click(
@@ -228,15 +226,15 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   );
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Assign all characteristic rolls",
+    "assign all characteristic rolls",
   );
-  expect(screen.queryByText("Roll Luck")).toBeNull();
+  expect(screen.queryByText("roll Luck")).toBeNull();
   await user.click(screen.getByRole("button", { name: "Back" }));
   await user.click(screen.getByRole("button", { name: "Next" }));
   expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Assign all characteristic rolls",
+    "assign all characteristic rolls",
   );
   const labels = [
     "Strength",
@@ -250,7 +248,7 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   for (const [index, label] of labels.entries()) {
     await assignDraftResult(user, label, index);
   }
-  expect(screen.queryByText("Assign all characteristic rolls")).toBeNull();
+  expect(screen.queryByText("assign all characteristic rolls")).toBeNull();
   expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   const firstResult = screen.getByRole("button", {
     name: "Rolled result for Strength",
@@ -259,10 +257,10 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   await user.click(await screen.findByRole("menuitem", { name: "Unassign" }));
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Assign all characteristic rolls",
+    "assign all characteristic rolls",
   );
   await assignDraftResult(user, "Strength", 0);
-  expect(screen.queryByText("Assign all characteristic rolls")).toBeNull();
+  expect(screen.queryByText("assign all characteristic rolls")).toBeNull();
   // The last registered Core step still has no Next, regardless of this presentation.
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
@@ -278,18 +276,18 @@ it("groups point-buy tasks, retains inline numeric feedback, and hides completed
   await user.click(screen.getByRole("button", { name: "Next" }));
   await user.click(
     screen.getByRole("button", {
-      name: "Choose two favored characteristics 3 more",
+      name: "To continue, choose two favored characteristics +3 more",
     }),
   );
   await fillPointBuy(user);
   expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
-  expect(screen.queryByText("Allocate characteristic points")).toBeNull();
+  expect(screen.queryByText("allocate characteristic points")).toBeNull();
   const strength = screen.getByRole("textbox", { name: "Strength points" });
   await user.clear(strength);
   await user.type(strength, "21");
   expectActionsBelowTitle(
     "Generate Characteristics",
-    "Allocate characteristic points",
+    "allocate characteristic points",
   );
   expect(
     screen.getByText(
@@ -299,6 +297,6 @@ it("groups point-buy tasks, retains inline numeric feedback, and hides completed
   expect(screen.queryByRole("button", { name: /\d+ more/ })).toBeNull();
   await user.clear(strength);
   await user.type(strength, "20");
-  expect(screen.queryByText("Allocate characteristic points")).toBeNull();
+  expect(screen.queryByText("allocate characteristic points")).toBeNull();
 });
 import { assignDraftResult } from "./test/forgeTestHelpers";

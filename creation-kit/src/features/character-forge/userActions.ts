@@ -8,10 +8,10 @@ import type { UserAction } from "./components/ToContinue";
 type RaceIndexStatus = "loading" | "error" | "empty" | "ready";
 
 const raceSelectionLabels: Record<RaceIndexStatus, string> = {
-  loading: "Loading races",
-  error: "Retry loading races",
-  empty: "Race content unavailable",
-  ready: "Choose a race",
+  loading: "loading races",
+  error: "retry loading races",
+  empty: "race content unavailable",
+  ready: "choose a race",
 };
 
 export function raceUserActions(
@@ -31,8 +31,8 @@ export function raceUserActions(
         id: "race-content",
         label:
           raceLoad.status === "loading"
-            ? "Loading race selection"
-            : "Retry or cancel race selection",
+            ? "loading race selection"
+            : "retry or cancel race selection",
         ...(raceLoad.status === "loading" ? { loading: true } : {}),
       },
     ];
@@ -51,7 +51,7 @@ export function raceUserActions(
   } else if (globalIssues.length > 0) {
     actions.push({
       id: "race-content",
-      label: "Review race selection or choose another race",
+      label: "review race selection or choose another race",
     });
   }
 
@@ -65,17 +65,17 @@ export function raceUserActions(
       (issue) =>
         issue.choiceId === group.id && issue.code === "content-unresolved",
     );
-    let label = `Choose ${group.choose} ${group.choose === 1 ? "skill" : "skills"}`;
-    if (load?.status === "loading") label = "Loading available skills";
+    let label = `choose ${group.choose} ${group.choose === 1 ? "skill" : "skills"}`;
+    if (load?.status === "loading") label = "loading available skills";
     else if (load?.status === "failed" || unresolved)
-      label = "There is a problem with the selected skill";
+      label = "there is a problem with the selected skill";
     else if (
       race.issues.some(
         (issue) =>
           issue.choiceId === group.id && issue.code !== "selection-count",
       )
     ) {
-      label = "Review skill selection";
+      label = "review skill selection";
     }
     actions.push({
       id: group.id,
@@ -90,11 +90,11 @@ const generationTasks: readonly {
   field: CharacteristicGenerationField;
   label: string;
 }[] = [
-  { field: "favored", label: "Choose two favored characteristics" },
-  { field: "rolls", label: "Make a characteristic roll" },
-  { field: "assignments", label: "Assign all characteristic rolls" },
-  { field: "allocations", label: "Allocate characteristic points" },
-  { field: "luck", label: "Roll Luck" },
+  { field: "favored", label: "choose two favored characteristics" },
+  { field: "rolls", label: "make a characteristic roll" },
+  { field: "assignments", label: "assign all characteristic rolls" },
+  { field: "allocations", label: "allocate characteristic points" },
+  { field: "luck", label: "roll Luck" },
 ];
 
 export function characteristicUserActions(
@@ -105,7 +105,7 @@ export function characteristicUserActions(
   if (!raceComplete) {
     actions.push({
       id: "race",
-      label: "Resolve issues in previous step(s)",
+      label: "resolve issues in previous step(s)",
     });
   }
   for (const task of generationTasks) {

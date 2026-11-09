@@ -14,9 +14,20 @@ type ToContinueProps = {
   actions: readonly UserAction[];
 };
 
-function ActionLabel({ action }: { action: UserAction }) {
-  if (action.loading) return <LoadingIndicator label={action.label} />;
-  return <span>{action.label}</span>;
+function capitalizeInitial(label: string) {
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function ActionLabel({
+  action,
+  sentenceCase = false,
+}: {
+  action: UserAction;
+  sentenceCase?: boolean;
+}) {
+  const label = sentenceCase ? capitalizeInitial(action.label) : action.label;
+  if (action.loading) return <LoadingIndicator label={label} />;
+  return <span>{label}</span>;
 }
 
 export function ToContinue({ actions }: ToContinueProps) {
@@ -34,7 +45,9 @@ export function ToContinue({ actions }: ToContinueProps) {
             className={classes.warningIcon}
             aria-hidden
           />
-          <ActionLabel action={firstAction} />
+          <div className={classes.summaryText}>
+            To continue, <ActionLabel action={firstAction} />
+          </div>
         </div>
       </Paper>
     );
@@ -68,10 +81,12 @@ export function ToContinue({ actions }: ToContinueProps) {
         >
           <span className={classes.summary}>
             <span className={classes.summaryText}>
-              {expandedItem ? (
-                "Resolve before continuing:"
-              ) : (
-                <ActionLabel action={firstAction} />
+              {expandedItem ? "To continue:" : "To continue,"}
+              {!expandedItem && (
+                <>
+                  {" "}
+                  <ActionLabel action={firstAction} />
+                </>
               )}
             </span>{" "}
             {!expandedItem && (
@@ -82,7 +97,7 @@ export function ToContinue({ actions }: ToContinueProps) {
                 color="gray"
                 tt="none"
               >
-                {actions.length - 1} more
+                +{actions.length - 1} more
               </Badge>
             )}
           </span>
@@ -91,7 +106,7 @@ export function ToContinue({ actions }: ToContinueProps) {
           <ul className={classes.list}>
             {actions.map((action) => (
               <li key={action.id}>
-                <ActionLabel action={action} />
+                <ActionLabel action={action} sentenceCase />
               </li>
             ))}
           </ul>

@@ -334,7 +334,7 @@ describe("Character Forge race editing", () => {
     renderForge(catalog);
     await openWizard();
     expect(
-      await screen.findAllByRole("status", { name: "Loading races" }),
+      await screen.findAllByRole("status", { name: /loading races/i }),
     ).toHaveLength(2);
     const failure = new Error("offline index URL");
     await act(async () => pending.reject(failure));

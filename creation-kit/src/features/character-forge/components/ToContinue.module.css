@@ -34,10 +34,6 @@
   gap: var(--mantine-spacing-sm);
 }
 
-.single > span {
-  min-width: 0;
-}
-
 .warningIcon {
   color: light-dark(
     var(--mantine-color-orange-8),

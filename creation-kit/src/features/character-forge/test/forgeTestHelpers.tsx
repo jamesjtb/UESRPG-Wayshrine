@@ -18,13 +18,17 @@ export function renderForge(
   catalog = fixtureCatalog(),
   rollDice: CharacteristicRoller = rollCharacteristicDice,
   env: "test" | "default" = "test",
+  rollBirthsignFace?: () => number,
 ) {
   return render(
     <StrictMode>
       <MantineProvider env={env}>
         <ContentCatalogProvider loadCatalog={async () => catalog}>
           <ContentCatalogStatus />
-          <CharacterForge rollDice={rollDice} />
+          <CharacterForge
+            rollDice={rollDice}
+            {...(rollBirthsignFace ? { rollBirthsignFace } : {})}
+          />
         </ContentCatalogProvider>
       </MantineProvider>
     </StrictMode>,

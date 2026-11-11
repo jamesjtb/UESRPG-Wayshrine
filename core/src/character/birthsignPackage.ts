@@ -14,7 +14,9 @@ import type {
 import type { ChoiceIssue } from "../../interface/common/Choice";
 import { validateChoice } from "../wizards/validateChoice";
 
-function activeBonuses(input: BirthsignPackageInput): SourcedBirthsignBonus[] {
+export function activeBirthsignBonuses(
+  input: BirthsignPackageInput,
+): SourcedBirthsignBonus[] {
   const root = `birthsign/${encodeURIComponent(input.selection.signKey)}`;
   const entries: SourcedBirthsignBonus[] = [];
   const star = input.selection.variant === "starCursed";
@@ -46,7 +48,7 @@ export function getBirthsignChoices(
   input: BirthsignPackageInput,
 ): BirthsignChoiceState[] {
   const choices: BirthsignChoiceState[] = [];
-  for (const { bonus } of activeBonuses(input)) {
+  for (const { bonus } of activeBirthsignBonuses(input)) {
     if (bonus.bonusType !== "choice") continue;
     const id = choiceId(input, bonus);
     choices.push({
@@ -108,7 +110,7 @@ export function calculateBirthsignPackage(
     naturalHealingMultiplier: 1,
     extraLuckyNumbers: [],
   };
-  for (const { bonus, sourceId } of activeBonuses(input)) {
+  for (const { bonus, sourceId } of activeBirthsignBonuses(input)) {
     if (bonus.bonusType !== "choice") {
       applyEffect(value, bonus, sourceId, input.definition.label);
       continue;

@@ -8,6 +8,9 @@ import type {
   CharacteristicRoll,
   ContentCatalog,
   WizardResult,
+  BirthsignRoll,
+  BirthsignSelection,
+  ChoiceAnswer,
 } from "@wayshrine/core";
 import { isBlockingContentIssue } from "./issues";
 import type { CharacteristicRoller } from "./steps/characteristics/dice";
@@ -221,6 +224,67 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     void select(id, () => session.creator.chooseRacialBonus(id, selections));
   }
 
+  async function birthsignCommand(
+    command: () => ReturnType<CharacterCreator["chooseBirthsign"]>,
+  ) {
+    if (!session?.live) return;
+    const request = {};
+    session.requests.set("birthsign", request);
+    const pending = command();
+    refresh();
+    const result = await pending;
+    if (!session.live || session.requests.get("birthsign") !== request) return;
+    reportBlockingIssues(result);
+    refresh();
+    return result;
+  }
+
+  function submitBirthsignRoll(roll: BirthsignRoll) {
+    return birthsignCommand(() => session!.creator.submitBirthsignRoll(roll));
+  }
+
+  function chooseBirthsignWithAnswers(
+    selection: BirthsignSelection,
+    answers: readonly ChoiceAnswer<string>[],
+  ) {
+    return birthsignCommand(() =>
+      session!.creator.chooseBirthsignWithAnswers(selection, answers),
+    );
+  }
+
+  function restoreOriginalBirthsign() {
+    return birthsignCommand(() => session!.creator.restoreOriginalBirthsign());
+  }
+
+  function chooseBirthsignBonus(id: string, selections: readonly string[]) {
+    if (!session?.live) return;
+    const result = session.creator.chooseBirthsignBonus(id, selections);
+    refresh();
+    return result;
+  }
+
+  function setFreeBirthsignChoice(enabled: boolean) {
+    if (!session?.live) return;
+    const result = session.creator.setFreeBirthsignChoice(enabled);
+    refresh();
+    return result;
+  }
+
+  function quoteBirthsign(
+    selection: BirthsignSelection,
+    answers: readonly ChoiceAnswer<string>[],
+  ) {
+    if (!session?.live) return;
+    return session.creator.quoteBirthsign(selection, answers);
+  }
+
+  function cancelBirthsignSelection() {
+    if (!session?.live) return;
+    session.requests.delete("birthsign");
+    session.creator.cancelBirthsignSelection();
+    refresh();
+  }
+
   function next() {
     if (!session?.live) return;
     const result = session.creator.next();
@@ -253,5 +317,12 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     dismissError,
     next,
     previous,
+    submitBirthsignRoll,
+    chooseBirthsignWithAnswers,
+    chooseBirthsignBonus,
+    restoreOriginalBirthsign,
+    setFreeBirthsignChoice,
+    quoteBirthsign,
+    cancelBirthsignSelection,
   };
 }

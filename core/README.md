@@ -269,7 +269,7 @@ for module boundaries and consumer integration considerations.
 ### Headless birthsign selection
 
 Birthsign selection is the third headless wizard step. Commands can also be used
-before navigating there. Creation Kit does not yet provide a birthsign editor.
+before navigating there.
 
 ```ts
 import type { CharacterCreator } from "@wayshrine/core";
@@ -366,7 +366,8 @@ content/technical failures have `ok: false` and structured issues; a loaded quot
 definition, eligibility, price/acquisition method, offered choices (including recurring
 metadata), provisional answers, strict `effectivePackage`, issues and missing inputs.
 Invalid/unresolved once answers withhold the entire package and numeric Luck totals,
-but not the offered choices or known price. Recurring selections grant no effects.
+but not the offered choices, active authored bonuses, or known price. Active authored
+bonuses describe possibilities and are not a projected partial package. Recurring selections grant no effects.
 
 `luckBeforePurchase` includes candidate innate modifiers and rolled replacements,
 not the currently selected birthsign. `finalLuck` additionally deducts this candidate's
@@ -383,8 +384,12 @@ at completion after pinned content/reference validation. It changes no creator s
 load, choices, history, wizard issues or preview; it never spends/reserves Luck or
 cancels a selection/roll. Concurrent quotes complete independently. The UI owns
 loading and latest-candidate presentation. Disposal invalidates pending quotes.
-A quote is an observation, not a token: `chooseBirthsign` always revalidates current
-state, and once answers still use `chooseBirthsignBonus` after selection.
+A quote is an observation, not a token. `chooseBirthsignWithAnswers(selection, answers)`
+reloads and validates the candidate, one-time answers, eligibility and affordability
+against current state before committing the selection and answers together. It rejects
+unknown or duplicate answer IDs and incomplete answers without changing committed
+answers. The older `chooseBirthsign` and `chooseBirthsignBonus` commands remain available
+for workflows that edit a committed selection incrementally.
 
 Preview reconstruction applies the **entire** valid birthsign package atomically,
 including its purchase deduction. Pending/failed content, ineligibility, unresolved
@@ -420,8 +425,8 @@ their arithmetic independent of final package modifiers and purchase costs.
 
 The wizard's birthsign step requires valid preceding steps as well as a complete
 selection. Next/Back retain all answers; finish validates every registered step
-regardless of current position. Power activation, race power integration, recurring
-gameplay selections, and the React birthsign editor are not implemented.
+regardless of current position. Power activation, race power integration, and recurring
+gameplay selections are not implemented.
 
 ## Content validation
 

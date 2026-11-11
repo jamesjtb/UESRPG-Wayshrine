@@ -60,8 +60,10 @@ pricing, eligibility, and choices for both selection and quotes. No provisional
 answer submission means an empty list, not retained answers. The creator's synchronous
 completion evaluator calculates package, Luck totals, and affordability against the
 same current context as pricing, with no intervening await. Actual selection and
-quotes share this contextual calculation; the former still permits unresolved once
-choices to be submitted later. Package availability does not itself authorize a
+quotes share this contextual calculation; the legacy selection command still permits
+unresolved once choices to be submitted later. `chooseBirthsignWithAnswers` validates
+the provisional answers and current affordability before committing them with the
+selection at one synchronous completion point. Package availability does not itself authorize a
 purchase or projection. Quote eligibility, strict choice validity and affordability
 are separate observations; zero-cost candidates have no purchase affordability gate.
 
@@ -118,6 +120,5 @@ The Core wizard registers `birthsign` after `characteristics`; its evaluator inc
 earlier-step validity, and the generic wizard enforces all-step finish guards from any
 position. Back retains choices and generation. Selection completeness in its dedicated
 snapshot describes selection/context validity; wizard step completeness also includes
-the preceding steps. Creation Kit has no birthsign editor yet: Core may advance to the
-new step, but browser presentation is an intermediate integration checkpoint, not a
-complete creation workflow. Do not remap the new step to an old editor or skip its guards.
+the preceding steps. The browser editor presents this state without replacing Core's
+guards; later creation steps remain unimplemented.

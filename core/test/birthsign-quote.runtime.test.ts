@@ -72,6 +72,121 @@ async function context(creator: CharacterCreator) {
 }
 
 describe("non-mutating birthsign quotes", () => {
+  it("rejects an atomic selection if the content revision changes during its read", async () => {
+    const { creator, catalog } = setup();
+    await context(creator);
+    await creator.chooseBirthsign(normal);
+    const gate = deferred();
+    catalog.beforeGet = async (kind, key) => {
+      if (kind === "birthsign" && key === "theMage") await gate.promise;
+    };
+    const pending = creator.chooseBirthsignWithAnswers(
+      { signKey: "theMage", variant: "normal" },
+      [],
+    );
+    catalog.version.revision = "different";
+    gate.resolve();
+    expect(await pending).toMatchObject({
+      ok: false,
+      issues: [{ code: "content-version-mismatch" }],
+    });
+    const state = creator.getSnapshot().birthsignSelection;
+    expect(state.selected).toEqual(normal);
+    expect(state.answers).toEqual([]);
+    expect(state.load?.status).toBe("failed");
+  });
+  it("revalidates mode and context at atomic completion and never publishes superseded answers", async () => {
+    const { creator, catalog } = setup();
+    await context(creator);
+    await creator.chooseBirthsign(normal);
+    creator.setFreeBirthsignChoice(true);
+    const gate = deferred();
+    catalog.beforeGet = async (kind, key) => {
+      if (kind === "birthsign" && key === "theThief") await gate.promise;
+    };
+    const pending = creator.chooseBirthsignWithAnswers(thief, []);
+    creator.setFreeBirthsignChoice(false);
+    gate.resolve();
+    expect(await pending).toMatchObject({
+      ok: false,
+      issues: [{ code: "ineligible-selection" }],
+    });
+    expect(creator.getSnapshot().birthsignSelection.selected).toEqual(normal);
+
+    const second = deferred();
+    catalog.beforeGet = async (kind, key) => {
+      if (kind === "birthsign" && key === "theMage") await second.promise;
+    };
+    const stale = creator.chooseBirthsignWithAnswers(
+      { signKey: "theMage", variant: "normal" },
+      [],
+    );
+    expect((await creator.chooseBirthsignWithAnswers(star, [])).ok).toBe(true);
+    second.resolve();
+    expect(await stale).toMatchObject({
+      ok: false,
+      issues: [{ code: "superseded" }],
+    });
+    expect(creator.getSnapshot().birthsignSelection.selected).toEqual(star);
+  });
+  it("commits candidate and provisional answers atomically", async () => {
+    const { creator, signs } = setup();
+    signs.theWarrior!.bonuses = [
+      {
+        bonusType: "choice",
+        lifecycle: { selection: "once" },
+        choiceGroup: {
+          id: "luck",
+          choose: 1,
+          options: [
+            {
+              id: "safe",
+              effects: [
+                {
+                  bonusType: "characteristic",
+                  bonusTargetKey: "lck",
+                  bonusValue: 1,
+                },
+              ],
+            },
+            {
+              id: "costly",
+              effects: [
+                {
+                  bonusType: "characteristic",
+                  bonusTargetKey: "lck",
+                  bonusValue: -40,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    await context(creator);
+    await creator.chooseBirthsign({ signKey: "theMage", variant: "normal" });
+    const before = creator.getSnapshot().birthsignSelection;
+    for (const selections of [[], ["bad"], ["costly"]]) {
+      const result = await creator.chooseBirthsignWithAnswers(normal, [
+        { choiceId: "theWarrior/luck", selections },
+      ]);
+      expect(result.ok).toBe(false);
+      expect(creator.getSnapshot().birthsignSelection.selected).toEqual(
+        before.selected,
+      );
+      expect(creator.getSnapshot().birthsignSelection.answers).toEqual(
+        before.answers,
+      );
+    }
+    const answers = [{ choiceId: "theWarrior/luck", selections: ["safe"] }];
+    expect((await creator.chooseBirthsignWithAnswers(normal, answers)).ok).toBe(
+      true,
+    );
+    answers[0]!.selections[0] = "costly";
+    expect(creator.getSnapshot().birthsignSelection.answers).toEqual([
+      { choiceId: "theWarrior/luck", selections: ["safe"] },
+    ]);
+  });
   it("quotes without original history or generation and changes no state", async () => {
     const { creator } = setup();
     const before = state(creator);
@@ -185,6 +300,8 @@ describe("non-mutating birthsign quotes", () => {
       affordability: "pending",
     });
     expect(missing.choices[0]!.selections).toEqual([]);
+    expect(missing.offeredBonuses).toHaveLength(1);
+    expect(missing.offeredBonuses[0]!.bonus.bonusType).toBe("choice");
     const answers = [{ choiceId: "theWarrior/luck", selections: ["penalty"] }];
     const quoted = value(await creator.quoteBirthsign(normal, answers));
     expect(quoted).toMatchObject({

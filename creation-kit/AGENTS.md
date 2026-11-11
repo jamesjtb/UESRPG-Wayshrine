@@ -17,6 +17,17 @@
 - Test Forge behavior with real Core creators, injectable catalogs, and
   explicitly settled deferred reads—not sleeps or mocked rules.
 
+## Test execution
+
+- For the full app suite, start with four workers:
+  `pnpm --filter @wayshrine/creation-kit exec vitest run --maxWorkers=4 --testTimeout=15000`.
+- Run the scripts suite separately:
+  `pnpm --filter @wayshrine/creation-kit exec vitest run --config vitest.scripts.config.ts --maxWorkers=4`.
+- Prefer targeted tests during implementation and feedback; run full relevant
+  suites once at phase completion.
+- Avoid running multiple heavy test suites concurrently. If four workers cause
+  resource failures, retry with fewer and report the deviation.
+
 ## UI feedback
 
 - For layout feedback, reproduce the reported condition and a relevant boundary;

@@ -214,6 +214,76 @@ export class BirthsignSelectionSession {
     }
   }
 
+  /** Commit a fully validated candidate and its one-time answers together. */
+  async chooseWithAnswers(
+    input: BirthsignSelection,
+    provisionalAnswers: readonly ChoiceAnswer<string>[],
+  ): Promise<BirthsignSelectionResult> {
+    if (this.disposed) return reject("disposed", "This creator is disposed.");
+    const selection = { ...input };
+    const answers = provisionalAnswers.map((answer) => ({
+      choiceId: answer.choiceId,
+      selections: [...answer.selections],
+    }));
+    const request = ++this.request;
+    this.load = undefined;
+    if (
+      typeof selection.signKey !== "string" ||
+      selection.signKey.trim() === "" ||
+      !["normal", "starCursed"].includes(selection.variant)
+    )
+      return reject("invalid-selection", "Choose a sign and a valid variant.");
+    this.load = { selection, status: "loading", issues: [] };
+    try {
+      const definition = await this.content.get("birthsign", selection.signKey);
+      if (!this.isCurrent(request)) return this.superseded();
+      if (!definition) {
+        this.load = undefined;
+        return reject("unknown-birthsign", "Unknown birthsign.");
+      }
+      await this.validateReferences(definition);
+      if (!this.isCurrent(request)) return this.superseded();
+      const candidate = this.snapshotFor(selection, definition, answers, false);
+      const ids = new Set<string>();
+      for (const answer of answers) {
+        if (
+          ids.has(answer.choiceId) ||
+          !candidate.choices.some(
+            (choice) =>
+              choice.lifecycle.selection === "once" &&
+              choice.choiceGroup.id === answer.choiceId,
+          )
+        ) {
+          this.load = undefined;
+          return reject(
+            "unknown-choice",
+            "Unknown or duplicate one-time birthsign choice.",
+          );
+        }
+        ids.add(answer.choiceId);
+      }
+      const issues = [...candidate.issues, ...this.contextIssues(candidate)];
+      this.load = undefined;
+      if (issues.length) return { ok: false, issues };
+      this.selected = selection;
+      this.definition = definition;
+      for (const answer of answers) this.answers.set(answer.choiceId, answer);
+      return { ok: true, value: undefined };
+    } catch (error) {
+      if (!this.isCurrent(request)) return this.superseded();
+      const failure =
+        error instanceof ContentError
+          ? error
+          : new ContentError(
+              "content-unavailable",
+              "Unable to load birthsign content.",
+            );
+      const result = reject(failure.code, failure.message);
+      this.load = { selection, status: "failed", issues: result.issues };
+      return result;
+    }
+  }
+
   /** Independent reads: quotes neither supersede commands nor each other. */
   async quote(
     input: BirthsignSelection,

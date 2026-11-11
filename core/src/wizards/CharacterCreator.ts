@@ -26,7 +26,10 @@ import type {
   BirthsignSelectionIssue,
 } from "../../interface/character/BirthsignSelection";
 import { BirthsignSelectionSession } from "../character/birthsignSelection";
-import { calculateBirthsignPackage } from "../character/birthsignPackage";
+import {
+  activeBirthsignBonuses,
+  calculateBirthsignPackage,
+} from "../character/birthsignPackage";
 import type {
   BirthsignQuote,
   BirthsignQuoteResult,
@@ -151,6 +154,13 @@ export default class CharacterCreator {
     return this.birthsigns.choose(selection);
   }
 
+  chooseBirthsignWithAnswers(
+    selection: BirthsignSelection,
+    answers: readonly ChoiceAnswer<string>[],
+  ) {
+    return this.birthsigns.chooseWithAnswers(selection, answers);
+  }
+
   quoteBirthsign(
     selection: BirthsignSelection,
     provisionalAnswers: readonly ChoiceAnswer<string>[] = [],
@@ -171,6 +181,11 @@ export default class CharacterCreator {
       acquisitionMethod: snapshot.acquisitionMethod,
       answers: snapshot.answers,
       choices: snapshot.choices,
+      offeredBonuses: activeBirthsignBonuses({
+        selection: snapshot.selected!,
+        definition: snapshot.definition!,
+        answers: snapshot.answers,
+      }),
       ...context,
       issues: [
         ...snapshot.issues,

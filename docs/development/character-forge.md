@@ -26,7 +26,7 @@ mobile sidebar rather than behind it.
   Commands capture their originating session; retained callbacks and pending
   completions cannot affect a replacement session after catalog changes or unmount.
 - `CharacterForge.tsx` keeps the creator session and primary sheet outside the
-  creation modal. It selects `RaceStep` or `CharacteristicsStep` solely from Core's
+  creation modal. It selects `RaceStep`, `CharacteristicsStep`, or `BirthsignStep` solely from Core's
   `currentStep`. Core supplies registered breadcrumb steps and navigation guards;
   the characteristics breadcrumb is labeled “Generate Characteristics”.
 - The creation wizard is an initially closed Mantine `Modal`, large on desktop
@@ -453,13 +453,21 @@ owns required display coverage and explicit per-leaf English fallback. Markdown
 rendering, trait-definition display reads, and applied-template formatting are
 not implemented. Literal player names and parameter values are not translated.
 
-Core registers `race`, `characteristics`, then the headless `birthsign` step.
-Creation Kit has no birthsign editor yet; this is an intermediate integration
-checkpoint, not a complete browser wizard. The new step must not be silently skipped
-or reinterpreted as characteristics. Valid race answers enable Next;
+Core registers `race`, `characteristics`, then the `birthsign` step. The birthsign
+editor acquires complete d5 sequences in the host and submits them once to Core.
+It browses the charge tables and quotes candidates without selecting them. The chooser
+keeps one-time answers provisional until the atomic selection command succeeds; Core
+remains responsible for eligibility, pricing, effects and navigation. Free-choice mode
+and the original roll remain session state in Core. Valid race answers enable Next;
 Back preserves answers. Invalidating an earlier step blocks Core finish eligibility
 without automatically moving the current step. Forge does not call `finish()`,
 offer a Finish action, or claim complete character creation.
+
+Candidate quote requests are presentation-local and keyed to their candidate, provisional
+answers, and current context; late results are ignored. Quotes expose active authored
+bonuses even when unresolved choices prevent a strict effective package, without granting
+those effects. Recurring choices are explanatory only. Power and trait descriptions are
+read from the catalog rather than inferred from effect keys.
 
 ## Testing strategy
 
@@ -525,7 +533,7 @@ tests, and `pnpm --filter @wayshrine/core test` for shared type and rule checks.
 
 ## Limitations and extension boundaries
 
-Only race and characteristic generation are implemented, not the remaining
+Only race, characteristic generation and birthsign selection are implemented, not the remaining
 character-creation or advancement rules. There is no Foundry runtime integration.
 For Core state/projection boundaries, see
 [generation engineering notes](characteristic-generation.md).

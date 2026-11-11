@@ -3,6 +3,7 @@ import type { ChoiceAnswer } from "../common/Choice";
 import type {
   BirthsignChoiceState,
   EffectiveBirthsignPackage,
+  SourcedBirthsignBonus,
 } from "./BirthsignPackage";
 import type {
   BirthsignSelection,
@@ -21,6 +22,8 @@ export interface BirthsignQuote {
   /** Empty unless explicitly supplied; retained creator answers are never used. */
   answers: readonly ChoiceAnswer<string>[];
   choices: readonly BirthsignChoiceState[];
+  /** Active authored bonuses, including unresolved choices; not projected effects. */
+  offeredBonuses: readonly SourcedBirthsignBonus[];
   effectivePackage: EffectiveBirthsignPackage | undefined;
   /** Includes candidate inherent effects/replacements, but excludes purchase cost. */
   luckBeforePurchase: number | undefined;

@@ -16,6 +16,7 @@ import { ToolBreadcrumbs } from "../../layouts/CreationKitLayout/ToolBreadcrumbs
 import { useCharacterCreator } from "./useCharacterCreator";
 import { RaceStep } from "./steps/race/RaceStep";
 import { CharacteristicsStep } from "./steps/characteristics/CharacteristicsStep";
+import { BirthsignStep } from "./steps/birthsign/BirthsignStep";
 import { CharacterSheet } from "./components/CharacterSheet";
 import { StepNavigation } from "./components/StepNavigation";
 import { ErrorModal } from "../../components/ErrorModal";
@@ -26,15 +27,21 @@ import type { CharacteristicRoller } from "./steps/characteristics/dice";
 
 export function CharacterForge({
   rollDice = rollCharacteristicDice,
+  rollBirthsignFace = () => Math.floor(Math.random() * 5) + 1,
 }: {
   rollDice?: CharacteristicRoller;
+  rollBirthsignFace?: () => number;
 }) {
   const content = useContentCatalog();
   return (
     <Stack className={classes.forge}>
       <Title order={1}>Character Sheet</Title>
       {content.status === "ready" && (
-        <ForgeSession catalog={content.catalog} rollDice={rollDice} />
+        <ForgeSession
+          catalog={content.catalog}
+          rollDice={rollDice}
+          rollBirthsignFace={rollBirthsignFace}
+        />
       )}
     </Stack>
   );
@@ -43,9 +50,11 @@ export function CharacterForge({
 function ForgeSession({
   catalog,
   rollDice,
+  rollBirthsignFace,
 }: {
   catalog: ContentCatalog;
   rollDice: CharacteristicRoller;
+  rollBirthsignFace: () => number;
 }) {
   const [wizardOpened, setWizardOpened] = useState(false);
   const [everOpened, setEverOpened] = useState(false);
@@ -69,6 +78,13 @@ function ForgeSession({
     setCharacteristicAssignments,
     setCharacteristicAllocations,
     submitLuckRoll,
+    submitBirthsignRoll,
+    chooseBirthsignWithAnswers,
+    chooseBirthsignBonus,
+    restoreOriginalBirthsign,
+    setFreeBirthsignChoice,
+    quoteBirthsign,
+    cancelBirthsignSelection,
   } = useCharacterCreator(catalog);
   if (!view) return null;
   const raceLabel = readableLabel(
@@ -175,6 +191,22 @@ function ForgeSession({
                   setCharacteristicGenerationMethod={
                     setCharacteristicGenerationMethod
                   }
+                />
+              )}
+              {view.snapshot.currentStep === "birthsign" && (
+                <BirthsignStep
+                  catalog={catalog}
+                  snapshot={view.snapshot}
+                  rollFace={rollBirthsignFace}
+                  onDiceError={reportDiceAcquisitionFailure}
+                  submitRoll={submitBirthsignRoll}
+                  choose={chooseBirthsignWithAnswers}
+                  chooseBonus={chooseBirthsignBonus}
+                  restore={restoreOriginalBirthsign}
+                  setFreeChoice={setFreeBirthsignChoice}
+                  quote={quoteBirthsign}
+                  cancel={cancelBirthsignSelection}
+                  onErrorExit={returnToLauncher}
                 />
               )}
               <footer>

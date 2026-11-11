@@ -304,7 +304,8 @@ async function selectBirthsign(creator: CharacterCreator) {
   original history/result always remains independent, including in free-choice mode.
 - `chooseBirthsign` works before or after rolling. It loads and validates only the
   requested definition and its trait/power references (including all choice branches).
-  Browse with the host catalog directly; inspection does not select anything.
+  Browse summaries with the host catalog; use `quoteBirthsign` for candidate rules
+  without selecting anything.
 - Standard costs are derived: original exact sign/variant 0 Luck, an upgrade of a
   naturally normal original 5, another normal sign 5, another Star-Cursed sign 10.
   The restricted Star-Cursed Thief cannot be purchased from another natural sign,
@@ -315,7 +316,7 @@ async function selectBirthsign(creator: CharacterCreator) {
   eligibility, and derives the standard cost. An ineligible retained answer exposes
   `eligibilityIssues` and an undefined cost, rather than silently replacing it.
 - `snapshot.birthsignSelection` contains detached history, committed selection and
-  definition, derived provenance/cost, eligibility issues, and a pending/failed
+  definition, derived acquisition method/cost, eligibility issues, and a pending/failed
   `load`, plus offered `choices`, retained `answers`, full `issues`, and selection
   `complete`. Costs never mutate generation answers or accumulate across commands.
   Free purchase costs do not remove inherent effects.
@@ -332,6 +333,58 @@ visible but grant nothing. Revisiting a sign or variant retains its answers. Onl
 currently active groups validate: replacement variants omit base groups, while
 additive variants include both. Recurring Ritual choices are descriptive metadata,
 never editable here, never creation blockers, and grant no selected recurring powers.
+
+#### Candidate quotes
+
+```ts
+const result = await creator.quoteBirthsign({
+  signKey: "theRitual",
+  variant: "starCursed",
+});
+if (result.ok) {
+  const quote = result.value;
+  // Render price, eligibilityIssues, choices, affordability, and missingInputs.
+  // To inspect a once choice, quote again with explicit provisional answers:
+  const choice = quote.choices.find(
+    (entry) => entry.lifecycle.selection === "once",
+  );
+  if (choice) {
+    await creator.quoteBirthsign(quote.selection, [
+      {
+        choiceId: choice.choiceGroup.id,
+        selections: [choice.choiceGroup.options[0]!.id],
+      },
+    ]);
+  }
+}
+```
+
+`quoteBirthsign(selection, provisionalAnswers = [])` uses **only** those provisional
+answers, never retained creator answers. It returns a detached `BirthsignQuoteResult`:
+content/technical failures have `ok: false` and structured issues; a loaded quote has
+`ok: true` even when ineligible, incomplete, or unaffordable. Quotes expose the
+definition, eligibility, price/acquisition method, offered choices (including recurring
+metadata), provisional answers, strict `effectivePackage`, issues and missing inputs.
+Invalid/unresolved once answers withhold the entire package and numeric Luck totals,
+but not the offered choices or known price. Recurring selections grant no effects.
+
+`luckBeforePurchase` includes candidate innate modifiers and rolled replacements,
+not the currently selected birthsign. `finalLuck` additionally deducts this candidate's
+purchase cost. Numeric fields are plain numbers or `undefined`, never fabricated
+totals when inputs are unavailable. A usable race and valid generation Luck are
+required for either Luck total; eligibility must also resolve the cost for final Luck.
+`affordability` is `affordable`, `unaffordable`, or `pending`; `missingInputs` identifies
+`race`, `luck`, `choices`, or `eligibility`. Zero-cost original/free candidates are
+affordable without imposing a minimum Luck, even if their totals remain unresolved.
+Eligibility and choice validity remain independent requirements.
+
+Each quote evaluates current original history, mode, race and generation together
+at completion after pinned content/reference validation. It changes no creator state,
+load, choices, history, wizard issues or preview; it never spends/reserves Luck or
+cancels a selection/roll. Concurrent quotes complete independently. The UI owns
+loading and latest-candidate presentation. Disposal invalidates pending quotes.
+A quote is an observation, not a token: `chooseBirthsign` always revalidates current
+state, and once answers still use `chooseBirthsignBonus` after selection.
 
 Preview reconstruction applies the **entire** valid birthsign package atomically,
 including its purchase deduction. Pending/failed content, ineligibility, unresolved

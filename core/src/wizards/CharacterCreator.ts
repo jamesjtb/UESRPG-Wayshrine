@@ -27,6 +27,10 @@ import type {
 } from "../../interface/character/BirthsignSelection";
 import { BirthsignSelectionSession } from "../character/birthsignSelection";
 import { calculateBirthsignPackage } from "../character/birthsignPackage";
+import type {
+  BirthsignQuote,
+  BirthsignQuoteResult,
+} from "../../interface/character/BirthsignQuote";
 import { calculateCharacteristicScore } from "../character/characteristicScore";
 import type Skill from "../../interface/character/Skill";
 import type { Trait } from "../../interface/character/Trait";
@@ -145,6 +149,34 @@ export default class CharacterCreator {
 
   chooseBirthsign(selection: BirthsignSelection) {
     return this.birthsigns.choose(selection);
+  }
+
+  quoteBirthsign(
+    selection: BirthsignSelection,
+    provisionalAnswers: readonly ChoiceAnswer<string>[] = [],
+  ): Promise<BirthsignQuoteResult> {
+    return this.birthsigns.quote(selection, provisionalAnswers, (snapshot) =>
+      this.birthsignQuote(snapshot),
+    );
+  }
+
+  private birthsignQuote(snapshot: BirthsignSelectionSnapshot): BirthsignQuote {
+    const context = this.birthsignQuoteContext(snapshot);
+    return {
+      selection: snapshot.selected!,
+      definition: snapshot.definition!,
+      eligible: snapshot.eligibilityIssues.length === 0,
+      eligibilityIssues: snapshot.eligibilityIssues,
+      purchaseCost: snapshot.purchaseCost,
+      acquisitionMethod: snapshot.acquisitionMethod,
+      answers: snapshot.answers,
+      choices: snapshot.choices,
+      ...context,
+      issues: [
+        ...snapshot.issues,
+        ...this.birthsignAffordabilityIssues(snapshot, context),
+      ],
+    };
   }
 
   chooseBirthsignBonus(id: string, selections: readonly string[]) {
@@ -620,6 +652,16 @@ export default class CharacterCreator {
   private birthsignContextIssues(
     snapshot: BirthsignSelectionSnapshot,
   ): BirthsignSelectionIssue[] {
+    return this.birthsignAffordabilityIssues(
+      snapshot,
+      this.birthsignQuoteContext(snapshot),
+    );
+  }
+
+  private birthsignAffordabilityIssues(
+    snapshot: BirthsignSelectionSnapshot,
+    context: ReturnType<CharacterCreator["birthsignQuoteContext"]>,
+  ): BirthsignSelectionIssue[] {
     if (
       !snapshot.selected ||
       !snapshot.definition ||
@@ -628,17 +670,8 @@ export default class CharacterCreator {
       return [];
     // Free and original selections are not purchases; inherent effects still apply.
     if (snapshot.purchaseCost === 0) return [];
-    const result = calculateBirthsignPackage({
-      selection: snapshot.selected,
-      definition: snapshot.definition,
-      answers: snapshot.answers,
-    });
-    if (!result.ok) return [];
-    if (
-      !this.usableRace() ||
-      !this.generation.luck ||
-      validateRoll(this.generation.luck, "luck").length
-    ) {
+    if (!context.effectivePackage) return [];
+    if (context.affordability === "pending") {
       return [
         {
           code: "affordability-pending",
@@ -647,19 +680,7 @@ export default class CharacterCreator {
         },
       ];
     }
-    const luck = projectCharacteristicGeneration(this.generationAnswer()).lck;
-    const rolled = result.value.rolledReplacements.lck ?? luck.rolled;
-    const score = calculateCharacteristicScore({
-      baseline: 30,
-      rolled,
-      modifiers: result.value.characteristicModifiers.lck ?? [],
-      purchaseCost: {
-        sourceId: "birthsign/purchase",
-        sourceText: "Birthsign purchase",
-        value: snapshot.purchaseCost,
-      },
-    });
-    if (score.total < 0)
+    if (context.affordability === "unaffordable")
       return [
         {
           code: "unaffordable-selection",
@@ -667,6 +688,72 @@ export default class CharacterCreator {
         },
       ];
     return [];
+  }
+
+  private birthsignQuoteContext(
+    snapshot: BirthsignSelectionSnapshot,
+  ): Pick<
+    BirthsignQuote,
+    | "effectivePackage"
+    | "luckBeforePurchase"
+    | "finalLuck"
+    | "affordability"
+    | "missingInputs"
+  > {
+    const result =
+      snapshot.selected && snapshot.definition
+        ? calculateBirthsignPackage({
+            selection: snapshot.selected,
+            definition: snapshot.definition,
+            answers: snapshot.answers,
+          })
+        : undefined;
+    const effectivePackage = result?.ok ? result.value : undefined;
+    const missingInputs: BirthsignQuote["missingInputs"][number][] = [];
+    if (!this.usableRace()) missingInputs.push("race");
+    if (
+      !this.generation.luck ||
+      validateRoll(this.generation.luck, "luck").length
+    )
+      missingInputs.push("luck");
+    if (!effectivePackage) missingInputs.push("choices");
+    if (snapshot.purchaseCost === undefined) missingInputs.push("eligibility");
+    let luckBeforePurchase: number | undefined;
+    let finalLuck: number | undefined;
+    if (
+      this.usableRace() &&
+      !missingInputs.includes("luck") &&
+      effectivePackage
+    ) {
+      const luck = projectCharacteristicGeneration(this.generationAnswer()).lck;
+      const data = {
+        baseline: 30,
+        rolled: effectivePackage.rolledReplacements.lck ?? luck.rolled,
+        modifiers: effectivePackage.characteristicModifiers.lck ?? [],
+      };
+      luckBeforePurchase = calculateCharacteristicScore(data).total;
+      if (snapshot.purchaseCost !== undefined)
+        finalLuck = calculateCharacteristicScore({
+          ...data,
+          purchaseCost: {
+            sourceId: "birthsign/purchase",
+            sourceText: "Birthsign purchase",
+            value: snapshot.purchaseCost,
+          },
+        }).total;
+    }
+    // Zero-cost originals/free choices do not impose a new minimum-Luck rule.
+    let affordability: BirthsignQuote["affordability"] = "pending";
+    if (snapshot.purchaseCost === 0) affordability = "affordable";
+    else if (finalLuck !== undefined)
+      affordability = finalLuck < 0 ? "unaffordable" : "affordable";
+    return {
+      effectivePackage,
+      luckBeforePurchase,
+      finalLuck,
+      affordability,
+      missingInputs,
+    };
   }
 
   private usableRace(): boolean {

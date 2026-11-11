@@ -51,7 +51,8 @@ export interface BirthsignSelectionSnapshot {
   selected: BirthsignSelection | undefined;
   /** Only the committed definition; browsing uses the host's catalog directly. */
   definition: Birthsign | undefined;
-  provenance: "original" | "upgrade" | "purchase" | "freeChoice" | undefined;
+  acquisitionMethod:
+    "original" | "upgrade" | "purchase" | "freeChoice" | undefined;
   /** Undefined for an ineligible selection. Never deducted from statistics here. */
   purchaseCost: number | undefined;
   eligibilityIssues: readonly BirthsignSelectionIssue[];

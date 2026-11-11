@@ -172,7 +172,7 @@ describe("headless birthsign selection", () => {
           expect(snapshot()).toMatchObject({
             original: { roll: input, selection: expected },
             selected: expected,
-            provenance: "original",
+            acquisitionMethod: "original",
             purchaseCost: 0,
           });
         });
@@ -237,25 +237,25 @@ describe("headless birthsign selection", () => {
     }
   });
 
-  it("supports pre-roll purchases, retaining explicit selection and rederiving provenance", async () => {
+  it("supports pre-roll purchases, retaining explicit selection and rederiving acquisition method", async () => {
     const { creator, snapshot } = setup();
     await creator.chooseBirthsign(star);
     expect(snapshot()).toMatchObject({
       original: undefined,
       purchaseCost: 10,
-      provenance: "purchase",
+      acquisitionMethod: "purchase",
     });
     await creator.submitBirthsignRoll(roll);
     expect(snapshot()).toMatchObject({
       selected: star,
       purchaseCost: 5,
-      provenance: "upgrade",
+      acquisitionMethod: "upgrade",
     });
     await creator.chooseBirthsign(normal);
     expect(snapshot()).toMatchObject({
       selected: normal,
       purchaseCost: 0,
-      provenance: "original",
+      acquisitionMethod: "original",
     });
     await creator.chooseBirthsign({ signKey: "theMage", variant: "normal" });
     expect(snapshot().purchaseCost).toBe(5);
@@ -278,13 +278,13 @@ describe("headless birthsign selection", () => {
     await creator.chooseBirthsign(normal);
     expect(snapshot()).toMatchObject({
       purchaseCost: 5,
-      provenance: "purchase",
+      acquisitionMethod: "purchase",
     });
     await creator.restoreOriginalBirthsign();
     expect(snapshot()).toMatchObject({
       selected: star,
       purchaseCost: 0,
-      provenance: "original",
+      acquisitionMethod: "original",
     });
   });
 
@@ -299,7 +299,7 @@ describe("headless birthsign selection", () => {
     expect(snapshot()).toMatchObject({
       selected: thief,
       purchaseCost: 5,
-      provenance: "upgrade",
+      acquisitionMethod: "upgrade",
     });
     await creator.restoreOriginalBirthsign();
     expect(snapshot()).toMatchObject({
@@ -322,7 +322,7 @@ describe("headless birthsign selection", () => {
     expect(natural.snapshot()).toMatchObject({
       selected: thief,
       purchaseCost: 0,
-      provenance: "original",
+      acquisitionMethod: "original",
     });
   });
 
@@ -357,7 +357,7 @@ describe("headless birthsign selection", () => {
     expect(snapshot()).toMatchObject({
       selected: star,
       purchaseCost: 5,
-      provenance: "upgrade",
+      acquisitionMethod: "upgrade",
     });
     await creator.restoreOriginalBirthsign();
     expect(snapshot().purchaseCost).toBe(0);

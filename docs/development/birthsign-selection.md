@@ -36,14 +36,40 @@ and no purchasable cost. Hosts must not interpret an undefined cost as zero.
 
 ## Rule boundary
 
-Pricing and provenance are derived from current mode, committed selection and original,
+Pricing and acquisition method are derived from current mode, committed selection and original,
 never stored as accumulated deductions. Exact original equality takes precedence over
-free-choice/purchase provenance. Upgrade eligibility is derived from a naturally normal
+free-choice/purchase acquisition methods. Upgrade eligibility is derived from a naturally normal
 original of the same sign. The explicit upgrade exception applies to restricted
 Star-Cursed metadata without hardcoding a sign key; unrelated-sign purchases still obey
 that metadata. Table keys and ordering come only from the shared charge tables.
 
 Hosts browse catalog content independently rather than mutating selection to inspect it.
+
+### Read-only candidate evaluation
+
+`BirthsignQuote.ts` defines the public detached candidate result. `quoteBirthsign`
+uses the selection session's existing pinned reader and reference validation, but
+never increments the selection request counter or writes session state. Definitions
+and transient references are released after the result is constructed; no candidate
+cache or global quote-loading state is retained. Every quote reloads/validates its
+content; a prior quote cannot authorize a later command.
+
+The session constructs a candidate snapshot using explicit provisional answers and
+excluding the real pending/failed selection load. The same snapshot builder supplies
+pricing, eligibility, and choices for both selection and quotes. No provisional
+answer submission means an empty list, not retained answers. The creator's synchronous
+completion evaluator calculates package, Luck totals, and affordability against the
+same current context as pricing, with no intervening await. Actual selection and
+quotes share this contextual calculation; the former still permits unresolved once
+choices to be submitted later. Package availability does not itself authorize a
+purchase or projection. Quote eligibility, strict choice validity and affordability
+are separate observations; zero-cost candidates have no purchase affordability gate.
+
+Quotes have independent lifetimes: selection cancellation, newer selections, and
+out-of-order quotes do not supersede them. Disposal returns a structured disposed
+failure for pending reads. Reader version failures and invalid references return
+command-style failures without publishing session load errors. Consumers own request
+identity for presentation and must explicitly choose again to accept any candidate.
 
 ## Choices and effective packages
 

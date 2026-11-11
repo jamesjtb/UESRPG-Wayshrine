@@ -11,6 +11,10 @@ import type {
   BirthsignSelectionSnapshot,
 } from "../../interface/character/BirthsignSelection";
 import type { Trait } from "../../interface/character/Trait";
+import type {
+  BirthsignQuote,
+  BirthsignQuoteResult,
+} from "../../interface/character/BirthsignQuote";
 import { BIRTHSIGN_CHARGE_TABLES } from "../content/birthsignChargeTables";
 import { ContentError } from "../content/ContentError";
 import { ContentReader } from "../content/ContentReader";
@@ -25,7 +29,7 @@ import {
 function reject(
   code: BirthsignSelectionIssue["code"],
   message: string,
-): BirthsignSelectionResult {
+): Extract<BirthsignSelectionResult, { ok: false }> {
   return { ok: false, issues: [{ code, message }] };
 }
 
@@ -210,6 +214,50 @@ export class BirthsignSelectionSession {
     }
   }
 
+  /** Independent reads: quotes neither supersede commands nor each other. */
+  async quote(
+    input: BirthsignSelection,
+    provisionalAnswers: readonly ChoiceAnswer<string>[],
+    evaluate: (snapshot: BirthsignSelectionSnapshot) => BirthsignQuote,
+  ): Promise<BirthsignQuoteResult> {
+    if (this.disposed) return reject("disposed", "This creator is disposed.");
+    const selection = { ...input };
+    const answers = provisionalAnswers.map((answer) => ({
+      ...answer,
+      selections: [...answer.selections],
+    }));
+    if (
+      typeof selection.signKey !== "string" ||
+      selection.signKey.trim() === "" ||
+      !["normal", "starCursed"].includes(selection.variant)
+    )
+      return reject("invalid-selection", "Choose a sign and a valid variant.");
+    try {
+      const definition = await this.content.get("birthsign", selection.signKey);
+      if (this.disposed) return reject("disposed", "This creator is disposed.");
+      if (!definition) return reject("unknown-birthsign", "Unknown birthsign.");
+      await this.validateReferences(definition);
+      if (this.disposed) return reject("disposed", "This creator is disposed.");
+      // Pricing and contextual calculation observe one synchronous completion point.
+      return {
+        ok: true,
+        value: evaluate(
+          this.snapshotFor(selection, definition, answers, false),
+        ),
+      };
+    } catch (error) {
+      if (this.disposed) return reject("disposed", "This creator is disposed.");
+      const failure =
+        error instanceof ContentError
+          ? error
+          : new ContentError(
+              "content-unavailable",
+              "Unable to load birthsign content.",
+            );
+      return reject(failure.code, failure.message);
+    }
+  }
+
   cancel(): void {
     ++this.request;
     this.load = undefined;
@@ -234,27 +282,31 @@ export class BirthsignSelectionSession {
   private snapshotFor(
     selected: BirthsignSelection | undefined,
     definition: Birthsign | undefined,
+    suppliedAnswers: readonly ChoiceAnswer<string>[] = [
+      ...this.answers.values(),
+    ],
+    includeLoad = true,
   ): BirthsignSelectionSnapshot {
     const issues =
       selected && definition ? this.eligibility(selected, definition) : [];
-    let provenance: BirthsignSelectionSnapshot["provenance"];
+    let acquisitionMethod: BirthsignSelectionSnapshot["acquisitionMethod"];
     let purchaseCost: BirthsignSelectionSnapshot["purchaseCost"];
     if (selected && issues.length === 0) {
       if (same(this.original?.selection, selected)) {
-        provenance = "original";
+        acquisitionMethod = "original";
         purchaseCost = 0;
       } else if (this.freeChoice) {
-        provenance = "freeChoice";
+        acquisitionMethod = "freeChoice";
         purchaseCost = 0;
       } else if (this.isUpgrade(selected)) {
-        provenance = "upgrade";
+        acquisitionMethod = "upgrade";
         purchaseCost = 5;
       } else {
-        provenance = "purchase";
+        acquisitionMethod = "purchase";
         purchaseCost = selected.variant === "normal" ? 5 : 10;
       }
     }
-    const answers = [...this.answers.values()].map((answer) => ({
+    const answers = suppliedAnswers.map((answer) => ({
       ...answer,
       selections: [...answer.selections],
     }));
@@ -274,12 +326,12 @@ export class BirthsignSelectionSession {
         message: "Choose a birthsign.",
       });
     if (input) validation.push(...validateBirthsignChoices(input));
-    if (this.load?.status === "loading")
+    if (includeLoad && this.load?.status === "loading")
       validation.push({
         code: "birthsign-pending",
         message: "Birthsign content is loading.",
       });
-    if (this.load?.status === "failed")
+    if (includeLoad && this.load?.status === "failed")
       validation.push(...this.load.issues.map((issue) => ({ ...issue })));
     return {
       freeChoice: this.freeChoice,
@@ -289,18 +341,21 @@ export class BirthsignSelectionSession {
       },
       selected: selected && { ...selected },
       definition: definition && birthsignSchema.parse(definition),
-      provenance,
+      acquisitionMethod,
       purchaseCost,
       eligibilityIssues: issues,
       answers,
       choices: input ? getBirthsignChoices(input) : [],
       issues: validation,
       complete: validation.length === 0,
-      load: this.load && {
-        ...this.load,
-        selection: { ...this.load.selection },
-        issues: this.load.issues.map((issue) => ({ ...issue })),
-      },
+      load:
+        includeLoad && this.load
+          ? {
+              ...this.load,
+              selection: { ...this.load.selection },
+              issues: this.load.issues.map((issue) => ({ ...issue })),
+            }
+          : undefined,
     };
   }
 

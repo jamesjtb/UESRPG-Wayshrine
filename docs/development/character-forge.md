@@ -1,7 +1,7 @@
 # Character Sheet engineering notes
 
-Character Sheet presents Core's headless race and characteristic-generation
-workflow. See the [Core contract](../../core/README.md#character-creation) for rules,
+Character Sheet presents Core's headless race, characteristic-generation, and
+birthsign-selection workflow. See the [Core contract](../../core/README.md#character-creation) for rules,
 content validation, answer retention, and preview semantics. React presents Core's
 snapshots rather than implementing a second rules or progression model.
 
@@ -496,7 +496,7 @@ step. Component tests cover keyboard/touch interaction, tooltip/menu composition
 focus return, controlled limits, and useful invalid numeric feedback. Core tests
 remain responsible for exhaustive reroll rules, policy validation, and calculations.
 Wizard tests cover initially closed presentation, unanswered first-opening resume,
-both steps and all three dismissal mechanisms, retained generation drafts and
+the wizard steps and all three dismissal mechanisms, retained generation drafts and
 assignments, sheet updates while closed, and pending content success/failure.
 Recovery tests use real portals/transitions where hidden-editor effects and error
 focus return matter (Mantine test mode renders portals inline). They cover closed

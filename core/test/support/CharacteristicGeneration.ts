@@ -1,12 +1,32 @@
-import { CharacterCreator } from "../../src/index";
+import { CharacterCreator, parseContentDefinition } from "../../src/index";
 import type { ContentCatalog } from "../../src/index";
 
 /** Race-focused tests supply valid generation so finish still exercises race guards. */
-export function createRaceTestCreator(
+export async function createRaceTestCreator(
   catalog: ContentCatalog,
-): CharacterCreator {
-  const creator = new CharacterCreator(catalog);
+): Promise<CharacterCreator> {
+  // Isolate race transport assertions from the unrelated, completed birthsign step.
+  const creator = new CharacterCreator({
+    version: catalog.version,
+    list: (kind) => catalog.list(kind),
+    get: (kind, key) =>
+      kind === "birthsign"
+        ? Promise.resolve(
+            parseContentDefinition(kind, key, {
+              label: "Test sign",
+              description: "Test sign",
+              bonuses: [],
+              starCursed: { overwriteBaseBonuses: false, bonuses: [] },
+            }),
+          )
+        : catalog.get(kind, key),
+  });
   completeGeneration(creator);
+  await creator.submitBirthsignRoll({
+    id: "test-sign",
+    charge: "warrior",
+    dice: [1],
+  });
   return creator;
 }
 

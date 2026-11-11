@@ -92,6 +92,11 @@ describe("authored content", () => {
       ).ok,
     ).toBe(true);
     completeGeneration(creator);
+    await creator.submitBirthsignRoll({
+      id: "sign",
+      charge: "warrior",
+      dice: [1],
+    });
     const result = creator.finish();
     expect(result.ok).toBe(true);
     if (result.ok) {

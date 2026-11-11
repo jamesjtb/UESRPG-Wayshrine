@@ -164,6 +164,11 @@ describe("Core characteristic reroll commands", () => {
     async (count) => {
       const { creator, catalog } = setup();
       await creator.chooseRace("argonian");
+      await creator.submitBirthsignRoll({
+        id: "sign",
+        charge: "warrior",
+        dice: [1],
+      });
       const before = creator.getSnapshot().characteristicGeneration;
       expect(before.rerolls).toEqual({
         unlimited: false,
@@ -224,6 +229,7 @@ describe("Core characteristic reroll commands", () => {
       expect(catalog.getCalls).toEqual([
         { kind: "race", key: "argonian" },
         { kind: "trait", key: "amphibious" },
+        { kind: "birthsign", key: "theWarrior" },
       ]);
     },
   );
@@ -448,6 +454,11 @@ describe("Core characteristic reroll commands", () => {
     async ({ replacements, code }) => {
       const { creator } = setup();
       await creator.chooseRace("argonian");
+      await creator.submitBirthsignRoll({
+        id: "sign",
+        charge: "warrior",
+        dice: [1],
+      });
       expectUnchanged(
         creator,
         () => creator.rerollCharacteristics(replacements),

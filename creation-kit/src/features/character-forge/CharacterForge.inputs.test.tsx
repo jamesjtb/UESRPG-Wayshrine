@@ -258,7 +258,7 @@ describe("Character Forge generation inputs", () => {
     await favorStrengthAndEndurance(user);
     expect(random).toHaveBeenCalledTimes(16);
     expect(snapshot().characteristicGeneration.complete).toBe(true);
-    expect(snapshot().canFinish).toBe(true);
+    expect(snapshot().canFinish).toBe(false); // Birthsign remains unanswered.
     expectCharacteristic("Strength", {
       baseline: 25,
       generated: 11,
@@ -456,7 +456,7 @@ describe("Character Forge generation inputs", () => {
     expect(
       screen.getByRole("button", { name: "Rolled result for Luck" }),
     ).toBeTruthy();
-    expect(snapshot().canFinish).toBe(true);
+    expect(snapshot().canFinish).toBe(false); // Birthsign remains unanswered.
     await user.click(
       screen.getByRole("switch", { name: "Use Optional Point Buy Rules" }),
     );
@@ -967,7 +967,7 @@ describe("Character Forge generation inputs", () => {
     await user.click(luckRollButton());
     expect(screen.getByText("Points remaining: 0")).toBeTruthy();
     expect(snapshot().characteristicGeneration.complete).toBe(true);
-    expect(snapshot().canFinish).toBe(true);
+    expect(snapshot().canFinish).toBe(false); // Birthsign remains unanswered.
     expect(screen.queryByText("Spend exactly 80 points.")).toBeNull();
     expectCharacteristic("Strength", {
       baseline: 25,

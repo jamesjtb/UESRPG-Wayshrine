@@ -231,7 +231,7 @@ describe("step user actions from Core snapshots", () => {
     await creator.chooseRace("argonian");
     creator.next();
     completePointBuy(creator);
-    expect(creator.getSnapshot().canFinish).toBe(true);
+    expect(creator.getSnapshot().canFinish).toBe(false); // Birthsign is unanswered.
     const gate = reads.hold("race", "altmer");
     const request = creator.chooseRace("altmer");
     expect(generationLabels(creator)).toEqual([

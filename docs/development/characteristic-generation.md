@@ -42,7 +42,7 @@ pending/failed race changes, disposal, and invalid global race references suppre
 all generation effects while leaving the default Luck baseline intact. Individual
 racial choice failures do not suppress generation or unrelated valid grants.
 
-`CharacterCreationStep` identifies `race` then `characteristics`. The generic
+`CharacterCreationStep` identifies `race`, `characteristics`, then `birthsign`. The generic
 `Wizard` remains responsible for navigation and all-step finish guards; there is no
 second progression model. The characteristics evaluator reports generation issues
 with no generic pending choices. Dedicated generation snapshots carry field
@@ -130,9 +130,11 @@ and focus handling belong in the
 Point-buy controls and restrained incomplete-state feedback are presentation conveniences,
 not substitutes for Core validation. See [point-buy controls](character-forge.md#point-buy-controls)
 and [feedback ownership](character-forge.md#asynchronous-behavior-and-feedback).
-The primary sheet uses Core's `calculateCharacteristicScore` for the unmodified
-`baseline + rolled` total and tens-digit bonus; favored flags and modifiers do not
-change those values. See [sheet presentation](character-forge.md#primary-sheet-and-navigation)
+The primary sheet uses Core's `calculateCharacteristicScore` for effective
+`baseline + rolled + modifiers - purchase cost` totals and tens-digit bonuses;
+favored flags add no implicit numeric adjustment. The generation-only draft table
+passes just baseline and draft rolled values to exclude package effects and costs.
+See [sheet presentation](character-forge.md#primary-sheet-and-navigation)
 for table semantics and calculation disclosure.
 
 Only race and characteristic generation are implemented, not full character

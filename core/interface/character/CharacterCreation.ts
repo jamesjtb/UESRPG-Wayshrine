@@ -4,7 +4,7 @@ import type { WizardIssue, WizardSnapshot } from "../common/Wizard";
 import type { CharacteristicGenerationSnapshot } from "./CharacteristicGeneration";
 import type { BirthsignSelectionSnapshot } from "./BirthsignSelection";
 
-export type CharacterCreationStep = "race" | "characteristics";
+export type CharacterCreationStep = "race" | "characteristics" | "birthsign";
 
 export type CharacterContentOperation =
   | { kind: "race"; raceKey: string }

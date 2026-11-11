@@ -109,7 +109,7 @@ it("suppresses generation during pending/failed race changes, restores on cancel
     favored: false,
     total: 40,
   });
-  expect(snapshots.mock.results.at(-1)!.value.canFinish).toBe(true);
+  expect(snapshots.mock.results.at(-1)!.value.canFinish).toBe(false); // Birthsign is unanswered.
 
   await selectRace("Altmer");
   await screen.findByRole("checkbox", { name: "Alchemy" });
@@ -154,7 +154,7 @@ it("suppresses generation during pending/failed race changes, restores on cancel
   expect(
     snapshots.mock.results.at(-1)!.value.characteristicGeneration.drafts,
   ).toEqual(drafts);
-  expect(snapshots.mock.results.at(-1)!.value.canFinish).toBe(true);
+  expect(snapshots.mock.results.at(-1)!.value.canFinish).toBe(false); // Birthsign is unanswered.
   expect(console.error).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("button", { name: "Finish" })).toBeNull();
 });

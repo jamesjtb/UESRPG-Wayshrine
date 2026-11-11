@@ -97,8 +97,11 @@ describe("CharacterSheet", () => {
     );
     expect(screen.getByText("No race selected.")).toBeTruthy();
     const strength = characteristicCells("Strength");
-    expect(strength[0]).toHaveProperty("textContent", "32");
-    expect(strength[1]).toHaveProperty("textContent", "3");
+    expect(strength[0]).toHaveProperty("textContent", "41");
+    expect(strength[1]).toHaveProperty("textContent", "4");
+    expect(strength[0]!.getAttribute("aria-description")).toBe(
+      "Strength: 27 + 5 + 9 = 41 (baseline + generated + modifiers - purchase cost)",
+    );
     expect(
       within(
         screen.getByRole("columnheader", { name: "Strength, Favored" }),

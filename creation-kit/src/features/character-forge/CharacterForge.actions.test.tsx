@@ -261,10 +261,10 @@ it("updates rolled tasks from Core's combined initial roll across step navigatio
   );
   await assignDraftResult(user, "Strength", 0);
   expect(screen.queryByText("assign all characteristic rolls")).toBeNull();
-  // The last registered Core step still has no Next, regardless of this presentation.
+  // Core now permits advancing to the headless birthsign step.
   expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
     "disabled",
-    true,
+    false,
   );
 });
 

@@ -3,10 +3,14 @@ import type {
   CharacteristicScore,
 } from "../../interface/character/Characteristic";
 
-/** Creation score only: favored flags and modifiers do not change this result. */
+/** Explicit modifiers and purchase deductions apply; favored flags are not numeric. */
 export function calculateCharacteristicScore(
-  characteristic: Pick<PcCharacteristicData, "baseline" | "rolled">,
+  characteristic: Pick<PcCharacteristicData, "baseline" | "rolled"> &
+    Partial<Pick<PcCharacteristicData, "modifiers" | "purchaseCost">>,
 ): CharacteristicScore {
-  const total = characteristic.baseline + characteristic.rolled;
+  let total = characteristic.baseline + characteristic.rolled;
+  for (const modifier of characteristic.modifiers ?? [])
+    total += modifier.value;
+  total -= characteristic.purchaseCost?.value ?? 0;
   return { total, bonus: Math.floor(total / 10) % 10 };
 }

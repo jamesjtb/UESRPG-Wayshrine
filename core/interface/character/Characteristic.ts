@@ -16,13 +16,15 @@ export interface PcCharacteristicData {
   characteristicKey: PcCharacteristic;
   favored: boolean;
   modifiers: Modifier[];
+  /** Positive purchase deduction, separate from inherent characteristic effects. */
+  purchaseCost?: Modifier;
 }
 
 export type CharacteristicUpdate = Partial<
   Omit<PcCharacteristicData, "characteristicKey">
 >;
 
-/** Unmodified creation score and its tens digit, separate from stored inputs. */
+/** Effective score and its tens digit, separate from stored inputs. */
 export interface CharacteristicScore {
   total: number;
   bonus: number;

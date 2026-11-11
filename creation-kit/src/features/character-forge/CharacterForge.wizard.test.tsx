@@ -113,11 +113,11 @@ describe("Character creation modal", () => {
       await assignDraftResult(user, "Strength", 0);
       await fillPointBuy(user);
       const before = snapshots.mock.results.at(-1)!.value;
-      // Core can finish its registered subset, not the full creation sequence.
-      expect(before.canFinish).toBe(true);
+      // Birthsign is registered in Core but has no browser editor yet.
+      expect(before.canFinish).toBe(false);
       expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
         "disabled",
-        true,
+        false,
       );
       expect(
         screen.queryByRole("button", { name: /finish|finalize/i }),

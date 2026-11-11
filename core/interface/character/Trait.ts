@@ -6,13 +6,14 @@ export interface Trait {
 }
 
 /** How a character acquired a trait. */
-export type TraitOrigin = "race" | "purchased";
+export type TraitOrigin = "race" | "purchased" | "birthsign";
 
 /** A trait applied to a character, including its parameter values. */
 export interface AppliedTrait {
   traitKey: string;
   params?: Readonly<Record<string, string | number>>;
   origin?: TraitOrigin;
+  sourceId?: string;
 }
 
 /** Trait definitions indexed by their content keys. */

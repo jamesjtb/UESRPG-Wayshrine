@@ -83,6 +83,39 @@ const rolls = Array.from({ length: 7 }, (_, index) => ({
   dice: [index + 1, 5],
 }));
 
+it("keeps generation-only totals independent of projected modifiers, costs and rolled replacements", async () => {
+  const creator = new CharacterCreator(fixtureCatalog());
+  await creator.chooseRace("argonian");
+  creator.setCharacteristicGenerationMethod("rolled");
+  creator.submitLuckRoll({ id: "luck", dice: [4, 5] });
+  const preview = creator.getCharacterPreview();
+  preview.updateCharacteristic("lck", {
+    rolled: 50,
+    modifiers: [
+      { sourceId: "birthsign/effect", sourceText: "Effect", value: -5 },
+    ],
+    purchaseCost: {
+      sourceId: "birthsign/purchase",
+      sourceText: "Purchase",
+      value: 10,
+    },
+  });
+  render(
+    <MantineProvider env="test">
+      <CharacteristicDraftPreview
+        characteristics={preview.characteristics}
+        raceUsable={true}
+        generation={creator.getSnapshot().characteristicGeneration}
+        setCharacteristicAllocations={() => {}}
+        setCharacteristicAssignments={() => {}}
+        setFavoredCharacteristics={() => {}}
+      />
+    </MantineProvider>,
+  );
+  expect(cell("Generated", "Luck")).toBe("9");
+  expect(cell("Total", "Luck")).toBe("39");
+});
+
 it("shows partial assignments immediately without changing Core's atomic sheet preview", async () => {
   const { creator, refresh } = await setup();
   creator.submitCharacteristicRolls(rolls);

@@ -84,7 +84,14 @@ export function creationCatalogs() {
     race: races,
     skill: skills,
     trait: traits,
-    birthsign: {},
+    birthsign: {
+      theWarrior: {
+        label: "Warrior",
+        description: "Test sign",
+        bonuses: [],
+        starCursed: { overwriteBaseBonuses: false, bonuses: [] },
+      },
+    },
     power: {},
   });
   return { catalog, races, skills, traits, altmer };

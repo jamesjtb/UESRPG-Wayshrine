@@ -49,6 +49,10 @@ function traitParameters(
   return ` (${entries.join(", ")})`;
 }
 
+function signedContribution(value: number): string {
+  return value < 0 ? ` - ${Math.abs(value)}` : ` + ${value}`;
+}
+
 export function CharacterSheet({
   preview,
   raceLabel,
@@ -63,11 +67,19 @@ export function CharacterSheet({
   const characteristics = Object.values(PcCharacteristic).map((key) => {
     const value = preview.characteristics[key];
     const score = calculateCharacteristicScore(value);
+    const modifiers = value.modifiers
+      .map((modifier) => signedContribution(modifier.value))
+      .join("");
+    const purchase = value.purchaseCost ? ` - ${value.purchaseCost.value}` : "";
+    const inputs =
+      modifiers || purchase
+        ? "baseline + generated + modifiers - purchase cost"
+        : "baseline + generated";
     return {
       ...value,
       ...score,
       label: previewCharacteristicLabels[key],
-      calculation: `${previewCharacteristicLabels[key]}: ${value.baseline} + ${value.rolled} = ${score.total} (baseline + generated)`,
+      calculation: `${previewCharacteristicLabels[key]}: ${value.baseline} + ${value.rolled}${modifiers}${purchase} = ${score.total} (${inputs})`,
     };
   });
   return (

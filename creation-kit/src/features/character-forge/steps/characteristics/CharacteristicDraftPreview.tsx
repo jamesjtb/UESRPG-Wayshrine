@@ -104,7 +104,7 @@ export function CharacteristicDraftPreview({
       : undefined;
     const value = characteristics[key];
     const score = calculateCharacteristicScore({
-      ...value,
+      baseline: value.baseline,
       rolled: typeof generated === "number" ? generated : 0,
     });
     return {

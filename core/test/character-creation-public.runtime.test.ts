@@ -40,7 +40,14 @@ function hostCatalog(): ContentCatalog {
         racialTraits: [],
       },
     },
-    birthsign: {},
+    birthsign: {
+      theWarrior: {
+        label: "Warrior",
+        description: "Test sign",
+        bonuses: [],
+        starCursed: { overwriteBaseBonuses: false, bonuses: [] },
+      },
+    },
     power: {},
     skill: {},
     trait: {},
@@ -98,6 +105,11 @@ function expectSubmissionIssues(
 describe("public character creation host contract", () => {
   it("runs the complete reroll workflow headlessly through the package entry point without putting policy in answers or finished data", async () => {
     const creator = new CharacterCreator(hostCatalog());
+    await creator.submitBirthsignRoll({
+      id: "sign",
+      charge: "warrior",
+      dice: [1],
+    });
     await creator.chooseRace("human");
     creator.setCharacteristicGenerationMethod("rolled");
     creator.setFavoredCharacteristics(["str", "int"]);
@@ -294,6 +306,11 @@ describe("public character creation host contract", () => {
     "corrects invalid %s submissions through navigation and finish using only public exports",
     async (method) => {
       const creator = new CharacterCreator(hostCatalog());
+      await creator.submitBirthsignRoll({
+        id: "sign",
+        charge: "warrior",
+        dice: [1],
+      });
       await creator.chooseRace("human");
       creator.setName("Host character");
       expectConsistent(creator);

@@ -49,7 +49,7 @@ it("projects independent valid groups and guards all-step finish eligibility fro
 
   expectProjection(true, true, 13);
   expect(result.current.view!.snapshot.currentStep).toBe("race");
-  expect(result.current.view!.snapshot.canFinish).toBe(true);
+  expect(result.current.view!.snapshot.canFinish).toBe(false); // Birthsign is unanswered.
   act(() => result.current.setFavoredCharacteristics(["str", "str"]));
   expectProjection(true, false, 13);
   expect(
@@ -60,7 +60,7 @@ it("projects independent valid groups and guards all-step finish eligibility fro
   expect(result.current.view!.snapshot.currentStep).toBe("characteristics");
   expect(result.current.view!.snapshot.canFinish).toBe(false);
   act(() => result.current.setFavoredCharacteristics(["str", "end"]));
-  expect(result.current.view!.snapshot.canFinish).toBe(true);
+  expect(result.current.view!.snapshot.canFinish).toBe(false);
   act(() => {
     result.current.setUnlimitedCharacteristicRerolls(true);
     result.current.submitLuckRoll({ id: "bad-luck", dice: [0, 11] });
@@ -75,7 +75,7 @@ it("projects independent valid groups and guards all-step finish eligibility fro
   expect(result.current.view!.snapshot.canFinish).toBe(false);
   act(() => result.current.submitLuckRoll({ id: "luck-fixed", dice: [6, 7] }));
   expectProjection(true, true, 13);
-  expect(result.current.view!.snapshot.canFinish).toBe(true);
+  expect(result.current.view!.snapshot.canFinish).toBe(false);
   act(() => result.current.next());
 
   await act(async () => result.current.chooseRace("altmer"));
@@ -85,7 +85,7 @@ it("projects independent valid groups and guards all-step finish eligibility fro
   await act(async () =>
     result.current.chooseRacialBonus("altmer/magic", ["alchemy"]),
   );
-  expect(result.current.view!.snapshot.canFinish).toBe(true);
+  expect(result.current.view!.snapshot.canFinish).toBe(false);
   await act(async () => result.current.chooseRacialBonus("altmer/magic", []));
   expect(result.current.view!.snapshot.currentStep).toBe("characteristics");
   expect(result.current.view!.snapshot.canFinish).toBe(false);

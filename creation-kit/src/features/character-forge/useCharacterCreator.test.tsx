@@ -673,16 +673,18 @@ describe("useCharacterCreator command boundary", () => {
       });
       result.current.submitLuckRoll({ id: "luck", dice: [5, 6] });
     });
-    expect(result.current.view!.snapshot.canFinish).toBe(true);
+    expect(result.current.view!.snapshot.canFinish).toBe(false);
     act(() => result.current.next());
     expect(result.current.view!.snapshot.currentStep).toBe("characteristics");
-    expect(result.current.view!.snapshot.canFinish).toBe(true);
+    expect(result.current.view!.snapshot.canFinish).toBe(false);
+    act(() => result.current.next());
+    expect(result.current.view!.snapshot.currentStep).toBe("birthsign");
     act(() => result.current.next());
     expect(next.mock.results.at(-1)?.value).toMatchObject({
       ok: false,
-      issues: [expect.objectContaining({ code: "last-step" })],
+      issues: [expect.objectContaining({ code: "birthsign-required" })],
     });
-    expect(result.current.view!.snapshot.currentStep).toBe("characteristics");
+    expect(result.current.view!.snapshot.currentStep).toBe("birthsign");
     expect(result.current.view!.errorOpened).toBe(false);
     expect(result.current.view!.preview.skills).toHaveLength(1);
     expect(finish).not.toHaveBeenCalled();

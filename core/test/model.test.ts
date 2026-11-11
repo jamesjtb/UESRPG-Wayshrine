@@ -23,6 +23,10 @@ import type {
   TraitCatalog,
   TraitOrigin,
   ContentCatalog,
+  BirthsignSelection,
+  BirthsignAdjustments,
+  PowerGrant,
+  LuckyNumberEntitlement,
 } from "../src/index";
 import PcCharacterData from "../src/data/CharacterData";
 
@@ -44,6 +48,14 @@ type ModelChecks = [
     Equal<SkillTraining["governingCharacteristic"], Characteristic | undefined>
   >,
   Assert<Equal<PcCharacteristicData["modifiers"], Modifier[]>>,
+  Assert<Equal<PcCharacteristicData["purchaseCost"], Modifier | undefined>>,
+  Assert<Equal<CharacterData["birthsign"], BirthsignSelection | undefined>>,
+  Assert<Equal<CharacterData["powers"], PowerGrant[]>>,
+  Assert<Equal<BirthsignAdjustments["spMaximum"], Modifier[]>>,
+  Assert<Equal<BirthsignAdjustments["speed"], Modifier[]>>,
+  Assert<Equal<BirthsignAdjustments["naturalHealingMultiplier"], number>>,
+  Assert<Equal<LuckyNumberEntitlement["count"], number>>,
+  Assert<Equal<LuckyNumberEntitlement["retainedRegardlessOfLuck"], true>>,
   Assert<Equal<Race["baselineCharacteristics"], BaselineCharacteristics>>,
   Assert<
     Equal<BaselineCharacteristics, Readonly<Record<Characteristic, number>>>
@@ -53,7 +65,7 @@ type ModelChecks = [
   Assert<Equal<RacialBonus["choiceGroups"], readonly ChoiceGroup<string>[]>>,
   Assert<Equal<RaceCatalog, Readonly<Record<string, Race>>>>,
   Assert<Equal<TraitCatalog, Readonly<Record<string, Trait>>>>,
-  Assert<Equal<TraitOrigin, "race" | "purchased">>,
+  Assert<Equal<TraitOrigin, "race" | "purchased" | "birthsign">>,
   Assert<Equal<AppliedTrait["origin"], TraitOrigin | undefined>>,
 ];
 

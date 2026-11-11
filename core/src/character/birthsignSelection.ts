@@ -16,6 +16,11 @@ import { ContentError } from "../content/ContentError";
 import { ContentReader } from "../content/ContentReader";
 import { birthsignSchema } from "../content/schemas";
 import { validateBirthsignContent } from "../content/validateBirthsignContent";
+import type { ChoiceAnswer } from "../../interface/common/Choice";
+import {
+  getBirthsignChoices,
+  validateBirthsignChoices,
+} from "./birthsignPackage";
 
 function reject(
   code: BirthsignSelectionIssue["code"],
@@ -61,7 +66,7 @@ function collectEffectReferences(
   for (const bonus of bonuses) collectReferences(bonus, traitKeys, powerKeys);
 }
 
-/** Feature-owned session state. No randomness, effects, navigation, or catalog cache. */
+/** Feature-owned state; contextual affordability is supplied by the creator. */
 export class BirthsignSelectionSession {
   private original: BirthsignOriginalResult | undefined;
   private selected: BirthsignSelection | undefined;
@@ -70,8 +75,38 @@ export class BirthsignSelectionSession {
   private load: BirthsignSelectionSnapshot["load"];
   private request = 0;
   private disposed = false;
+  private readonly answers = new Map<string, ChoiceAnswer<string>>();
 
-  constructor(private readonly content: ContentReader) {}
+  constructor(
+    private readonly content: ContentReader,
+    private readonly contextIssues: (
+      snapshot: BirthsignSelectionSnapshot,
+    ) => readonly BirthsignSelectionIssue[],
+  ) {}
+
+  chooseBonus(
+    id: string,
+    selections: readonly string[],
+  ): BirthsignSelectionResult {
+    if (this.disposed) return reject("disposed", "This creator is disposed.");
+    const snapshot = this.snapshot();
+    if (this.load)
+      return reject(
+        "birthsign-pending",
+        "Resolve or cancel the birthsign change first.",
+      );
+    const choice = snapshot.choices.find(
+      (choice) =>
+        choice.choiceGroup.id === id && choice.lifecycle.selection === "once",
+    );
+    if (!choice)
+      return reject("unknown-choice", "Unknown one-time birthsign choice.");
+    this.answers.set(id, { choiceId: id, selections: [...selections] });
+    const issues = this.snapshot().issues;
+    return issues.length
+      ? { ok: false, issues }
+      : { ok: true, value: undefined };
+  }
 
   async submitRoll(input: BirthsignRoll): Promise<BirthsignSelectionResult> {
     if (this.disposed) return reject("disposed", "This creator is disposed.");
@@ -147,6 +182,11 @@ export class BirthsignSelectionSession {
       const issues = this.eligibility(selection, definition);
       this.load = undefined;
       if (issues.length) return { ok: false, issues };
+      const candidate = this.snapshotFor(selection, definition);
+      const affordability = this.contextIssues(candidate).filter(
+        (issue) => issue.code === "unaffordable-selection",
+      );
+      if (affordability.length) return { ok: false, issues: affordability };
       this.selected = selection;
       this.definition = definition;
       return { ok: true, value: undefined };
@@ -182,41 +222,80 @@ export class BirthsignSelectionSession {
     this.selected = undefined;
     this.definition = undefined;
     this.freeChoice = false;
+    this.answers.clear();
   }
 
   snapshot(): BirthsignSelectionSnapshot {
+    const snapshot = this.snapshotFor(this.selected, this.definition);
+    const issues = [...snapshot.issues, ...this.contextIssues(snapshot)];
+    return { ...snapshot, issues, complete: issues.length === 0 };
+  }
+
+  private snapshotFor(
+    selected: BirthsignSelection | undefined,
+    definition: Birthsign | undefined,
+  ): BirthsignSelectionSnapshot {
     const issues =
-      this.selected && this.definition
-        ? this.eligibility(this.selected, this.definition)
-        : [];
+      selected && definition ? this.eligibility(selected, definition) : [];
     let provenance: BirthsignSelectionSnapshot["provenance"];
     let purchaseCost: BirthsignSelectionSnapshot["purchaseCost"];
-    if (this.selected && issues.length === 0) {
-      if (same(this.original?.selection, this.selected)) {
+    if (selected && issues.length === 0) {
+      if (same(this.original?.selection, selected)) {
         provenance = "original";
         purchaseCost = 0;
       } else if (this.freeChoice) {
         provenance = "freeChoice";
         purchaseCost = 0;
-      } else if (this.isUpgrade(this.selected)) {
+      } else if (this.isUpgrade(selected)) {
         provenance = "upgrade";
         purchaseCost = 5;
       } else {
         provenance = "purchase";
-        purchaseCost = this.selected.variant === "normal" ? 5 : 10;
+        purchaseCost = selected.variant === "normal" ? 5 : 10;
       }
     }
+    const answers = [...this.answers.values()].map((answer) => ({
+      ...answer,
+      selections: [...answer.selections],
+    }));
+    const input =
+      selected && definition
+        ? { selection: selected, definition, answers }
+        : undefined;
+    const validation: BirthsignSelectionIssue[] = [...issues];
+    if (this.disposed)
+      validation.push({
+        code: "disposed",
+        message: "This creator is disposed.",
+      });
+    if (!selected)
+      validation.push({
+        code: "birthsign-required",
+        message: "Choose a birthsign.",
+      });
+    if (input) validation.push(...validateBirthsignChoices(input));
+    if (this.load?.status === "loading")
+      validation.push({
+        code: "birthsign-pending",
+        message: "Birthsign content is loading.",
+      });
+    if (this.load?.status === "failed")
+      validation.push(...this.load.issues.map((issue) => ({ ...issue })));
     return {
       freeChoice: this.freeChoice,
       original: this.original && {
         roll: { ...this.original.roll, dice: [...this.original.roll.dice] },
         selection: { ...this.original.selection },
       },
-      selected: this.selected && { ...this.selected },
-      definition: this.definition && birthsignSchema.parse(this.definition),
+      selected: selected && { ...selected },
+      definition: definition && birthsignSchema.parse(definition),
       provenance,
       purchaseCost,
       eligibilityIssues: issues,
+      answers,
+      choices: input ? getBirthsignChoices(input) : [],
+      issues: validation,
+      complete: validation.length === 0,
       load: this.load && {
         ...this.load,
         selection: { ...this.load.selection },
@@ -255,10 +334,12 @@ export class BirthsignSelectionSession {
   }
 
   private selectionResult(): BirthsignSelectionResult {
-    const issues =
-      this.selected && this.definition
-        ? this.eligibility(this.selected, this.definition)
-        : [];
+    // Mode changes retain unresolved answers; report eligibility/affordability, not missing choices.
+    const issues = this.snapshot().issues.filter(
+      (issue) =>
+        issue.code === "ineligible-selection" ||
+        issue.code === "unaffordable-selection",
+    );
     return issues.length
       ? { ok: false, issues }
       : { ok: true, value: undefined };

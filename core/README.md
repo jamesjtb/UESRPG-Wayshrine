@@ -55,11 +55,11 @@ do content I/O. Name and characteristic-generation
 commands, `getSnapshot()`, `getCharacterPreview()`, `next()`, `previous()`, and
 `finish()` are synchronous and never fetch or roll dice.
 
-The implemented steps are `race` then `characteristics`, identified by the public
+The implemented Core steps are `race`, `characteristics`, then `birthsign`, identified by the public
 `CharacterCreationStep` type. Next requires valid current and preceding steps; Back
-retains answers. `finish()` requires both steps valid even when called from race.
+retains answers. `finish()` requires all three steps valid even when called from race.
 Invalidating a previous step blocks finish without changing the current step.
-Finishing these two steps is **not** full implementation of character creation.
+Finishing these steps is **not** full implementation of character creation.
 
 Selecting a race loads its definition and, if needed, the lightweight skill index.
 Every offered skill key must exist, including unselected options. Racial trait
@@ -268,8 +268,8 @@ for module boundaries and consumer integration considerations.
 
 ### Headless birthsign selection
 
-Birthsign commands are available independently of the two registered wizard steps.
-They do not yet affect step validation, `finish()`, or character previews.
+Birthsign selection is the third headless wizard step. Commands can also be used
+before navigating there. Creation Kit does not yet provide a birthsign editor.
 
 ```ts
 import type { CharacterCreator } from "@wayshrine/core";
@@ -282,7 +282,13 @@ async function selectBirthsign(creator: CharacterCreator) {
     dice: [5, 5, 2],
   });
   if (!rolled.ok) return rolled;
-  await creator.chooseBirthsign({ signKey: "theMage", variant: "normal" });
+  await creator.chooseBirthsign({ signKey: "theMage", variant: "starCursed" });
+  const choice = creator
+    .getSnapshot()
+    .birthsignSelection.choices.find(
+      (choice) => choice.lifecycle.selection === "once",
+    );
+  if (choice) creator.chooseBirthsignBonus(choice.choiceGroup.id, ["prc"]);
   return creator.restoreOriginalBirthsign();
 }
 ```
@@ -310,17 +316,59 @@ async function selectBirthsign(creator: CharacterCreator) {
   `eligibilityIssues` and an undefined cost, rather than silently replacing it.
 - `snapshot.birthsignSelection` contains detached history, committed selection and
   definition, derived provenance/cost, eligibility issues, and a pending/failed
-  `load`. Costs never mutate statistics or accumulate across commands. Affordability
-  against final Luck and inherent effects is unresolved here; no Luck minimum or
-  negative-score policy is assumed. Free purchase costs do not remove inherent effects.
+  `load`, plus offered `choices`, retained `answers`, full `issues`, and selection
+  `complete`. Costs never mutate generation answers or accumulate across commands.
+  Free purchase costs do not remove inherent effects.
 - Latest selection intent wins; failed loads retain committed answers. Call
   `cancelBirthsignSelection()` to clear pending/failed intent. Reselecting the
   committed answer also cancels. Mode changes are evaluated at async commit time.
   Disposal clears birthsign state and invalidates outstanding completions. Pending
   birthsign operations do not interfere with race or generation operations.
 
-One-time choice resolution, effect projection, affordability and wizard registration
-are later integration work. Recurring choices are outside character creation.
+`chooseBirthsignBonus(choiceId, selections)` synchronously replaces a required
+one-time group's selections. Use the IDs and option IDs offered in the snapshot.
+Counts, duplicates, and unknown options are validated by Core; invalid answers stay
+visible but grant nothing. Revisiting a sign or variant retains its answers. Only
+currently active groups validate: replacement variants omit base groups, while
+additive variants include both. Recurring Ritual choices are descriptive metadata,
+never editable here, never creation blockers, and grant no selected recurring powers.
+
+Preview reconstruction applies the **entire** valid birthsign package atomically,
+including its purchase deduction. Pending/failed content, ineligibility, unresolved
+one-time choices, or unresolved/failed affordability withhold all birthsign effects
+and cost. Race and independently valid generation groups keep their existing rules.
+Changing selections removes the previous package; restoring the original costs zero.
+
+Purchases require final Luck after both the purchase deduction and inherent effects
+to be at least zero; exactly zero is allowed. Star-Cursed Ritual therefore consumes
+15 Luck (10 purchase plus its inherent -5). A resolved unaffordable async selection
+rejects before commitment, using current mode and generation at completion. Purchases
+selected before a usable race and valid Luck answer expose `affordability-pending`,
+not an invented final score. Earlier edits revalidate retained answers and can
+withhold their package and block finish. No unrelated minimum Luck is imposed on
+free or naturally rolled selections.
+
+`calculateBirthsignPackage({ selection, definition, answers })` is a pure strict
+calculator returning grants and aggregated adjustment inputs, or choice issues.
+It does not load content, enforce purchase eligibility, or mutate generation drafts.
+Creator previews attach `birthsign` (sign and variant), sourced characteristic
+`modifiers`, a separate positive Luck `purchaseCost`, birthsign-origin traits, and
+display-only typed `powers`. `birthsignAdjustments` contains `spMaximum`/`speed`
+modifiers, `naturalHealingMultiplier`, and `extraLuckyNumbers` entitlements retained
+regardless of Luck. It does not invent base attribute formulas or generate lucky
+numbers. Star-Cursed Thief replaces only projected **rolled** Luck with 50, not its
+baseline or final total; the original generation answer is preserved for restoration.
+
+`calculateCharacteristicScore(data)` calculates baseline + rolled + explicit
+modifiers - purchase cost, and its tens-digit bonus. Favored flags add no implicit
+numeric effect. Calculated outcomes remain separate from stored/generated inputs.
+Generation-only draft displays should pass just `{ baseline, rolled }` to keep
+their arithmetic independent of final package modifiers and purchase costs.
+
+The wizard's birthsign step requires valid preceding steps as well as a complete
+selection. Next/Back retain all answers; finish validates every registered step
+regardless of current position. Power activation, race power integration, recurring
+gameplay selections, and the React birthsign editor are not implemented.
 
 ## Content validation
 

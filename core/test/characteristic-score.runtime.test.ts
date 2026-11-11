@@ -19,7 +19,7 @@ describe("calculateCharacteristicScore", () => {
     },
   );
 
-  it("does not apply favored adjustments or modifiers or mutate its inputs", () => {
+  it("applies explicit modifiers but not favored flags, without mutation", () => {
     const characteristic = {
       baseline: 27,
       rolled: 5,
@@ -28,9 +28,26 @@ describe("calculateCharacteristicScore", () => {
     };
     const before = structuredClone(characteristic);
     expect(calculateCharacteristicScore(characteristic)).toEqual({
-      total: 32,
-      bonus: 3,
+      total: 41,
+      bonus: 4,
     });
     expect(characteristic).toEqual(before);
+  });
+
+  it("deducts purchase cost separately from inherent modifiers, allowing exactly zero", () => {
+    expect(
+      calculateCharacteristicScore({
+        baseline: 30,
+        rolled: 10,
+        modifiers: [
+          { sourceId: "sign/effect", sourceText: "Effect", value: -30 },
+        ],
+        purchaseCost: {
+          sourceId: "sign/purchase",
+          sourceText: "Purchase",
+          value: 10,
+        },
+      }),
+    ).toEqual({ total: 0, bonus: 0 });
   });
 });

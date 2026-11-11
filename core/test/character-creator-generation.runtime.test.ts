@@ -497,11 +497,17 @@ describe("CharacterCreator generation drafts", () => {
 
   it("registers characteristics after race and retains drafts when navigating back", async () => {
     const { creator } = setup();
+    await creator.submitBirthsignRoll({
+      id: "sign",
+      charge: "warrior",
+      dice: [1],
+    });
     await creator.chooseRace("argonian");
     expect(creator.getSnapshot().characteristicGeneration.complete).toBe(false);
     expect(creator.getSnapshot().steps.map((step) => step.id)).toEqual([
       "race",
       "characteristics",
+      "birthsign",
     ]);
     expect(creator.getSnapshot().canFinish).toBe(false);
     expect(creator.finish().ok).toBe(false);
@@ -533,9 +539,14 @@ describe("CharacterCreator generation drafts", () => {
   });
 
   it.each(["rolled", "point-buy"] as const)(
-    "requires both steps for %s finish even from race",
+    "requires all steps for %s finish even from race",
     async (method) => {
       const { creator } = setup();
+      await creator.submitBirthsignRoll({
+        id: "sign",
+        charge: "warrior",
+        dice: [1],
+      });
       populate(creator);
       creator.setCharacteristicGenerationMethod(method);
       expect(creator.getSnapshot().currentStep).toBe("race");
@@ -556,6 +567,7 @@ describe("CharacterCreator generation drafts", () => {
         rolled: 9,
         favored: false,
       });
+      expect(creator.next().ok).toBe(true);
       expect(creator.next().ok).toBe(true);
       expect(creator.next()).toMatchObject({
         ok: false,
@@ -580,6 +592,11 @@ describe("CharacterCreator generation drafts", () => {
         "favored=%s method=%s Luck=%s",
         async (favoredValid, methodValid, luckValid) => {
           const { creator } = setup();
+          await creator.submitBirthsignRoll({
+            id: "sign",
+            charge: "warrior",
+            dice: [1],
+          });
           await creator.chooseRace("argonian");
           creator.setCharacteristicGenerationMethod(method);
           if (favoredValid)
@@ -619,6 +636,11 @@ describe("CharacterCreator generation drafts", () => {
 
   it("removes only invalidated groups' old effects and restores corrected answers", async () => {
     const { creator } = setup();
+    await creator.submitBirthsignRoll({
+      id: "sign",
+      charge: "warrior",
+      dice: [1],
+    });
     await creator.chooseRace("argonian");
     populate(creator);
     creator.setFavoredCharacteristics([Characteristic.Str, Characteristic.Str]);
@@ -701,6 +723,11 @@ describe("CharacterCreator generation drafts", () => {
 
   it("suppresses generation with unusable races, restores it after cancel, and recalculates new baselines", async () => {
     const { creator, catalog } = setup();
+    await creator.submitBirthsignRoll({
+      id: "sign",
+      charge: "warrior",
+      dice: [1],
+    });
     populate(creator);
     await creator.chooseRace("argonian");
     creator.next();
@@ -794,6 +821,11 @@ describe("CharacterCreator generation drafts", () => {
 
   it("isolates previews, finished results and step issues, with no I/O during evaluation", async () => {
     const { creator, catalog } = setup();
+    await creator.submitBirthsignRoll({
+      id: "sign",
+      charge: "warrior",
+      dice: [1],
+    });
     await creator.chooseRace("argonian");
     populate(creator);
     const expected = creator.getCharacterPreview();
@@ -833,6 +865,11 @@ describe("CharacterCreator generation drafts", () => {
 
   it("retains name, race and racial grants across method switches and shared rerolls", async () => {
     const { creator } = setup();
+    await creator.submitBirthsignRoll({
+      id: "sign",
+      charge: "warrior",
+      dice: [1],
+    });
     creator.setName("Retained name");
     await creator.chooseRace("altmer");
     await creator.chooseRacialBonus("altmer/magic", ["alchemy"]);

@@ -429,15 +429,17 @@ from the detached Core preview, without a competing preview view. The resume
 indicator belongs to the session's wizard launcher rather than the sheet itself.
 The responsive characteristic table always shows all eight PC characteristics as
 columns, including before race selection or generation, with Total and Bonus
-body rows. Core's `calculateCharacteristicScore` calculates Total as only
-`baseline + rolled` and Bonus as the tens digit of that total (`floor(total / 10) % 10`).
-The helper is scoped to the unmodified creation score, not a final modified score:
-neither favored flags nor modifiers affect it. Generated is Core's `rolled` field
+body rows. Core's `calculateCharacteristicScore` calculates Total as
+`baseline + rolled + modifiers - purchase cost` and Bonus as the tens digit of that
+total (`floor(total / 10) % 10`). Favored flags add no implicit numeric adjustment.
+The generation-only draft table excludes explicit modifiers and purchase costs.
+Generated is Core's `rolled` field
 for either generation method. Calculated results remain separate from stored inputs.
 Favored characteristics show a read-only star beside their column heading, labeled
 “Favored” for assistive technology; non-favored headings have no star.
 Only Total score cells trigger a Mantine tooltip showing
-`baseline + generated = total`. These cells are keyboard focusable and carry the
+`baseline + generated`, explicit signed modifiers and purchase deduction, then the
+effective total. These cells are keyboard focusable and carry the
 same persistent accessible description; tooltips support hover, focus, and touch.
 Column headings (including favored stars) and Bonus cells do not trigger tooltips
 and are not additional keyboard tab stops.
@@ -451,7 +453,10 @@ owns required display coverage and explicit per-leaf English fallback. Markdown
 rendering, trait-definition display reads, and applied-template formatting are
 not implemented. Literal player names and parameter values are not translated.
 
-Core registers only `race` then `characteristics`. Valid race answers enable Next;
+Core registers `race`, `characteristics`, then the headless `birthsign` step.
+Creation Kit has no birthsign editor yet; this is an intermediate integration
+checkpoint, not a complete browser wizard. The new step must not be silently skipped
+or reinterpreted as characteristics. Valid race answers enable Next;
 Back preserves answers. Invalidating an earlier step blocks Core finish eligibility
 without automatically moving the current step. Forge does not call `finish()`,
 offer a Finish action, or claim complete character creation.

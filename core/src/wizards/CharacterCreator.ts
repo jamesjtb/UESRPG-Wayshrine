@@ -22,8 +22,12 @@ import type { Race } from "../../interface/character/Race";
 import type {
   BirthsignRoll,
   BirthsignSelection,
+  BirthsignSelectionSnapshot,
+  BirthsignSelectionIssue,
 } from "../../interface/character/BirthsignSelection";
 import { BirthsignSelectionSession } from "../character/birthsignSelection";
+import { calculateBirthsignPackage } from "../character/birthsignPackage";
+import { calculateCharacteristicScore } from "../character/characteristicScore";
 import type Skill from "../../interface/character/Skill";
 import type { Trait } from "../../interface/character/Trait";
 import type { ChoiceAnswer, ChoiceState } from "../../interface/common/Choice";
@@ -113,7 +117,9 @@ export default class CharacterCreator {
 
   constructor(catalog: ContentCatalog) {
     this.content = new ContentReader(catalog);
-    this.birthsigns = new BirthsignSelectionSession(this.content);
+    this.birthsigns = new BirthsignSelectionSession(this.content, (snapshot) =>
+      this.birthsignContextIssues(snapshot),
+    );
     this.wizard = new Wizard(
       [
         { id: "race", evaluate: () => this.evaluateRace() },
@@ -121,6 +127,7 @@ export default class CharacterCreator {
           id: "characteristics",
           evaluate: () => this.evaluateCharacteristics(),
         },
+        { id: "birthsign", evaluate: () => this.evaluateBirthsign() },
       ],
       () => this.getCharacterPreview(),
     );
@@ -138,6 +145,10 @@ export default class CharacterCreator {
 
   chooseBirthsign(selection: BirthsignSelection) {
     return this.birthsigns.choose(selection);
+  }
+
+  chooseBirthsignBonus(id: string, selections: readonly string[]) {
+    return this.birthsigns.chooseBonus(id, selections);
   }
 
   restoreOriginalBirthsign() {
@@ -561,7 +572,141 @@ export default class CharacterCreator {
         granted.add(skill.skillKey);
       }
     }
+    this.projectBirthsign(character);
     return character;
+  }
+
+  private projectBirthsign(character: PcCharacterData): void {
+    const snapshot = this.birthsigns.snapshot();
+    if (
+      !snapshot.complete ||
+      !snapshot.selected ||
+      !snapshot.definition ||
+      snapshot.purchaseCost === undefined
+    )
+      return;
+    const result = calculateBirthsignPackage({
+      selection: snapshot.selected,
+      definition: snapshot.definition,
+      answers: snapshot.answers,
+    });
+    if (!result.ok) return;
+    const value = result.value;
+    character.birthsign = { ...snapshot.selected };
+    for (const key of Object.values(PcCharacteristic)) {
+      character.characteristics[key].modifiers.push(
+        ...(value.characteristicModifiers[key] ?? []),
+      );
+      const rolled = value.rolledReplacements[key];
+      if (rolled !== undefined) character.characteristics[key].rolled = rolled;
+    }
+    if (snapshot.purchaseCost > 0) {
+      character.characteristics.lck.purchaseCost = {
+        sourceId: `birthsign/${encodeURIComponent(snapshot.selected.signKey)}/purchase`,
+        sourceText: "Birthsign purchase",
+        value: snapshot.purchaseCost,
+      };
+    }
+    character.traits.push(...value.traits);
+    character.powers = value.powers;
+    character.birthsignAdjustments = {
+      spMaximum: value.spMaximum,
+      speed: value.speed,
+      naturalHealingMultiplier: value.naturalHealingMultiplier,
+      extraLuckyNumbers: value.extraLuckyNumbers,
+    };
+  }
+
+  private birthsignContextIssues(
+    snapshot: BirthsignSelectionSnapshot,
+  ): BirthsignSelectionIssue[] {
+    if (
+      !snapshot.selected ||
+      !snapshot.definition ||
+      snapshot.purchaseCost === undefined
+    )
+      return [];
+    // Free and original selections are not purchases; inherent effects still apply.
+    if (snapshot.purchaseCost === 0) return [];
+    const result = calculateBirthsignPackage({
+      selection: snapshot.selected,
+      definition: snapshot.definition,
+      answers: snapshot.answers,
+    });
+    if (!result.ok) return [];
+    if (
+      !this.usableRace() ||
+      !this.generation.luck ||
+      validateRoll(this.generation.luck, "luck").length
+    ) {
+      return [
+        {
+          code: "affordability-pending",
+          message:
+            "Resolve race and Luck generation to check the birthsign purchase.",
+        },
+      ];
+    }
+    const luck = projectCharacteristicGeneration(this.generationAnswer()).lck;
+    const rolled = result.value.rolledReplacements.lck ?? luck.rolled;
+    const score = calculateCharacteristicScore({
+      baseline: 30,
+      rolled,
+      modifiers: result.value.characteristicModifiers.lck ?? [],
+      purchaseCost: {
+        sourceId: "birthsign/purchase",
+        sourceText: "Birthsign purchase",
+        value: snapshot.purchaseCost,
+      },
+    });
+    if (score.total < 0)
+      return [
+        {
+          code: "unaffordable-selection",
+          message: "A birthsign purchase cannot leave final Luck below zero.",
+        },
+      ];
+    return [];
+  }
+
+  private usableRace(): boolean {
+    return (
+      !!this.race &&
+      !this.disposed &&
+      !this.loads.has("race") &&
+      !this.referenceIssues.some((issue) => issue.choiceId === undefined)
+    );
+  }
+
+  private evaluateBirthsign(): StepEvaluation<ChoiceState<string>> {
+    const snapshot = this.birthsigns.snapshot();
+    const pendingChoices: ChoiceState<string>[] = [];
+    for (const choice of snapshot.choices) {
+      if (choice.lifecycle.selection !== "once") continue;
+      if (
+        !snapshot.issues.some(
+          (issue) => issue.choiceId === choice.choiceGroup.id,
+        )
+      )
+        continue;
+      pendingChoices.push({
+        ...choice.choiceGroup,
+        options: choice.choiceGroup.options.map((option) => option.id),
+        selections: [...choice.selections],
+      });
+    }
+    const issues: WizardIssue[] = [...snapshot.issues];
+    if (
+      this.evaluateRace().issues.length ||
+      this.evaluateCharacteristics().issues.length
+    ) {
+      issues.push({
+        code: "previous-steps-incomplete",
+        message:
+          "Complete race and characteristic generation before finishing birthsign selection.",
+      });
+    }
+    return { pendingChoices, issues };
   }
 
   /** Invalidates outstanding commands and releases session-owned definitions/answers. */

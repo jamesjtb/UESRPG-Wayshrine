@@ -10,7 +10,13 @@ import type {
   LocalizationInput,
 } from "@wayshrine/core/content-localization";
 
-const domains: AuthoredDomain[] = ["races", "traits", "skills", "birthsigns"];
+const domains: AuthoredDomain[] = [
+  "races",
+  "traits",
+  "skills",
+  "birthsigns",
+  "powers",
+];
 
 async function catalogSources(root: string): Promise<ContentSource[]> {
   const sources: ContentSource[] = [];
@@ -76,6 +82,16 @@ function expectFailure(input: LocalizationInput, code: string) {
     ]),
   );
   return result;
+}
+
+function mechanicsOnly(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(mechanicsOnly);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !["label", "description", "prompt"].includes(key))
+      .map(([key, child]) => [key, mechanicsOnly(child)]),
+  );
 }
 
 describe("build-time content localization public entrypoint", () => {
@@ -263,6 +279,7 @@ describe("build-time content localization public entrypoint", () => {
     expect(Object.keys(result.definitions.traits)).toHaveLength(46);
     expect(Object.keys(result.definitions.skills)).toHaveLength(27);
     expect(Object.keys(result.definitions.birthsigns)).toHaveLength(12);
+    expect(Object.keys(result.definitions.powers)).toHaveLength(10);
     const unusedRaces = new Set(
       result.diagnostics
         .filter(
@@ -292,7 +309,9 @@ describe("build-time content localization public entrypoint", () => {
           description: _resolvedDescription,
           ...resolvedMechanics
         } = result.definitions[source.domain][key]!;
-        expect(resolvedMechanics).toEqual(mechanics);
+        expect(mechanicsOnly(resolvedMechanics)).toEqual(
+          mechanicsOnly(mechanics),
+        );
       }
     }
     expect(input).toEqual(before);

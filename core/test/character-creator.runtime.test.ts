@@ -223,6 +223,8 @@ describe("CharacterCreator", () => {
   it("scopes similarly named choices to their source race", async () => {
     const { catalog, races, skills, traits, altmer } = creationCatalogs();
     const withOtherRace = new TestContentCatalog({
+      birthsign: {},
+      power: {},
       race: { ...races, other: { ...altmer } },
       skill: skills,
       trait: traits,

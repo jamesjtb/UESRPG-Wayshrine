@@ -1,4 +1,6 @@
 import type { Race } from "../character/Race";
+import type { Birthsign } from "../character/Birthsign";
+import type { Power } from "../character/Power";
 import type Skill from "../character/Skill";
 import type { Trait } from "../character/Trait";
 
@@ -6,6 +8,8 @@ export interface ContentDefinitions {
   race: Race;
   skill: Skill;
   trait: Trait;
+  birthsign: Birthsign;
+  power: Power;
 }
 
 export type ContentKind = keyof ContentDefinitions;

@@ -13,6 +13,8 @@ import {
   CONTENT_SCHEMA_VERSION,
   parseContentDefinition,
   validateRaceContent,
+  validateBirthsignContent,
+  validateBirthsignChargeTables,
 } from "@wayshrine/core";
 import type {
   ContentDefinitions,
@@ -28,7 +30,7 @@ import {
 } from "../src/lib/content/artifacts";
 import type { ContentManifest } from "../src/lib/content/artifacts";
 
-const domains = ["races", "skills", "traits", "birthsigns"] as const;
+const domains = ["races", "skills", "traits", "birthsigns", "powers"] as const;
 
 /** Sort object keys before JSON.stringify; preserve meaningful array ordering. */
 function sortObjectKeys(value: unknown): unknown {
@@ -159,7 +161,7 @@ function addConsumedShard(
   unused: Set<string>,
 ) {
   // Called only after the compiler validates all supplied locale leaves.
-  const entries = shard.data as Record<string, Record<string, string>>;
+  const entries = shard.data as Record<string, Record<string, unknown>>;
   for (const [key, entry] of Object.entries(entries)) {
     addConsumedEntry(consumed, shard, key, entry, unused);
   }
@@ -169,16 +171,27 @@ function addConsumedEntry(
   consumed: Record<string, unknown>,
   shard: LocaleSource,
   key: string,
-  entry: Record<string, string>,
+  entry: Record<string, unknown>,
   unused: Set<string>,
+  path: string[] = [key],
 ) {
   for (const [field, text] of Object.entries(entry)) {
-    if (
-      unused.has(JSON.stringify([shard.source, shard.language, [key, field]]))
-    )
+    const leafPath = [...path, field];
+    if (typeof text !== "string") {
+      addConsumedEntry(
+        consumed,
+        shard,
+        key,
+        text as Record<string, unknown>,
+        unused,
+        leafPath,
+      );
+      continue;
+    }
+    if (unused.has(JSON.stringify([shard.source, shard.language, leafPath])))
       continue;
     // Temporary status is determined entirely by the preserved text marker.
-    consumed[`${shard.language}.${shard.domain}.${key}.${field}`] = text;
+    consumed[`${shard.language}.${shard.domain}.${leafPath.join(".")}`] = text;
   }
 }
 
@@ -245,6 +258,8 @@ function prepareLanguage(
     race: runtimeDefinitions("race", result.definitions.races),
     skill: runtimeDefinitions("skill", result.definitions.skills),
     trait: runtimeDefinitions("trait", result.definitions.traits),
+    birthsign: runtimeDefinitions("birthsign", result.definitions.birthsigns),
+    power: runtimeDefinitions("power", result.definitions.powers),
   };
   const skillKeys = new Set(content.skill.keys());
   for (const [key, race] of content.race) {
@@ -260,6 +275,19 @@ function prepareLanguage(
     }
   }
   const sourceRevision = hash(normalizedContent(sources));
+  for (const [key, sign] of content.birthsign) {
+    const issues = validateBirthsignContent(
+      sign,
+      content.trait,
+      new Set(content.power.keys()),
+    );
+    if (issues.length)
+      throw new Error(`Invalid birthsign ${key}: ${issues.join(" ")}`);
+  }
+  const tableIssues = validateBirthsignChargeTables(
+    new Set(content.birthsign.keys()),
+  );
+  if (tableIssues.length) throw new Error(tableIssues.join(" "));
   const localization = { ...result.metadata, sourceRevision };
   const revision = hash({
     artifactFormat: CONTENT_ARTIFACT_FORMAT,

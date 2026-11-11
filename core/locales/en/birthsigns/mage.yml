@@ -3,26 +3,35 @@ theMage:
   description: |-
     “The Mage is a Guardian Constellation whose Season is Rain’s Hand when magicka was first used by men. His Charges are the Apprentice, the Golem, and the Ritual. Those born under the Mage have more magicka and talent for all kinds of spellcasting, but are often arrogant and absent-minded.”
 
-    - Those born under the sign of the Mage gain the Power Well (10) trait.
-    - Star-Cursed Mage: Gain Power Well (25) instead, but lose 5 Perception, Strength, or Personality (pick one).
+  starCursed:
+    description: Gain Power Well (25) instead, but lose 5 Perception, Strength, or Personality (pick one).
+  choices:
+    theMagePenalty:
+      prompt: Choose one characteristic to reduce.
 theApprentice:
   label: The Apprentice
   description: |-
     “The Apprentice’s Season is Sun’s Height. Those born under the sign of the apprentice have a special affinity for magick of all kinds, but are more vulnerable to magick as well.”
 
-    - Those born under the sign of the Apprentice gain the Power Well (25) trait and the Weakness (magic, 2) trait.
-    - Star-Cursed Apprentice: Gain Power Well (50) and Weakness (magic, 3) instead.
+  starCursed:
+    description: Gain Power Well (50) and Weakness (magic, 3) instead.
 theAtronach:
   label: The Atronach
   description: |-
     “The Atronach (often called the Golem) is one of the Mage’s Charges. Its season is Sun’s Dusk. Those born under this sign are natural sorcerers with deep reserves of magicka, but they cannot generate magicka of their own.”
 
-    - Those born under the sign of the Atronach gain the Power Well (50) trait, the Spell Absorption (5) trait, and the Stunted Magicka trait.
-    - Star-Cursed Atronach: As above, but gain Power Well (75) instead and lose 5 Agility or Endurance (pick one).
+  starCursed:
+    description: As above, but gain Power Well (75) instead and lose 5 Agility or Endurance (pick one).
+  choices:
+    theAtronachPenalty:
+      prompt: Choose one characteristic to reduce.
 theRitual:
   label: The Ritual
   description: |-
     “The Ritual is one of the Mage’s Charges and its Season is Morning Star. Those born under this sign have a variety of abilities depending on the aspects of the moons and the Divines.”
 
-    - Those born under the sign of the Ritual may choose to gain one of the following powers at the beginning of each day: Blessed Touch, Blessed Word, Mara’s Gift. They have this power until their next long rest, when they can make another choice if they wish.
-    - Star-Cursed Ritual: Instead gain all the powers permanently, but lose 5 luck.
+  starCursed:
+    description: Instead gain all the powers permanently, but lose 5 luck.
+  choices:
+    theRitualPower:
+      prompt: Choose one power at the beginning of each day. You have this power until your next long rest, when you can make another choice if you wish.

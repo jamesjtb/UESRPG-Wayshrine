@@ -3,26 +3,29 @@ theWarrior:
   description: |-
     “The Warrior is the first Guardian Constellation and he protects his charges during their Seasons. The Warrior’s own season is Last Seed when his Strength is needed for the harvest. His Charges are the Lady, the Steed, and the Lord. Those born under the sign of the Warrior are skilled with weapons of all kinds, but prone to short tempers.”
 
-    - Those born under the sign of the Warrior increase their SP maximum by 1.
-    - Star-Cursed Warrior: As above, but also gain 5 Strength and lose 5 Willpower.
+  starCursed:
+    description: As above, but also gain 5 Strength and lose 5 Willpower.
 theLady:
   label: The Lady
   description: |-
     “The Lady is one of the Warrior’s Charges and her Season is Heartfire. Those born under the sign of the Lady are kind and tolerant.”
 
-    - Those born under the sign of the Lady gain 5 Personality.
-    - Star-Cursed Lady: As above, but also gain 5 Endurance and lose 5 Strength.
+  starCursed:
+    description: As above, but also gain 5 Endurance and lose 5 Strength.
 theSteed:
   label: The Steed
   description: |-
     “The Steed is one of the Warrior’s Charges, and her Season is Mid Year. Those born under the sign of the Steed are impatient and always hurrying from one place to another.”
 
-    - Those born under the sign of the Steed increase Speed by 2.
-    - Star-Cursed Steed: As above, but also gain 5 Agility and lose 5 Willpower or Perception (pick one).
+  starCursed:
+    description: As above, but also gain 5 Agility and lose 5 Willpower or Perception (pick one).
+  choices:
+    theSteedPenalty:
+      prompt: Choose one characteristic to reduce.
 theLord:
   label: The Lord
   description: |-
     “The Lord’s Season is First Seed and he oversees all of Tamriel during the planting. Those born under the sign of the Lord are stronger and healthier than those born under other signs.”
 
-    - Those born under the sign of the Lord double their natural healing rate.
-    - Star-Cursed Lord: As above, but also gain 5 Endurance and the Weakness (fire, 2) trait.
+  starCursed:
+    description: As above, but also gain 5 Endurance and the Weakness (fire, 2) trait.

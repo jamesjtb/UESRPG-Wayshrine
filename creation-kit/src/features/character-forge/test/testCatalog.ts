@@ -63,6 +63,8 @@ export function fixtureCatalog(
     },
   };
   const definitions: FixtureDefinitions = {
+    birthsign: {},
+    power: {},
     race: races,
     skill: {
       alchemy: {
@@ -82,7 +84,7 @@ export function fixtureCatalog(
   };
   configure?.(definitions);
   const catalog: ContentCatalog = {
-    version: { schemaVersion: 1, revision: "forge-test" },
+    version: { schemaVersion: 2, revision: "forge-test" },
     async list(kind) {
       return Object.entries(definitions[kind]).map(([key, definition]) => ({
         key,

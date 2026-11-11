@@ -3,26 +3,35 @@ theThief:
   description: |-
     “The Thief is the last Guardian Constellation, and her Season is the darkest month of Evening Star. Her Charges are the Lover, the Shadow, and the Tower. Those born under the sign of the Thief are not typically thieves, though they take risks more often and only rarely come to harm. They will run out of luck eventually, however, and rarely live as long as those born under other signs.”
 
-    - Those born under the sign of the Thief roll an extra lucky number that they never lose regardless of their Luck score.
-    - Star-Cursed Thief: As above, but the character replaces their rolled Luck score with 50, gains the Akaviri Danger-Sense power, and the Running Out of Luck trait. Characters cannot spend Luck to choose this birth-sign. Instead, it is available as a choice for any character who naturally rolled the Thief sign.
+  starCursed:
+    description: As above, but the character replaces their rolled Luck score with 50, gains the Akaviri Danger-Sense power, and the Running Out of Luck trait. Characters cannot spend Luck to choose this birth-sign. Instead, it is available as a choice for any character who naturally rolled the Thief sign.
 theLover:
   label: The Lover
   description: |-
     “The Lover is one of the Thief’s Charges and her season is Sun’s Dawn. Those born under the sign of the Lover are graceful and passionate.”
 
-    - Those born under the sign of the Lover gain 5 Agility.
-    - Star-Cursed Lover: As above, but also gain 5 Personality and lose 5 Willpower or Strength (choose one).
+  starCursed:
+    description: As above, but also gain 5 Personality and lose 5 Willpower or Strength (choose one).
+  choices:
+    theLoverPenalty:
+      prompt: Choose one characteristic to reduce.
 theShadow:
   label: The Shadow
   description: |-
     “The Shadow’s Season is Second Seed. The Shadow grants those born under her sign the ability to hide in shadows.”
 
-    - Those born under the sign of the Shadow gain the Moonshadow power.
-    - Star-Cursed Shadow: As above, but also gain 5 Perception and lose 5 Personality or Strength (pick one).
+  starCursed:
+    description: As above, but also gain 5 Perception and lose 5 Personality or Strength (pick one).
+  choices:
+    theShadowPenalty:
+      prompt: Choose one characteristic to reduce.
 theTower:
   label: The Tower
   description: |-
     “The Tower is one of the Thief’s Charges and its Season is Frostfall. Those born under the sign of the Tower have a knack for finding gold and can open locks of all kinds.”
 
-    - Those born under the sign of the Tower gain the Treasure Seeker power and 5 Perception.
-    - Star-Cursed Tower: As above, but also gain 5 Agility and lose 5 Willpower or Strength (pick one).
+  starCursed:
+    description: As above, but also gain 5 Agility and lose 5 Willpower or Strength (pick one).
+  choices:
+    theTowerPenalty:
+      prompt: Choose one characteristic to reduce.

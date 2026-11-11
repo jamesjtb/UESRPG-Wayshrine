@@ -76,6 +76,8 @@ describe("authored content", () => {
       race: readDefinitions("race", "races"),
       skill: readDefinitions("skill", "skills"),
       trait: readDefinitions("trait", "traits"),
+      birthsign: readDefinitions("birthsign", "birthsigns"),
+      power: readDefinitions("power", "powers"),
     });
     const creator = new CharacterCreator(catalog);
     expect((await creator.chooseRace("altmer")).ok).toBe(true);
@@ -247,7 +249,7 @@ describe("content validation", () => {
 describe("session content reader", () => {
   it("rejects incompatible schemas before any loads", () => {
     const { catalog } = creationCatalogs();
-    catalog.version.schemaVersion = 2;
+    catalog.version.schemaVersion = 3;
     expect(() => new ContentReader(catalog)).toThrow(ContentError);
     expect(catalog.getCalls).toEqual([]);
   });

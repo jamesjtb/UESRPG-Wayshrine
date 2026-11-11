@@ -40,11 +40,13 @@ function hostCatalog(): ContentCatalog {
         racialTraits: [],
       },
     },
+    birthsign: {},
+    power: {},
     skill: {},
     trait: {},
   };
   return {
-    version: { schemaVersion: 1, revision: "host-test" },
+    version: { schemaVersion: 2, revision: "host-test" },
     async get<K extends ContentKind>(kind: K, key: string) {
       const entries: Readonly<Record<string, ContentDefinitions[K]>> =
         definitions[kind];

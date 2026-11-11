@@ -5,8 +5,14 @@ import type {
 } from "../../interface/common/ContentCatalog";
 import { Characteristic } from "../enum/Characteristic";
 import { ContentError } from "./ContentError";
+import { birthsignSchema } from "./birthsignSchema";
+export {
+  birthsignSchema,
+  birthsignChoiceSchema,
+  birthsignEffectSchema,
+} from "./birthsignSchema";
 
-export const CONTENT_SCHEMA_VERSION = 1;
+export const CONTENT_SCHEMA_VERSION = 2;
 
 const keySchema = z.string().min(1);
 const characteristicSchema = z.enum(Characteristic);
@@ -25,6 +31,11 @@ export const traitSchema = z.strictObject({
       "Trait parameter names must be distinct.",
     )
     .exactOptional(),
+});
+
+export const powerSchema = z.strictObject({
+  label: z.string().min(1),
+  description: z.string().min(1),
 });
 
 const skillFields = {
@@ -103,6 +114,8 @@ const definitionSchemas: {
   race: raceSchema,
   skill: skillSchema,
   trait: traitSchema,
+  birthsign: birthsignSchema,
+  power: powerSchema,
 };
 
 /** Validate and detach a definition from transport/adapter-owned objects. */

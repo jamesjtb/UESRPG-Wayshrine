@@ -6,6 +6,7 @@ theWarrior:
       bonusTargetKey: spMaximum
       bonusValue: 1
   starCursed:
+    description: "{LOCALE.birthsigns.theWarrior.starCursed.description}"
     overwriteBaseBonuses: false
     bonuses:
       - bonusType: characteristic
@@ -22,6 +23,7 @@ theLady:
       bonusTargetKey: prs
       bonusValue: 5
   starCursed:
+    description: "{LOCALE.birthsigns.theLady.starCursed.description}"
     overwriteBaseBonuses: false
     bonuses:
       - bonusType: characteristic
@@ -38,6 +40,7 @@ theSteed:
       bonusTargetKey: speed
       bonusValue: 2
   starCursed:
+    description: "{LOCALE.birthsigns.theSteed.starCursed.description}"
     overwriteBaseBonuses: false
     bonuses:
       - bonusType: characteristic
@@ -46,6 +49,7 @@ theSteed:
       - bonusType: choice
         choiceGroup:
           id: theSteedPenalty
+          prompt: "{LOCALE.birthsigns.theSteed.choices.theSteedPenalty.prompt}"
           choose: 1
           options:
             - id: wp
@@ -68,6 +72,7 @@ theLord:
       bonusTargetKey: naturalHealing
       bonusValue: 2
   starCursed:
+    description: "{LOCALE.birthsigns.theLord.starCursed.description}"
     overwriteBaseBonuses: false
     bonuses:
       - bonusType: characteristic
@@ -87,6 +92,7 @@ theMage:
       bonusParams:
         X: 10
   starCursed:
+    description: "{LOCALE.birthsigns.theMage.starCursed.description}"
     overwriteBaseBonuses: true
     bonuses:
       - bonusType: trait
@@ -96,6 +102,7 @@ theMage:
       - bonusType: choice
         choiceGroup:
           id: theMagePenalty
+          prompt: "{LOCALE.birthsigns.theMage.choices.theMagePenalty.prompt}"
           choose: 1
           options:
             - id: prc
@@ -129,6 +136,7 @@ theApprentice:
         type: magic
         X: 2
   starCursed:
+    description: "{LOCALE.birthsigns.theApprentice.starCursed.description}"
     overwriteBaseBonuses: true
     bonuses:
       - bonusType: trait
@@ -155,6 +163,7 @@ theAtronach:
     - bonusType: trait
       bonusTargetKey: stuntedMagicka
   starCursed:
+    description: "{LOCALE.birthsigns.theAtronach.starCursed.description}"
     overwriteBaseBonuses: true
     bonuses:
       - bonusType: trait
@@ -170,6 +179,7 @@ theAtronach:
       - bonusType: choice
         choiceGroup:
           id: theAtronachPenalty
+          prompt: "{LOCALE.birthsigns.theAtronach.choices.theAtronachPenalty.prompt}"
           choose: 1
           options:
             - id: ag
@@ -191,6 +201,7 @@ theRitual:
     - bonusType: choice
       choiceGroup:
         id: theRitualPower
+        prompt: "{LOCALE.birthsigns.theRitual.choices.theRitualPower.prompt}"
         choose: 1
         options:
           - id: blessedTouch
@@ -210,6 +221,7 @@ theRitual:
         chooseAt: longRest
         expiresAt: nextLongRest
   starCursed:
+    description: "{LOCALE.birthsigns.theRitual.starCursed.description}"
     overwriteBaseBonuses: true
     bonuses:
       - bonusType: power
@@ -229,6 +241,7 @@ theThief:
       count: 1
       retainedRegardlessOfLuck: true
   starCursed:
+    description: "{LOCALE.birthsigns.theThief.starCursed.description}"
     overwriteBaseBonuses: false
     eligibility:
       requiresNaturallyRolledSign: true
@@ -249,6 +262,7 @@ theLover:
       bonusTargetKey: ag
       bonusValue: 5
   starCursed:
+    description: "{LOCALE.birthsigns.theLover.starCursed.description}"
     overwriteBaseBonuses: false
     bonuses:
       - bonusType: characteristic
@@ -257,6 +271,7 @@ theLover:
       - bonusType: choice
         choiceGroup:
           id: theLoverPenalty
+          prompt: "{LOCALE.birthsigns.theLover.choices.theLoverPenalty.prompt}"
           choose: 1
           options:
             - id: wp
@@ -278,6 +293,7 @@ theShadow:
     - bonusType: power
       bonusTargetKey: moonshadow
   starCursed:
+    description: "{LOCALE.birthsigns.theShadow.starCursed.description}"
     overwriteBaseBonuses: false
     bonuses:
       - bonusType: characteristic
@@ -286,6 +302,7 @@ theShadow:
       - bonusType: choice
         choiceGroup:
           id: theShadowPenalty
+          prompt: "{LOCALE.birthsigns.theShadow.choices.theShadowPenalty.prompt}"
           choose: 1
           options:
             - id: prs
@@ -310,6 +327,7 @@ theTower:
       bonusTargetKey: prc
       bonusValue: 5
   starCursed:
+    description: "{LOCALE.birthsigns.theTower.starCursed.description}"
     overwriteBaseBonuses: false
     bonuses:
       - bonusType: characteristic
@@ -318,6 +336,7 @@ theTower:
       - bonusType: choice
         choiceGroup:
           id: theTowerPenalty
+          prompt: "{LOCALE.birthsigns.theTower.choices.theTowerPenalty.prompt}"
           choose: 1
           options:
             - id: wp

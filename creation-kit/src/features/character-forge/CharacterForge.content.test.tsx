@@ -20,7 +20,7 @@ function changedVersion(
   version: ContentVersion,
   field: string,
 ): ContentVersion {
-  if (field === "schema") return { ...version, schemaVersion: 2 };
+  if (field === "schema") return { ...version, schemaVersion: 3 };
   return { ...version, revision: "changed" };
 }
 

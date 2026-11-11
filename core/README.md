@@ -13,7 +13,7 @@ and presentation live outside this package.
   key. Loading, access, malformed-content, and compatibility failures reject with
   `ContentError`.
 
-Kinds currently supported are `race`, `skill`, and `trait`. Keys are stable within
+Kinds currently supported are `race`, `skill`, `trait`, `birthsign`, and `power`. Keys are stable within
 their kind. Host document IDs must never become Core content keys or rule inputs.
 
 The host initializes one catalog instance per application runtime and supplies it
@@ -272,6 +272,29 @@ checks skill-key consistency, and returns detached data. Definition schemas reje
 unknown fields, including host metadata. `validateRaceContent` performs pure choice
 and reference checks using caller-supplied skill keys and trait definitions.
 
+`birthsignSchema` is shared by runtime parsing and the build-only localization
+compiler. It validates effect targets, positive integer choice counts, distinct
+group/option IDs, non-nested choices, lifecycle boundaries, and eligibility flags.
+`validateBirthsignContent(sign, traits, powerKeys)` checks references and exact trait
+parameter names in normal, Star-Cursed, and every choice branch. Mechanical bonuses
+remain authoritative; descriptions are not interpreted as rules.
+
+Use `catalog.list("birthsign")` / `catalog.get("birthsign", "theRitual")` to browse
+signs, and `catalog.get("power", "blessedTouch")` to read power prose. `Power` has
+only `label` and `description`; activation, tracking, and racial grants are not
+modeled. Birthsign `description` contains introductory lore; optional
+`starCursed.description` and `choiceGroup.prompt` hold variant/selection explanation.
+Option IDs remain characteristic or power keys; consumers reuse their existing
+labels rather than maintaining birthsign-specific copies.
+
+`BIRTHSIGN_CHARGE_TABLES` exposes the ordered Warrior, Mage, and Thief tables.
+The four `entries` correspond to results 1–4; `fifthResult: "rerollStarCursed"`
+is an instruction, not a sign. `validateBirthsignChargeTables(signKeys)` checks
+their references during publishing. These declarations do not resolve rolls,
+apply effects, edit recurring Ritual selections, or extend `CharacterCreator`.
+The Thief eligibility metadata retains the naturally-rolled-sign restriction;
+it is not a new creator selection policy.
+
 Skill definitions either supply governing characteristic keys or explicitly allow
 a player-selected characteristic. Custom names and chosen characteristics belong
 to `SkillTraining`, not the shared definition. Optional skill display text can be
@@ -279,7 +302,7 @@ resolved by the host; browsing labels may fall back to content keys.
 
 YAML under `content/` remains the authoring source. Its top-level map keys identify
 definitions. Creation Kit's build-time compiler derives `skillKey` from that key
-and rejects contradictory authored values. It validates definitions and race
+and rejects contradictory authored values. It validates definitions, birthsign tables, and race/birthsign
 references with these shared Core validators before publishing static JSON.
 YAML parsing stays in host build scripts and tests, never in Core runtime code.
 See the root README for artifact generation, layout, and Creation Kit's browser

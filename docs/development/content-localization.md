@@ -3,15 +3,14 @@
 ## Status and scope
 
 This document records the content inventory and authoring/compilation contract.
-English locale text is authored for traits, races, skills, and birthsigns. The
+English locale text is authored for traits, races, skills, birthsigns, and powers. The
 host-neutral build-time compiler is implemented in Core's dedicated
 `@wayshrine/core/content-localization` subpath. Creation Kit integrates this compiler
 and consumes language-scoped format-2 JSON artifacts, with English selected by default.
 
-Cover all currently authored races, traits, skills, and birthsigns, including
-birthsign authoring even though birthsigns are not a runtime `ContentCatalog` kind.
-Do not expand that runtime catalog to deliver localization. UI localization,
-language pickers, Foundry pack compilation, and birthsign rules/workflow expansion
+Cover all currently authored races, traits, skills, birthsigns, and display-only
+powers. All five have runtime `ContentCatalog` kinds. UI localization,
+language pickers, Foundry pack compilation, and birthsign creator/rules/workflow expansion
 are outside this scope.
 
 English is authoritative. Contributors translate that source into their other
@@ -22,24 +21,26 @@ or invent prose to make coverage appear complete.
 
 ## Current implementation
 
-- `core/content/` contains six YAML files. Top-level map keys identify definitions;
+- `core/content/` contains domain-sharded YAML files. Top-level map keys identify definitions;
   filenames do not. `core/locales/en/traits/`, `core/locales/en/races/`,
-  `core/locales/en/skills/`, and `core/locales/en/birthsigns/` contain English text;
+  `core/locales/en/skills/`, `core/locales/en/birthsigns/`, and `core/locales/en/powers/` contain English text;
   the build-only compiler resolves parsed display references. Race locale authoring includes staged entries
   without mechanical definitions; those entries are not playable content.
-- `Race`, `Trait`, and `Birthsign` require `label` and `description`; `Skill` makes
+- `Race`, `Trait`, `Birthsign`, and `Power` require `label` and `description`; `Skill` makes
   both optional. Trait parameter declarations are names only. Applied parameter
   values are `string | number`, without semantic categories.
-- `core/src/content/schemas.ts` validates races, skills, and traits, but accepts
+- `core/src/content/schemas.ts` validates all five runtime kinds, but accepts
   display strings without interpreting references or template placeholders.
   `validateRaceContent.ts` checks skill/trait references and exact trait parameter
-  names, not parameter meaning or display formatting. Birthsigns have domain types
-  but no parser in `parseContentDefinition` or runtime catalog kind.
-- `creation-kit/scripts/generate-content.ts` reads all four authored domains and all
+  names, not parameter meaning or display formatting. `validateBirthsignContent`
+  checks traits/parameters and powers in normal, Star-Cursed, and choice effects.
+  The shared runtime birthsign schema also validates choice counts/IDs, lifecycle
+  structures, and eligibility. Build publishing validates the ordered charge-table references.
+- `creation-kit/scripts/generate-content.ts` reads all five authored domains and all
   locale language/domain shards, rejects duplicate YAML keys before object conversion,
   and invokes the shared compiler once per explicitly selected language. It derives
   runtime `skillKey`, validates resolved definitions and racial references, and emits
-  only race, skill, and trait JSON. Staged locale entries never add definitions.
+  race, skill, trait, birthsign, and power JSON. Staged locale entries never add definitions.
 - The static manifest contains `artifactFormat`, `version`, and `localization`;
   indexes and definitions repeat that identity. The browser adapter pins it and checks every response.
   `ContentVersion` is immutable for a catalog/creator lifetime. See
@@ -55,22 +56,23 @@ or invent prose to make coverage appear complete.
 ## Authored inventory
 
 Counts below describe definitions, not implemented game-system completeness.
-Every existing display reference has the exact form
-`{LOCALE.<domain>.<contentKey>.<field>}` with `field` equal to `label` or
-`description`. There are no inline rules descriptions in these content files.
-English locale values are authored for traits, races, skills, and birthsigns; reference
+Display references have the exact form
+`{LOCALE.<domain>.<contentKey>.<field>}` with `field` equal to `label`,
+`description`, or the narrowly declared birthsign extensions below.
+There are no inline rules descriptions in these content files.
+English locale values are authored for all five domains; reference
 resolution is performed by the build-only compiler in the Creation Kit pipeline.
 
-| Source under `core/content/` | Entries | Display fields today       | English key coverage            |
-| ---------------------------- | ------: | -------------------------- | ------------------------------- |
-| `races/core.yml`             |       2 | Both fields are references | 4 English keys                  |
-| `traits/core.yml`            |      44 | Both fields are references | 88 English keys                 |
-| `traits/racial.yml`          |       2 | Both fields are references | 4 English keys                  |
-| `skills/standard.yml`        |      20 | Both fields are references | 40 English keys                 |
-| `skills/spellcasting.yml`    |       7 | Both fields are references | 14 English keys                 |
-| `birthsigns/core.yml`        |      12 | Both fields are references | 24 English keys, authoring only |
+| Source under `core/content/` | Entries | Display fields today       | English key coverage                |
+| ---------------------------- | ------: | -------------------------- | ----------------------------------- |
+| `races/core.yml`             |       2 | Both fields are references | 4 English keys                      |
+| `traits/core.yml`            |      44 | Both fields are references | 88 English keys                     |
+| `traits/racial.yml`          |       2 | Both fields are references | 4 English keys                      |
+| `skills/standard.yml`        |      20 | Both fields are references | 40 English keys                     |
+| `skills/spellcasting.yml`    |       7 | Both fields are references | 14 English keys                     |
+| `birthsigns/core.yml`        |      12 | Explicit references        | Intro, Star-Cursed and choice prose |
+| `powers/core.yml`            |      10 | Both fields are references | 20 English keys                     |
 
-There are 174 existing label/description display references in total.
 Canonical parameter-display terms are deferred.
 English key coverage does not mean approved rules prose has been transferred.
 
@@ -143,15 +145,19 @@ translate. Do not infer skill descriptions from names or characteristics.
 
 Keys: `theWarrior`, `theLady`, `theSteed`, `theLord`, `theMage`, `theApprentice`,
 `theAtronach`, `theRitual`, `theThief`, `theLover`, `theShadow`, `theTower`.
-All have top-level display references and `starCursed` mechanical data. There is no
-separate star-cursed display text or display field for choice groups/options.
+All have top-level display references and `starCursed` mechanical data. Introductory
+lore lives in `description`; variant explanation lives in `starCursed.description`.
+Choice groups carry `prompt`; options reuse characteristic labels or power labels,
+not duplicated localized labels. Numeric grants come from bonuses, never prose.
 
 - Trait targets: `weakness` (`type: fire`, `X: 2`; `type: magic`, `X: 2` or `3`),
   `powerWell` (`X: 10`, `25`, `50`, `75`), `spellAbsorption` (`X: 5`),
   `stuntedMagicka`, and `runningOutOfLuck`. All these trait keys exist.
 - Power targets: `blessedTouch`, `blessedWord`, `marasGift`, `akaviriDangerSense`,
-  `moonshadow`, `treasureSeeker`. No power definitions or power display prose are
-  authored. Preserve these references; localization does not create a power catalog.
+  `moonshadow`, `treasureSeeker`. All resolve in the display-only power catalog.
+  That catalog also contains `adrenalineRush`, `ancestorGuardian`, `theCalling`,
+  and `warCry`. Powers contain only approved label/description text, preserving
+  paragraph boundaries. They have no activation schema, state tracking, or racial integration.
 - Choice IDs: `theSteedPenalty`, `theMagePenalty`, `theAtronachPenalty`,
   `theRitualPower`, `theLoverPenalty`, `theShadowPenalty`, `theTowerPenalty`.
   Penalty options use characteristic IDs; Ritual options use power IDs.
@@ -160,10 +166,11 @@ separate star-cursed display text or display field for choice groups/options.
   tokens, eligibility flags, counts, and all bonus values remain mechanical data.
 
 The 12 signs are the entire authored set; do not add an unauthored sign for coverage.
-Top-level descriptions may eventually contain approved variant explanation, but
-this contract does not invent a new variant/option/power display schema or prose.
-Those gaps remain visible for later birthsign work, without requiring runtime
-birthsign catalog support now.
+Core's ordered charge tables expose four signs per guardian; result 5 is a
+reroll-Star-Cursed instruction, never a definition. No roll resolution or creator
+integration is implied. Ritual recurrence remains declarative data. Star-Cursed
+Thief prose and eligibility retain the choice for any naturally rolled Thief;
+free-selection policy is outside this content/display boundary.
 
 ## Authoring and compilation contract
 
@@ -182,9 +189,10 @@ birthsign catalog support now.
   Birthsigns group each guardian with its three charges at
   `core/locales/<language>/birthsigns/warrior.yml`, `birthsigns/mage.yml`, and
   `birthsigns/thief.yml`.
+  Powers use `core/locales/<language>/powers/core.yml`.
   Merge each domain's shards into one logical domain, rejecting duplicate content
   keys across shards. Each file contains a map of
-  content keys to `label`/`description` string leaves, without a domain wrapper.
+  content keys to declared display leaves, without a domain wrapper.
   The file layout supplies the reference's domain; sharding does not change
   `{LOCALE.traits.<contentKey>.<field>}`, `{LOCALE.races.<contentKey>.<field>}`, or
   `{LOCALE.skills.<contentKey>.<field>}`, or
@@ -215,6 +223,40 @@ birthsign catalog support now.
   informationally, not as publication errors. Staged entries do not become runtime
   definitions and are not exported as playable content. This does not permit
   mechanical references to target absent required definitions.
+
+### Declared birthsign display extensions
+
+Only birthsign locale entries may additionally contain:
+
+```yaml
+theSteed:
+  label: The Steed
+  description: Introductory lore only.
+  starCursed:
+    description: Variant explanation.
+  choices:
+    theSteedPenalty:
+      prompt: Choose one characteristic to reduce.
+```
+
+The corresponding authored fields are `starCursed.description` and
+`choiceGroup.prompt`, using full-field references such as
+`{LOCALE.birthsigns.theSteed.starCursed.description}` and
+`{LOCALE.birthsigns.theSteed.choices.theSteedPenalty.prompt}`. Choice IDs in
+references must identify a group in that target sign's normal or Star-Cursed
+bonuses. These fields are optional in the reusable runtime type; when authored,
+they must be explicit references and English coverage is mandatory, including
+when a target-language translation exists. Every real sign supplies its variant
+description and every real group supplies its prompt.
+
+Nested leaves obey the same nonempty terminal-string validation, temporary text,
+exact-language selection, per-leaf explicit English fallback, and used/unused
+diagnostics as top-level leaves. Paths in diagnostics retain all nested segments.
+No instance placeholders are allowed in birthsign or power text. Unknown nested
+fields (including option labels, arbitrary trees, and Star-Cursed labels) are
+rejected. Staged declared nested leaves are validated and reported unused without
+becoming playable definitions. This is a small declared extension, not a recursive
+localization framework or a characteristic-label registry.
 
 ### Temporary text versus missing keys
 
@@ -330,7 +372,7 @@ formatter or parameter-type system is implemented by this phase.
 `compileContentLocalization` is exported only through
 `@wayshrine/core/content-localization`, backed by `core/src/content-localization/`.
 It is separate from the normal runtime index and has no filesystem or YAML-loader
-dependency. It accepts parsed authored definitions (all four domains), parsed
+dependency. It accepts parsed authored definitions (all five domains), parsed
 locale shards, an exact canonical `language`, and `allowEnglishFallback` (default
 `false`):
 
@@ -352,7 +394,7 @@ const result = compileContentLocalization({
   language: "en",
 });
 if (result.success) {
-  // Detached maps: races, traits, skills, birthsigns; no staged definitions.
+  // Detached maps: races, traits, skills, birthsigns, powers; no staged definitions.
   consumeResolvedDefinitions(result.definitions);
 } else {
   reportDiagnostics(result.diagnostics); // No definitions on failure.
@@ -368,14 +410,17 @@ nested maps such as applied trait parameters, rather than silently dropping it.
 Authored skills may omit `skillKey`;
 if present it must match the enclosing key. Compilation preserves its presence or
 absence. The authoring types in `core/interface/common/AuthoredContent.ts` include
-birthsigns without changing runtime `ContentKind` or `parseContentDefinition`.
+all five authoring domains; the corresponding singular runtime kinds are supported
+by `ContentKind` and `parseContentDefinition`.
 The cross-domain compiler contracts live in
 `core/interface/common/ContentLocalization.ts` and are exported through the same
 build-only subpath, not the runtime index.
-The build-only birthsign schema validates the existing domain structure, not new
-birthsign runtime behavior or cross-content mechanical references.
+The localization compiler reuses the runtime birthsign schema rather than keeping
+a second structural schema. Cross-content mechanical reference checks are performed
+by the host with Core validators after resolving display text.
 
-Each locale entry allows only optional nonempty `label`/`description` strings.
+Each locale entry allows optional nonempty `label`/`description` strings, plus only
+the declared birthsign extensions above.
 Missing leaves are checked against authored references; invalid present leaves
 fail before fallback. Every supplied shard is shape/template validated, including
 unrequested languages and staged entries. Staged trait templates receive syntax
@@ -412,11 +457,11 @@ result; authoring inspection can still report incomplete languages. Validate and
 prepare all results before replacing generated output, as the current generator
 does; do not claim transactional disk writes or live publication.
 
-Creation Kit projects only `race`, `skill`, and `trait` into its
+Creation Kit projects `race`, `skill`, `trait`, `birthsign`, and `power` into its
 indexes/definition artifacts and uses Core validators on resolved definitions.
-Birthsign authoring is checked/resolved by the shared compiler, without adding
-`birthsign` to `ContentDefinitions`, `ContentKind`, or `ContentCatalog`.
-No new host runtime birthsign behavior is required.
+Birthsign and power reads have the same immutable revision, language, detachment,
+deduplication, retry, and incompatibility guarantees as existing kinds. Adding them
+does not add creator commands, UI, applied effects, or roll behavior.
 
 Future Foundry compendiums receive already-translated labels/descriptions from the
 same results. Foundry document IDs remain separate from mechanical keys. Foundry's
@@ -432,7 +477,7 @@ Use a separate artifact `localization` metadata record:
 
 - `language`: the requested canonical tag, even when some leaves use English.
 - `sourceRevision`: deterministic SHA-256 identity of normalized authored content
-  across all four domains, before locale resolution, including mechanical data and
+  across all five domains, before locale resolution, including mechanical data and
   explicit references. This is a content identity, not a Git commit or timestamp.
 - `allowEnglishFallback`: the explicit policy used to compile this result.
 
@@ -450,7 +495,9 @@ Keep one immutable language/revision per published artifact set and catalog.
 Transport manifests/envelopes may carry the separate localization metadata, with
 matching identity checked by the host adapter on every read. Creation Kit uses
 `CONTENT_ARTIFACT_FORMAT = 2`; bump it for transport or compilation identity changes.
-Core receives only its existing version pair and plain definitions. Revision-qualified
+Core schema version is 2 for the added runtime kinds and display fields. Transport
+format remains 2 because envelopes, layout, and encoding are unchanged. Core
+receives only its existing version pair and plain definitions. Revision-qualified
 paths and safe definition filename encoding are retained.
 
 A host selects a compiled artifact set before initializing its catalog. Changing
@@ -484,23 +531,28 @@ The format-2 layout under `content/` is:
 - `<language>/<revision>/<kind>/definitions/<encoded-key>.json`: the same identity
   plus `kind`, `key`, and a plain Core `definition`.
 
-Kinds remain `race`, `skill`, and `trait`. Filenames use `encodeURIComponent` plus
+Kinds are `race`, `skill`, `trait`, `birthsign`, and `power`. Filenames use `encodeURIComponent` plus
 encoding for dots and remaining URI punctuation (`!'()*`). HTTP consumers encode
 that disk filename again as one path segment. The separate `definitions/` directory
 avoids collisions with a definition named `index`. Shared authoring restricts keys
 to its identifier grammar, while transport encoding remains safe for arbitrary
 runtime catalog keys.
 
-`sourceRevision` hashes the merged parsed authored maps for all four domains before
+`sourceRevision` hashes the merged parsed authored maps for all five domains before
 resolution, after successful validation; source paths and shard boundaries are
 excluded. Localized revisions hash that identity, Core schema, artifact/compiler
-format, language/fallback policy, all four resolved maps, and consumed translation
+format, language/fallback policy, all five resolved maps, and consumed translation
 leaves. Consumed leaves are supplied leaves not marked `unused-entry` by the shared
 compiler; this includes English used for coverage/parity and fallback. Temporary
 status is encoded in the preserved text marker. Staged unused text is validated
 but excluded from the localized hash and never emitted as playable definitions.
 Sorted object keys make source filenames, mapping order, comments, and YAML
 formatting irrelevant; meaningful array order remains significant.
+Consumed-leaf identity includes the complete nested field path, including English
+used for coverage even when the effective translation differs. Changing a consumed
+Star-Cursed description or choice prompt changes the localized revision; changing
+an unused staged nested leaf does not. Cross-kind references consume the target
+leaf, not an inferred locale key.
 
 `BrowserContentCatalog.create({ language })` defaults to `en`, validates exact
 canonical spelling, and reads only that language's manifest. It pins an immutable
@@ -518,14 +570,15 @@ outside the browser bundle and Core runtime.
 ## Follow-through constraints
 
 The compiler is tested through its public subpath interface for:
-complete English coverage of all four domains; incomplete non-English authoring;
+complete English coverage of all five domains; incomplete non-English authoring;
 strict publication versus explicit English fallback; visible temporary text versus
 absent keys; effective-pair placeholder parity after fallback, including mixed
 temporary/approved fields; malformed references and placeholder errors;
 preservation of mechanics and deferred instance placeholders;
 language/fallback metadata; detached outputs; and absence of unresolved references
 in successful results. Host pipeline tests cover deterministic source/artifact
-identity and resolved indexes/definitions without widening runtime kinds.
+identity and resolved indexes/definitions for all five runtime kinds, including
+nested used-leaf identity and real birthsign/power references.
 
 The host's file-backed pipeline integration also renders Forge with the real
 browser catalog and Core creator, using actual English authoring and a small

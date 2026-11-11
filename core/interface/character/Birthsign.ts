@@ -57,7 +57,7 @@ export type BirthsignChoiceLifecycle =
 
 export interface BirthsignChoice {
   bonusType: "choice";
-  choiceGroup: ChoiceGroup<BirthsignChoiceOption>;
+  choiceGroup: ChoiceGroup<BirthsignChoiceOption> & { prompt?: string };
   lifecycle: BirthsignChoiceLifecycle;
 }
 
@@ -65,6 +65,7 @@ export type BirthsignBonus = BirthsignEffect | BirthsignChoice;
 
 /** Alternate grants for a star-cursed birthsign. */
 export interface StarCursedBirthsign {
+  description?: string;
   /** True replaces all base bonuses; false adds these bonuses to them. */
   overwriteBaseBonuses: boolean;
   bonuses: readonly BirthsignBonus[];
@@ -85,3 +86,10 @@ export interface Birthsign {
 
 /** Birthsign definitions indexed by their content keys. */
 export type BirthsignCatalog = Readonly<Record<string, Birthsign>>;
+
+/** Ordered d5 instructions only; consumers own rolls and Star-Cursed selection. */
+export interface BirthsignChargeTable {
+  readonly guardian: "warrior" | "mage" | "thief";
+  readonly entries: readonly [string, string, string, string];
+  readonly fifthResult: "rerollStarCursed";
+}

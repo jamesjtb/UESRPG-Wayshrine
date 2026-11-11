@@ -16,6 +16,7 @@ import {
   fields,
   inputSchema,
   localeEntrySchema,
+  birthsignLocaleEntrySchema,
   mapSchema,
 } from "./schemas";
 
@@ -281,14 +282,20 @@ function readLocaleEntry(
   value: unknown,
   location: Location,
 ) {
-  const parsed = localeEntrySchema.safeParse(value);
+  const schema =
+    domain === "birthsigns" ? birthsignLocaleEntrySchema : localeEntrySchema;
+  const parsed = schema.safeParse(value);
   if (!parsed.success) return shapeErrors(state, parsed.error, location);
   const definition = state.definitions.get(`${domain}.${key}`);
-  for (const field of fields) {
-    const text = parsed.data[field];
+  const display = localeDisplayLeaves(parsed.data);
+  for (const [field, text] of display) {
     if (text === undefined) continue;
     const reference = `{LOCALE.${domain}.${key}.${field}}`;
-    const leafLocation = { ...location, path: [key, field], reference };
+    const leafLocation = {
+      ...location,
+      path: [key, ...field.split(".")],
+      reference,
+    };
     const leaf = template(
       state,
       text,
@@ -299,16 +306,59 @@ function readLocaleEntry(
   }
 }
 
+/** Only the declared birthsign extensions are nested; this is not an arbitrary tree walker. */
+function localeDisplayLeaves(entry: {
+  label?: string;
+  description?: string;
+  starCursed?: { description?: string };
+  choices?: Record<string, { prompt?: string }>;
+}): [string, string | undefined][] {
+  const leaves: [string, string | undefined][] = fields.map((field) => [
+    field,
+    entry[field],
+  ]);
+  if (entry.starCursed)
+    leaves.push(["starCursed.description", entry.starCursed.description]);
+  for (const [id, choice] of Object.entries(entry.choices ?? {}))
+    leaves.push([`choices.${id}.prompt`, choice.prompt]);
+  return leaves;
+}
+
+function declaredBirthsignField(
+  definition: Definition,
+  field: string,
+): boolean {
+  if (definition.domain !== "birthsigns") return false;
+  if (field === "starCursed.description") return true;
+  const sign = definition.value as AuthoredDefinitions["birthsigns"];
+  const match = /^choices\.([A-Za-z_][A-Za-z0-9_-]*)\.prompt$/.exec(field);
+  return (
+    !!match &&
+    [...sign.bonuses, ...sign.starCursed.bonuses].some(
+      (bonus) =>
+        bonus.bonusType === "choice" && bonus.choiceGroup.id === match[1],
+    )
+  );
+}
+
 function referencePath(
   state: State,
   text: string,
   location: Location,
 ): string | undefined {
   const match =
-    /^\{LOCALE\.(races|traits|skills|birthsigns)\.([A-Za-z_][A-Za-z0-9_-]*)\.(label|description)\}$/.exec(
+    /^\{LOCALE\.(races|traits|skills|birthsigns|powers)\.([A-Za-z_][A-Za-z0-9_-]*)\.(label|description|starCursed\.description|choices\.[A-Za-z_][A-Za-z0-9_-]*\.prompt)\}$/.exec(
       text,
     );
-  if (!match || !state.definitions.has(`${match[1]}.${match[2]}`)) {
+  const target = match
+    ? state.definitions.get(`${match[1]}.${match[2]}`)
+    : undefined;
+  if (
+    !match ||
+    !target ||
+    (!fields.includes(match[3] as (typeof fields)[number]) &&
+      !declaredBirthsignField(target, match[3]!))
+  ) {
     report(
       state,
       "malformed-reference",
@@ -323,15 +373,15 @@ function referencePath(
 function resolveField(
   state: State,
   definition: Definition,
-  field: (typeof fields)[number],
+  field: string,
   input: LocalizationInput,
+  text: string | undefined = definition.value[field as (typeof fields)[number]],
 ): { english: Leaf; effective: Leaf } | undefined {
   const location = {
     ...definition.location,
-    path: [definition.key, field],
+    path: [definition.key, ...field.split(".")],
     language: input.language,
   };
-  const text = definition.value[field];
   if (text === undefined) return undefined; // Boundary schema requires both fields.
   const path = referencePath(state, text, location);
   if (path === undefined) return undefined;
@@ -421,6 +471,8 @@ function resolveDefinition(
 ) {
   const label = resolveField(state, definition, "label", input);
   const description = resolveField(state, definition, "description", input);
+  if (definition.domain === "birthsigns")
+    resolveBirthsignDisplay(state, definition, input);
   if (!label || !description) return;
   checkParity(
     state,
@@ -429,6 +481,37 @@ function resolveDefinition(
   );
   definition.value.label = label.effective.text;
   definition.value.description = description.effective.text;
+}
+
+function resolveBirthsignDisplay(
+  state: State,
+  definition: Definition,
+  input: LocalizationInput,
+) {
+  const sign = definition.value as AuthoredDefinitions["birthsigns"];
+  if (sign.starCursed.description !== undefined) {
+    const resolved = resolveField(
+      state,
+      definition,
+      "starCursed.description",
+      input,
+      sign.starCursed.description,
+    );
+    if (resolved) sign.starCursed.description = resolved.effective.text;
+  }
+  for (const bonus of [...sign.bonuses, ...sign.starCursed.bonuses]) {
+    if (bonus.bonusType !== "choice" || bonus.choiceGroup.prompt === undefined)
+      continue;
+    const group = bonus.choiceGroup;
+    const resolved = resolveField(
+      state,
+      definition,
+      `choices.${group.id}.prompt`,
+      input,
+      group.prompt,
+    );
+    if (resolved) group.prompt = resolved.effective.text;
+  }
 }
 
 /** Host-neutral build boundary: parsed YAML in, detached definitions or diagnostics-only failure out. */
@@ -480,6 +563,7 @@ export function compileContentLocalization(
     traits: Object.create(null),
     skills: Object.create(null),
     birthsigns: Object.create(null),
+    powers: Object.create(null),
   };
   for (const definition of state.definitions.values()) {
     // The domain schema established this correlation at the parsed-input boundary.

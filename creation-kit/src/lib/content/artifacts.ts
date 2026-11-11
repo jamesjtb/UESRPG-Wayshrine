@@ -7,7 +7,13 @@ import { z } from "zod";
 
 // Bump when the transport layout or encoding changes, even if Core does not.
 export const CONTENT_ARTIFACT_FORMAT = 2;
-export const contentKinds = ["race", "skill", "trait"] as const;
+export const contentKinds = [
+  "race",
+  "skill",
+  "trait",
+  "birthsign",
+  "power",
+] as const;
 const kindSchema = z.enum(contentKinds);
 
 const versionSchema = contentVersionSchema.extend({

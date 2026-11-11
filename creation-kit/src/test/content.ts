@@ -1,7 +1,7 @@
 import type { ContentCatalog } from "@wayshrine/core";
 
 export const testCatalog: ContentCatalog = {
-  version: Object.freeze({ schemaVersion: 1, revision: "test" }),
+  version: Object.freeze({ schemaVersion: 2, revision: "test" }),
   async list() {
     return [];
   },

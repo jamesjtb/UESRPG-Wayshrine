@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { CharacterCreator, SkillRank } from "@wayshrine/core";
+import {
+  BIRTHSIGN_CHARGE_TABLES,
+  CharacterCreator,
+  SkillRank,
+} from "@wayshrine/core";
 import { expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -23,6 +27,19 @@ it("reads a small French publication through the real browser adapter", async ()
   try {
     const source = join(root, "content");
     const output = join(root, "output");
+    await mkdir(join(source, "birthsigns"), { recursive: true });
+    const signs = Object.fromEntries(
+      BIRTHSIGN_CHARGE_TABLES.flatMap((table) => table.entries).map((key) => [
+        key,
+        {
+          label: "{LOCALE.skills.skill.label}",
+          description: "{LOCALE.skills.skill.description}",
+          bonuses: [],
+          starCursed: { overwriteBaseBonuses: false, bonuses: [] },
+        },
+      ]),
+    );
+    await writeFile(join(source, "birthsigns/core.yml"), JSON.stringify(signs));
     await mkdir(join(source, "skills"), { recursive: true });
     await writeFile(
       join(source, "skills/core.yml"),

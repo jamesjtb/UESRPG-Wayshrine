@@ -17,6 +17,7 @@ import {
   manifestSchema,
 } from "../src/lib/content/artifacts";
 import { generateContent } from "./generate-content";
+import { BIRTHSIGN_CHARGE_TABLES } from "@wayshrine/core";
 
 const skill = {
   label: "{LOCALE.skills.skill.label}",
@@ -33,6 +34,16 @@ const birthsign = {
   description: "{LOCALE.birthsigns.sign.description}",
   bonuses: [],
   starCursed: { overwriteBaseBonuses: false, bonuses: [] },
+};
+const tableSigns = Object.fromEntries(
+  BIRTHSIGN_CHARGE_TABLES.flatMap((table) => table.entries).map((key) => [
+    key,
+    birthsign,
+  ]),
+);
+const power = {
+  label: "{LOCALE.powers.power.label}",
+  description: "{LOCALE.powers.power.description}",
 };
 const race = {
   label: "{LOCALE.races.race.label}",
@@ -102,7 +113,8 @@ async function fixture() {
     races: { race },
     skills: { skill },
     traits: { trait },
-    birthsigns: { sign: birthsign },
+    birthsigns: { ...tableSigns, sign: birthsign },
+    powers: { power },
   };
   for (const [domain, definitions] of Object.entries(content)) {
     await mkdir(join(source, domain), { recursive: true });
@@ -128,10 +140,11 @@ async function readOutput(root: string) {
 }
 
 describe("localized static content compiler", () => {
-  it("includes birthsign authoring and consumed prose in identity without exporting birthsigns", async () => {
+  it("includes birthsign authoring and consumed prose in identity and exports birthsigns", async () => {
     const { source, output, locales } = await fixture();
     const [first] = await generateContent(source, output);
     await yaml(join(source, "birthsigns/core.yml"), {
+      ...tableSigns,
       sign: {
         ...birthsign,
         bonuses: [
@@ -145,6 +158,7 @@ describe("localized static content compiler", () => {
     );
     expect(second!.version.revision).not.toBe(first!.version.revision);
     await yaml(join(locales, "en/birthsigns/core.yml"), {
+      ...localeEntries("en", tableSigns),
       sign: { label: "Sign", description: "Changed birthsign text" },
     });
     const [third] = await generateContent(source, output);
@@ -154,7 +168,7 @@ describe("localized static content compiler", () => {
     expect(third!.version.revision).not.toBe(second!.version.revision);
     expect(
       (await readdir(join(output, `en/${third!.version.revision}`))).sort(),
-    ).toEqual(["race", "skill", "trait"]);
+    ).toEqual(["birthsign", "power", "race", "skill", "trait"]);
   });
 
   it("publishes selected languages with matching translated indexes and definitions", async () => {
@@ -175,7 +189,7 @@ describe("localized static content compiler", () => {
           await readJson(output, `${language}/manifest.json`),
         ),
       ).toEqual(manifest);
-      for (const kind of ["race", "skill", "trait"]) {
+      for (const kind of ["race", "skill", "trait", "power"]) {
         const path = `${language}/${manifest.version.revision}/${kind}`;
         const index = indexArtifactSchema.parse(
           await readJson(output, `${path}/index.json`),
@@ -192,7 +206,7 @@ describe("localized static content compiler", () => {
       }
     }
     expect([...(await readOutput(output))].join()).not.toContain("LOCALE");
-    expect((await readOutput(output)).size).toBe(14);
+    expect((await readOutput(output)).size).toBe(46);
   });
 
   it("is independent of shard names, object order, comments and YAML formatting", async () => {
@@ -362,7 +376,7 @@ describe("localized static content compiler", () => {
     expect(await readFile(join(root, "keep.txt"), "utf8")).toBe("keep");
   });
 
-  it("compiles real English across all four domains, exporting only playable runtime kinds", async () => {
+  it("compiles real English across all five domains including twelve signs and ten powers", async () => {
     const { output } = await fixture();
     const source = fileURLToPath(
       new URL("../../core/content/", import.meta.url),
@@ -378,10 +392,170 @@ describe("localized static content compiler", () => {
     ]);
     expect(index.entries[0]!.label).toBe("Altmer");
     expect((await readdir(join(output, directory))).sort()).toEqual([
+      "birthsign",
+      "power",
       "race",
       "skill",
       "trait",
     ]);
+    const signs = indexArtifactSchema.parse(
+      await readJson(output, `${directory}/birthsign/index.json`),
+    );
+    const powers = indexArtifactSchema.parse(
+      await readJson(output, `${directory}/power/index.json`),
+    );
+    expect(signs.entries).toHaveLength(12);
+    expect(powers.entries).toHaveLength(10);
+    const thief = await readJson(
+      output,
+      `${directory}/birthsign/definitions/theThief.json`,
+    );
+    expect(thief.definition.description).not.toContain("Star-Cursed");
+    expect(thief.definition.starCursed.description).toContain(
+      "any character who naturally rolled the Thief sign",
+    );
+    expect(thief.definition.starCursed.eligibility).toEqual({
+      requiresNaturallyRolledSign: true,
+      canSelectBySpendingLuck: false,
+    });
+    const guardian = await readJson(
+      output,
+      `${directory}/power/definitions/ancestorGuardian.json`,
+    );
+    expect(guardian.definition.description).toContain(
+      "\n\nThe GM should remember",
+    );
+    const word = await readJson(
+      output,
+      `${directory}/power/definitions/blessedWord.json`,
+    );
+    expect(word.definition.description).toContain("\n\nThe circle follows");
     expect([...(await readOutput(output))].join()).not.toContain("LOCALE");
+  });
+
+  it("hashes consumed nested English and target leaves, excluding staged nested text", async () => {
+    const { source, output, locales } = await fixture();
+    const sign = {
+      ...birthsign,
+      starCursed: {
+        ...birthsign.starCursed,
+        description: "{LOCALE.birthsigns.sign.starCursed.description}",
+      },
+      bonuses: [
+        {
+          bonusType: "choice",
+          choiceGroup: {
+            id: "gift",
+            choose: 1,
+            prompt: "{LOCALE.birthsigns.sign.choices.gift.prompt}",
+            options: [
+              {
+                id: "power",
+                effects: [{ bonusType: "power", bonusTargetKey: "power" }],
+              },
+            ],
+          },
+          lifecycle: { selection: "once" },
+        },
+      ],
+    };
+    await yaml(join(source, "birthsigns/core.yml"), { ...tableSigns, sign });
+    await yaml(join(source, "powers/core.yml"), {
+      power: {
+        ...power,
+        description: "{LOCALE.birthsigns.sign.starCursed.description}",
+      },
+    });
+    const english = {
+      ...localeEntries("en", tableSigns),
+      sign: {
+        label: "Sign",
+        description: "Lore",
+        starCursed: { description: "English variant" },
+        choices: {
+          gift: { prompt: "Choose a power" },
+          staged: { prompt: "Unused" },
+        },
+      },
+    };
+    await yaml(join(locales, "en/birthsigns/core.yml"), english);
+    await yaml(join(locales, "fr/birthsigns/core.yml"), {
+      ...localeEntries("fr", tableSigns),
+      sign: {
+        label: "Signe",
+        description: "Histoire",
+        starCursed: { description: "Variante" },
+      },
+    });
+    const options = { languages: ["fr"], allowEnglishFallback: true };
+    const [first] = await generateContent(source, output, options);
+    english.sign.choices.staged.prompt = "Still unused";
+    await yaml(join(locales, "en/birthsigns/core.yml"), english);
+    const [unused] = await generateContent(source, output, options);
+    expect(unused).toEqual(first);
+    english.sign.starCursed.description = "Changed English variant";
+    await yaml(join(locales, "en/birthsigns/core.yml"), english);
+    const [consumed] = await generateContent(source, output, options);
+    expect(consumed!.localization.sourceRevision).toBe(
+      first!.localization.sourceRevision,
+    );
+    expect(consumed!.version.revision).not.toBe(first!.version.revision);
+    english.sign.choices.gift.prompt = "Changed fallback prompt";
+    await yaml(join(locales, "en/birthsigns/core.yml"), english);
+    const [fallback] = await generateContent(source, output, options);
+    expect(fallback!.version.revision).not.toBe(consumed!.version.revision);
+    const full = await readJson(
+      output,
+      `fr/${fallback!.version.revision}/birthsign/definitions/sign.json`,
+    );
+    expect(full.definition.starCursed.description).toBe("Variante");
+    const crossKind = await readJson(
+      output,
+      `fr/${fallback!.version.revision}/power/definitions/power.json`,
+    );
+    expect(crossKind.definition.description).toBe("Variante");
+    expect(full.definition.bonuses[0].choiceGroup.prompt).toBe(
+      "Changed fallback prompt",
+    );
+  });
+
+  it("rejects invalid birthsign references and missing table signs before replacing output", async () => {
+    const { source, output } = await fixture();
+    await generateContent(source, output);
+    const before = await readOutput(output);
+    for (const bonus of [
+      { bonusType: "power", bonusTargetKey: "absent" },
+      { bonusType: "trait", bonusTargetKey: "trait", bonusParams: {} },
+    ]) {
+      await yaml(join(source, "birthsigns/core.yml"), {
+        ...tableSigns,
+        sign: {
+          ...birthsign,
+          starCursed: {
+            overwriteBaseBonuses: false,
+            bonuses: [
+              {
+                bonusType: "choice",
+                choiceGroup: {
+                  id: "bad",
+                  choose: 1,
+                  options: [{ id: "bad", effects: [bonus] }],
+                },
+                lifecycle: { selection: "once" },
+              },
+            ],
+          },
+        },
+      });
+      await expect(generateContent(source, output)).rejects.toThrow(
+        "Invalid birthsign sign",
+      );
+      expect(await readOutput(output)).toEqual(before);
+    }
+    await yaml(join(source, "birthsigns/core.yml"), { sign: birthsign });
+    await expect(generateContent(source, output)).rejects.toThrow(
+      "Unknown birthsign in warrior charge table",
+    );
+    expect(await readOutput(output)).toEqual(before);
   });
 });

@@ -3,7 +3,7 @@ import { deferred } from "../../test/content";
 import { createContentCatalogLoader } from "./catalog";
 
 const manifest = {
-  version: { schemaVersion: 1, revision: "one" },
+  version: { schemaVersion: 2, revision: "one" },
   artifactFormat: 2,
   localization: {
     language: "en",

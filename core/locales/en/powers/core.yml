@@ -1,0 +1,44 @@
+adrenalineRush:
+  label: Adrenaline Rush
+  description: |-
+    The character may choose to gain 1 SP at any time. If the character is fatigued when this power is used then remove a level of fatigue instead. This SP persists only for that encounter, and this power may only be used once until after the character’s next long rest.
+akaviriDangerSense:
+  label: Akaviri Danger-Sense
+  description: |-
+    The character may make a Luck test in order to avoid surprise.
+ancestorGuardian:
+  label: Ancestor Guardian
+  description: |-
+    Each Dunmer is capable of invoking a guardian spirit of one of their ancestors and can, through the use of the Cast Magic action, bring that spirit into the Mundus to aid them. The spirit counts as a ghost (see the Inhabitants of Tamriel supplement) which, if killed, is sent back to whence it came. The caster and their allies do not suffer fear effects from an ancestor guardian. Otherwise, the spirit persists until 30 minutes pass or until the end of a Combat Encounter that it participates in, whichever comes first. This power may only be used once until after the character’s next long rest.
+
+    The GM should remember for roleplaying purposes that spirits are capable of communicating with mortals, and that Dunmer are likely to know the name of their own ancestral spirit. The GM should also feel free to customize the profile of the spirit beyond that of a generic ghost.
+blessedTouch:
+  label: Blessed Touch
+  description: |-
+    This character can speak the word of the divines for an hour in order to remove a single wound and all of its effects (not including lost limbs) from another character. This also restores an amount of HP equal to the amount of damage dealt to cause the wound. This character or the target character may choose to burn 2d6 Luck to allow this power to also restore lost limbs. The target character must remain still for the entire duration while the character performs the ritual. This power can only be used once until after the character’s next long rest.
+blessedWord:
+  label: Blessed Word
+  description: |-
+    The character may begin speaking the word of the divines through the use of the Cast Magic action. This has the effect of creating a circle with a radius equal to their Willpower bonus in meters. Characters with the Undead or Undying traits must flee the circle and no characters with those traits may willingly enter it unless they can pass a -40 Willpower test (which may only be attempted once per round).
+
+    The circle follows the character, but it only remains as long as they continue to speak the words and take the Cast Magic action each Turn. Blessed Word can be sustained for at most 1 minute (10 rounds). This power can only be used once until after the character’s next long rest.
+theCalling:
+  label: The Calling
+  description: |-
+    The Dwemer have developed the capability to form connections with the minds of others, allowing silent and instant communication across great distances. A Dwemer may do this at any time, though they may not attempt to contact someone they have not met. Forming a mental connection requires the character to pass a Willpower test or gain a level of fatigue. Once a connection is formed the two minds may communicate as they see fit. Every minute of communication beyond the first imposes another Willpower test, where failure incurs a level of fatigue. Alternatively, they may form a connection with a number of others equal to their Willpower bonus, but doing so causes them to automatically fail the Willpower tests imposed by normal communication.
+marasGift:
+  label: Mara’s Gift
+  description: |-
+    This character can speak the word of the divines for an hour in order to remove a single wound and all of its effects (not including lost limbs) from themselves. This also restores an amount of HP equal to the amount of damage dealt to cause the wound. The character may choose to burn 2d6 Luck in order to allow this power to also restore lost limbs. The character must remain still for the entire duration while they perform the ritual. This power can only be used once until after the character’s next long rest.
+moonshadow:
+  label: Moonshadow
+  description: |-
+    The character possesses a simple form of innate shadow magic. This power may be activated once a day with the use of the Cast Magic action. The character becomes Invisible for 18 seconds (3 rounds). The character may spend a Luck point, or burn one Luck, to extend this duration by one round (this may be done as many times as the character desires). This invisibility is broken if the character makes an attack, after which it reforms at the beginning of the next round as long as there is 1 round of duration left. This power may only be used once until after the character’s next long rest.
+treasureSeeker:
+  label: Treasure Seeker
+  description: |-
+    The character has a knack for finding treasure and overcoming the obstacles that protect it. At any time the character can choose to reroll a failed Subterfuge test made to pick a lock or disarm a trap, but only once for a given test. This power may only be used once until after the character’s next long rest.
+warCry:
+  label: War Cry
+  description: |-
+    Nords are able to call on a very simple form of the Thu’um and harness it to frighten their enemies in battle. As a Primary Action, they put forth a mighty war cry that forces all enemies who hear it to make a Panic (+30) test. If a character passes this test, they are immune to the effects of this power for the remainder of the encounter. This power may only be used once until after the character’s next long rest.

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { deferred } from "../../test/content";
 import { BrowserContentCatalog } from "./BrowserContentCatalog";
 
-const version = { schemaVersion: 1, revision: "revision-one" };
+const version = { schemaVersion: 2, revision: "revision-one" };
 const localization = {
   language: "en",
   sourceRevision: "a".repeat(64),
@@ -45,6 +45,82 @@ function fixture() {
 }
 
 describe("BrowserContentCatalog", () => {
+  it.each(["birthsign", "power"] as const)(
+    "lists and lazily loads detached %s definitions with deduplication and identity checks",
+    async (kind) => {
+      const { create, responses, fetchContent } = fixture();
+      const path = `${baseUrl}content/en/${version.revision}/${kind}`;
+      const payload =
+        kind === "power"
+          ? { label: "Power", description: "Approved prose" }
+          : {
+              label: "Sign",
+              description: "Lore",
+              bonuses: [],
+              starCursed: {
+                description: "Variant",
+                overwriteBaseBonuses: false,
+                bonuses: [],
+              },
+            };
+      const index = {
+        ...manifest,
+        kind,
+        entries: [{ key: kind, label: payload.label }],
+      };
+      const full = { ...manifest, kind, key: kind, definition: payload };
+      responses.set(`${path}/index.json`, index);
+      responses.set(`${path}/definitions/${kind}.json`, full);
+      const catalog = await create();
+      const listed = await catalog.list(kind);
+      expect(listed).toEqual(index.entries);
+      Reflect.set(listed[0]!, "label", "Mutated");
+      expect((await catalog.list(kind))[0]!.label).toBe(payload.label);
+      const gate = deferred<void>();
+      fetchContent.mockImplementationOnce(async () => {
+        await gate.promise;
+        return Response.json(full);
+      });
+      const first = catalog.get(kind, kind);
+      const second = catalog.get(kind, kind);
+      gate.resolve();
+      const [a, b] = await Promise.all([first, second]);
+      expect(a).toEqual(payload);
+      expect(a).not.toBe(b);
+      expect(
+        fetchContent.mock.calls.filter(
+          ([url]) => String(url) === `${path}/definitions/${kind}.json`,
+        ),
+      ).toHaveLength(1);
+      Reflect.set(a!, "description", "Mutated");
+      expect(b!.description).toBe(payload.description);
+      expect((await catalog.get(kind, kind))!.description).toBe(
+        payload.description,
+      );
+      expect(
+        fetchContent.mock.calls.filter(
+          ([url]) => String(url) === `${path}/definitions/${kind}.json`,
+        ),
+      ).toHaveLength(2);
+      expect(await catalog.get(kind, "absent")).toBeUndefined();
+      responses.set(`${path}/definitions/${kind}.json`, {
+        ...full,
+        localization: { ...localization, language: "fr" },
+      });
+      await expect(catalog.get(kind, kind)).rejects.toMatchObject({
+        code: "content-version-mismatch",
+      });
+      responses.set(`${path}/definitions/${kind}.json`, {
+        ...full,
+        version: { ...version, schemaVersion: 1 },
+      });
+      await expect(catalog.get(kind, kind)).rejects.toMatchObject({
+        code: "incompatible-content",
+      });
+      responses.set(`${path}/definitions/${kind}.json`, full);
+      expect(await catalog.get(kind, kind)).toEqual(payload);
+    },
+  );
   it("selects an explicit canonical language and pins localization metadata", async () => {
     const { fetchContent, responses } = fixture();
     const french = {
@@ -145,7 +221,7 @@ describe("BrowserContentCatalog", () => {
 
   it.each([
     {
-      value: { ...manifest, version: { schemaVersion: 2, revision: "new" } },
+      value: { ...manifest, version: { schemaVersion: 3, revision: "new" } },
       code: "incompatible-content",
     },
     { value: { schemaVersion: 0, revision: "new" }, code: "invalid-content" },
@@ -174,7 +250,7 @@ describe("BrowserContentCatalog", () => {
       });
       responses.set(url, {
         ...artifact,
-        version: { ...version, schemaVersion: 2 },
+        version: { ...version, schemaVersion: 3 },
       });
       await expect(catalog.get("trait", "trait")).rejects.toMatchObject({
         code: "incompatible-content",

@@ -12,7 +12,7 @@ type Definitions = {
 
 /** Async fake with controllable transport delays/failures and visible access history. */
 export class TestContentCatalog implements ContentCatalog {
-  version = { schemaVersion: 1, revision: "test-revision" };
+  version = { schemaVersion: 2, revision: "test-revision" };
   readonly getCalls: { kind: ContentKind; key: string }[] = [];
   readonly listCalls: ContentKind[] = [];
   beforeGet: ((kind: ContentKind, key: string) => Promise<void>) | undefined;
@@ -84,6 +84,8 @@ export function creationCatalogs() {
     race: races,
     skill: skills,
     trait: traits,
+    birthsign: {},
+    power: {},
   });
   return { catalog, races, skills, traits, altmer };
 }

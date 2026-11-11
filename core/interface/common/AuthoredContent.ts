@@ -1,4 +1,5 @@
 import type { Birthsign } from "../character/Birthsign";
+import type { Power } from "../character/Power";
 import type { Race } from "../character/Race";
 import type Skill from "../character/Skill";
 import type { Trait } from "../character/Trait";
@@ -18,6 +19,7 @@ export interface AuthoredDefinitions {
   traits: Trait;
   skills: AuthoredSkillVariant<Skill>;
   birthsigns: Birthsign;
+  powers: Power;
 }
 
 export type AuthoredDomain = keyof AuthoredDefinitions;

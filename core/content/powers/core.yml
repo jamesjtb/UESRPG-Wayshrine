@@ -1,0 +1,30 @@
+adrenalineRush:
+  label: "{LOCALE.powers.adrenalineRush.label}"
+  description: "{LOCALE.powers.adrenalineRush.description}"
+akaviriDangerSense:
+  label: "{LOCALE.powers.akaviriDangerSense.label}"
+  description: "{LOCALE.powers.akaviriDangerSense.description}"
+ancestorGuardian:
+  label: "{LOCALE.powers.ancestorGuardian.label}"
+  description: "{LOCALE.powers.ancestorGuardian.description}"
+blessedTouch:
+  label: "{LOCALE.powers.blessedTouch.label}"
+  description: "{LOCALE.powers.blessedTouch.description}"
+blessedWord:
+  label: "{LOCALE.powers.blessedWord.label}"
+  description: "{LOCALE.powers.blessedWord.description}"
+theCalling:
+  label: "{LOCALE.powers.theCalling.label}"
+  description: "{LOCALE.powers.theCalling.description}"
+marasGift:
+  label: "{LOCALE.powers.marasGift.label}"
+  description: "{LOCALE.powers.marasGift.description}"
+moonshadow:
+  label: "{LOCALE.powers.moonshadow.label}"
+  description: "{LOCALE.powers.moonshadow.description}"
+treasureSeeker:
+  label: "{LOCALE.powers.treasureSeeker.label}"
+  description: "{LOCALE.powers.treasureSeeker.description}"
+warCry:
+  label: "{LOCALE.powers.warCry.label}"
+  description: "{LOCALE.powers.warCry.description}"

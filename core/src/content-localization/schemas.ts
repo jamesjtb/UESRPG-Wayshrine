@@ -3,10 +3,21 @@ import type {
   AuthoredDefinitions,
   AuthoredDomain,
 } from "../../interface/common/AuthoredContent";
-import { PcCharacteristic } from "../enum/Characteristic";
-import { raceSchema, skillSchema, traitSchema } from "../content/schemas";
+import {
+  birthsignSchema,
+  powerSchema,
+  raceSchema,
+  skillSchema,
+  traitSchema,
+} from "../content/schemas";
 
-export const domains = ["races", "traits", "skills", "birthsigns"] as const;
+export const domains = [
+  "races",
+  "traits",
+  "skills",
+  "birthsigns",
+  "powers",
+] as const;
 export const fields = ["label", "description"] as const;
 export const keySchema = z.string().regex(/^[A-Za-z_][A-Za-z0-9_-]*$/);
 const text = z
@@ -16,6 +27,14 @@ export const mapSchema = z.record(keySchema, z.unknown());
 export const localeEntrySchema = z.strictObject({
   label: text.exactOptional(),
   description: text.exactOptional(),
+});
+export const birthsignLocaleEntrySchema = localeEntrySchema.extend({
+  starCursed: z
+    .strictObject({ description: text.exactOptional() })
+    .exactOptional(),
+  choices: z
+    .record(keySchema, z.strictObject({ prompt: text.exactOptional() }))
+    .exactOptional(),
 });
 export const inputSchema = z.strictObject({
   content: z.array(
@@ -37,76 +56,6 @@ export const inputSchema = z.strictObject({
   allowEnglishFallback: z.boolean().exactOptional(),
 });
 
-const characteristic = z.enum(PcCharacteristic);
-const effectSchema = z.discriminatedUnion("bonusType", [
-  z.strictObject({
-    bonusType: z.literal("characteristic"),
-    bonusTargetKey: characteristic,
-    bonusValue: z.number(),
-  }),
-  z.strictObject({
-    bonusType: z.literal("attribute"),
-    bonusTargetKey: z.enum(["spMaximum", "speed"]),
-    bonusValue: z.number(),
-  }),
-  z.strictObject({
-    bonusType: z.literal("multiplier"),
-    bonusTargetKey: z.literal("naturalHealing"),
-    bonusValue: z.number(),
-  }),
-  z.strictObject({
-    bonusType: z.literal("trait"),
-    bonusTargetKey: keySchema,
-    bonusParams: z
-      .record(keySchema, z.union([z.string(), z.number()]))
-      .exactOptional(),
-  }),
-  z.strictObject({ bonusType: z.literal("power"), bonusTargetKey: keySchema }),
-  z.strictObject({
-    bonusType: z.literal("extraLuckyNumber"),
-    count: z.number(),
-    retainedRegardlessOfLuck: z.literal(true),
-  }),
-  z.strictObject({
-    bonusType: z.literal("replaceRolledCharacteristic"),
-    bonusTargetKey: characteristic,
-    bonusValue: z.number(),
-  }),
-]);
-const choiceSchema = z.strictObject({
-  bonusType: z.literal("choice"),
-  choiceGroup: z.strictObject({
-    id: keySchema,
-    choose: z.number(),
-    options: z.array(
-      z.strictObject({ id: keySchema, effects: z.array(effectSchema) }),
-    ),
-  }),
-  lifecycle: z.union([
-    z.strictObject({ selection: z.literal("once") }),
-    z.strictObject({
-      selection: z.literal("recurring"),
-      chooseAt: z.literal("longRest"),
-      expiresAt: z.literal("nextLongRest"),
-    }),
-  ]),
-});
-const bonuses = z.array(z.union([effectSchema, choiceSchema]));
-const birthsignSchema = z.strictObject({
-  label: text,
-  description: text,
-  bonuses,
-  starCursed: z.strictObject({
-    overwriteBaseBonuses: z.boolean(),
-    bonuses,
-    eligibility: z
-      .strictObject({
-        requiresNaturallyRolledSign: z.literal(true),
-        canSelectBySpendingLuck: z.literal(false),
-      })
-      .exactOptional(),
-  }),
-});
 const skillDisplay = {
   skillKey: keySchema.exactOptional(),
   label: text,
@@ -129,4 +78,5 @@ export const definitionSchemas: {
     skillSchema.options[1].extend(skillDisplay),
   ]),
   birthsigns: birthsignSchema,
+  powers: powerSchema.extend({ label: text, description: text }),
 };

@@ -2,6 +2,7 @@ import type { ChoiceAnswer, ChoiceState } from "../common/Choice";
 import type { ContentSummary, ContentVersion } from "../common/ContentCatalog";
 import type { WizardIssue, WizardSnapshot } from "../common/Wizard";
 import type { CharacteristicGenerationSnapshot } from "./CharacteristicGeneration";
+import type { BirthsignSelectionSnapshot } from "./BirthsignSelection";
 
 export type CharacterCreationStep = "race" | "characteristics";
 
@@ -28,6 +29,7 @@ export interface CharacterCreationSnapshot extends WizardSnapshot<
   answers: CharacterCreationAnswers;
   /** Generation details live here rather than in the shared pending-choice list. */
   characteristicGeneration: CharacteristicGenerationSnapshot;
+  birthsignSelection: BirthsignSelectionSnapshot;
   /** Includes resolved groups so previous selections can be reviewed and edited. */
   racialBonusChoices: readonly ChoiceState<string>[];
   /** Only the current race's offered skills, not the complete skill index. */

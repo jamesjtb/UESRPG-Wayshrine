@@ -50,7 +50,8 @@ async function selectAltmer(creator: CharacterCreator) {
 }
 ```
 
-Only `chooseRace()` and `chooseRacialBonus()` do content I/O. Name and generation
+`chooseRace()`, `chooseRacialBonus()`, and the asynchronous birthsign commands below
+do content I/O. Name and characteristic-generation
 commands, `getSnapshot()`, `getCharacterPreview()`, `next()`, `previous()`, and
 `finish()` are synchronous and never fetch or roll dice.
 
@@ -265,6 +266,62 @@ function submitPointBuy(creator: CharacterCreator, luck: CharacteristicRoll) {
 See [generation engineering notes](../docs/development/characteristic-generation.md)
 for module boundaries and consumer integration considerations.
 
+### Headless birthsign selection
+
+Birthsign commands are available independently of the two registered wizard steps.
+They do not yet affect step validation, `finish()`, or character previews.
+
+```ts
+import type { CharacterCreator } from "@wayshrine/core";
+
+async function selectBirthsign(creator: CharacterCreator) {
+  // Host-acquired complete sequence: fives mark Star-Cursed; 1–4 ends the roll.
+  const rolled = await creator.submitBirthsignRoll({
+    id: "birthsign-1",
+    charge: "warrior",
+    dice: [5, 5, 2],
+  });
+  if (!rolled.ok) return rolled;
+  await creator.chooseBirthsign({ signKey: "theMage", variant: "normal" });
+  return creator.restoreOriginalBirthsign();
+}
+```
+
+- `submitBirthsignRoll` accepts one complete identified sequence, with any number of
+  initial fives followed by exactly one face 1–4. Incomplete, invalid, and trailing
+  results reject atomically. Core never acquires dice. Accepted history locks before
+  content loading, including on failure or cancellation. Every later whole-roll
+  submission rejects, even a retry with the same ID or a different charge. Retry
+  content with `restoreOriginalBirthsign()` or `chooseBirthsign()`, not fresh dice.
+- Without a committed selection the original becomes the default selection once
+  its content resolves. A committed pre-roll alternative stays selected. The
+  original history/result always remains independent, including in free-choice mode.
+- `chooseBirthsign` works before or after rolling. It loads and validates only the
+  requested definition and its trait/power references (including all choice branches).
+  Browse with the host catalog directly; inspection does not select anything.
+- Standard costs are derived: original exact sign/variant 0 Luck, an upgrade of a
+  naturally normal original 5, another normal sign 5, another Star-Cursed sign 10.
+  The restricted Star-Cursed Thief cannot be purchased from another natural sign,
+  but **a naturally normal Thief can upgrade for the usual 5 Luck**. A naturally
+  Star-Cursed Thief restores at 0. Restrictions are metadata-driven, not key checks.
+- `setFreeBirthsignChoice(true)` makes all purchase costs 0, including Star-Cursed
+  Thief. Returning to standard preserves the selected answer and original, rechecks
+  eligibility, and derives the standard cost. An ineligible retained answer exposes
+  `eligibilityIssues` and an undefined cost, rather than silently replacing it.
+- `snapshot.birthsignSelection` contains detached history, committed selection and
+  definition, derived provenance/cost, eligibility issues, and a pending/failed
+  `load`. Costs never mutate statistics or accumulate across commands. Affordability
+  against final Luck and inherent effects is unresolved here; no Luck minimum or
+  negative-score policy is assumed. Free purchase costs do not remove inherent effects.
+- Latest selection intent wins; failed loads retain committed answers. Call
+  `cancelBirthsignSelection()` to clear pending/failed intent. Reselecting the
+  committed answer also cancels. Mode changes are evaluated at async commit time.
+  Disposal clears birthsign state and invalidates outstanding completions. Pending
+  birthsign operations do not interfere with race or generation operations.
+
+One-time choice resolution, effect projection, affordability and wizard registration
+are later integration work. Recurring choices are outside character creation.
+
 ## Content validation
 
 `parseContentDefinition(kind, key, value)` validates external definitions with Zod,
@@ -291,9 +348,10 @@ labels rather than maintaining birthsign-specific copies.
 The four `entries` correspond to results 1–4; `fifthResult: "rerollStarCursed"`
 is an instruction, not a sign. `validateBirthsignChargeTables(signKeys)` checks
 their references during publishing. These declarations do not resolve rolls,
-apply effects, edit recurring Ritual selections, or extend `CharacterCreator`.
-The Thief eligibility metadata retains the naturally-rolled-sign restriction;
-it is not a new creator selection policy.
+apply effects or edit recurring Ritual selections. `CharacterCreator` resolves
+host-supplied rolls using these tables through its headless selection commands.
+The Thief metadata retains the natural-sign restriction; the creator explicitly
+allows its normal-original upgrade at the standard 5 Luck cost.
 
 Skill definitions either supply governing characteristic keys or explicitly allow
 a player-selected characteristic. Custom names and chosen characteristics belong

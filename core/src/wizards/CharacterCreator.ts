@@ -19,6 +19,11 @@ import type {
   CharacteristicRoll,
 } from "../../interface/character/CharacteristicGeneration";
 import type { Race } from "../../interface/character/Race";
+import type {
+  BirthsignRoll,
+  BirthsignSelection,
+} from "../../interface/character/BirthsignSelection";
+import { BirthsignSelectionSession } from "../character/birthsignSelection";
 import type Skill from "../../interface/character/Skill";
 import type { Trait } from "../../interface/character/Trait";
 import type { ChoiceAnswer, ChoiceState } from "../../interface/common/Choice";
@@ -86,6 +91,7 @@ function copyGenerationDrafts(
 /** Shared character rules. Loading commands prepare data; evaluation never does I/O. */
 export default class CharacterCreator {
   private readonly content: ContentReader;
+  private readonly birthsigns: BirthsignSelectionSession;
   private name = "";
   private generation = emptyGenerationDrafts();
   private characteristicPoolInitialized = false;
@@ -107,6 +113,7 @@ export default class CharacterCreator {
 
   constructor(catalog: ContentCatalog) {
     this.content = new ContentReader(catalog);
+    this.birthsigns = new BirthsignSelectionSession(this.content);
     this.wizard = new Wizard(
       [
         { id: "race", evaluate: () => this.evaluateRace() },
@@ -123,6 +130,26 @@ export default class CharacterCreator {
     if (this.disposed) return this.disposedResult();
     this.name = name;
     return { ok: true, value: undefined };
+  }
+
+  submitBirthsignRoll(roll: BirthsignRoll) {
+    return this.birthsigns.submitRoll(roll);
+  }
+
+  chooseBirthsign(selection: BirthsignSelection) {
+    return this.birthsigns.choose(selection);
+  }
+
+  restoreOriginalBirthsign() {
+    return this.birthsigns.restoreOriginal();
+  }
+
+  setFreeBirthsignChoice(enabled: boolean) {
+    return this.birthsigns.setFreeChoice(enabled);
+  }
+
+  cancelBirthsignSelection(): void {
+    this.birthsigns.cancel();
   }
 
   setFavoredCharacteristics(
@@ -470,6 +497,7 @@ export default class CharacterCreator {
         })),
       },
       characteristicGeneration: this.generationSnapshot(),
+      birthsignSelection: this.birthsigns.snapshot(),
       racialBonusChoices: this.racialChoices(),
       racialSkillOptions: this.skillOptions.map((option) => ({ ...option })),
       contentVersion: { ...this.content.version },
@@ -538,6 +566,7 @@ export default class CharacterCreator {
 
   /** Invalidates outstanding commands and releases session-owned definitions/answers. */
   dispose(): void {
+    this.birthsigns.dispose();
     this.disposed = true;
     this.name = "";
     this.generation = emptyGenerationDrafts();

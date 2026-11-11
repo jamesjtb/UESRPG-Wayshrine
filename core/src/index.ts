@@ -1,5 +1,6 @@
 export type { default as Attributes } from "../interface/character/Attributes";
 export type * from "../interface/character/Birthsign";
+export type * from "../interface/character/BirthsignSelection";
 export type * from "../interface/character/Power";
 export type * from "../interface/character/Character";
 export type * from "../interface/character/CharacterCreation";

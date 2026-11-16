@@ -1,0 +1,49 @@
+combatSenses:
+  label: "{LOCALE.talents.combatSenses.label}"
+  description: "{LOCALE.talents.combatSenses.description}"
+  level: 0
+  governingCharacteristic: prc
+honedSenses:
+  label: "{LOCALE.talents.honedSenses.label}"
+  description: "{LOCALE.talents.honedSenses.description}"
+  level: 1
+  governingCharacteristic: prc
+oneWithAll:
+  label: "{LOCALE.talents.oneWithAll.label}"
+  description: "{LOCALE.talents.oneWithAll.description}"
+  level: 4
+  requires: [honedSenses]
+  replaces: honedSenses
+  governingCharacteristic: prc
+observant:
+  label: "{LOCALE.talents.observant.label}"
+  description: "{LOCALE.talents.observant.description}"
+  level: 4
+  governingCharacteristic: prc
+hyperAwareness:
+  label: "{LOCALE.talents.hyperAwareness.label}"
+  description: "{LOCALE.talents.hyperAwareness.description}"
+  level: 5
+  requires: [observant]
+  governingCharacteristic: prc
+invisible:
+  label: "{LOCALE.talents.invisible.label}"
+  description: "{LOCALE.talents.invisible.description}"
+  level: 1
+  governingCharacteristic: prc
+keenIntuition:
+  label: "{LOCALE.talents.keenIntuition.label}"
+  description: "{LOCALE.talents.keenIntuition.description}"
+  level: 4
+  governingCharacteristic: prc
+lightSleeper:
+  label: "{LOCALE.talents.lightSleeper.label}"
+  description: "{LOCALE.talents.lightSleeper.description}"
+  level: 1
+  governingCharacteristic: prc
+dangerSense:
+  label: "{LOCALE.talents.dangerSense.label}"
+  description: "{LOCALE.talents.dangerSense.description}"
+  level: 2
+  requires: [lightSleeper]
+  governingCharacteristic: prc

@@ -1,0 +1,54 @@
+combatSenses:
+  label: Combat Senses
+  description: |-
+    The character has keen combat instincts.
+
+    The character can choose to calculate their Initiative Rating by taking twice their Perception Bonus and adding two instead of the usual formula.
+honedSenses:
+  label: Honed Senses
+  description: |-
+    The character has honed their physical senses beyond the capabilities of the average person through training or experience.
+
+    The character has honed their senses so that they can partially compensate for the loss of one with the others. Halves all penalties imposed on any tests by the loss or impairment of one sense (bad lighting, blindness, deafness, and so on) as long as they have the others to fall back on.
+oneWithAll:
+  label: One with All
+  description: |-
+    The character has honed their senses to the peak of their capabilities.
+
+    The character has honed their senses so that they can entirely compensate for the loss of one with the others. Negates all penalties imposed on any tests by the loss or impairment of one sense (bad lighting, blindness, deafness, and so on) as long as they have the others to fall back on.
+observant:
+  label: Observant
+  description: |-
+    The character can spot threats coming at a distance.
+
+    The character can treat their Evade skill as also being governed by Perception.
+hyperAwareness:
+  label: Hyper Awareness
+  description: |-
+    The character uses their extreme awareness to dominate combat.
+
+    When the character passes any Combat Style or Evade skill test they can choose to take the number of degrees of success that they rolled, or take a number equal to their Observe skill rank instead.
+invisible:
+  label: Invisible
+  description: |-
+    The character is aware of every leaf and branch around them as they move and rarely make a sound or leaves a trace.
+
+    Survival tests made to track the character suffer a -20 penalty.
+keenIntuition:
+  label: Keen Intuition
+  description: |-
+    The character has a powerful intuition developed through experience and rarely misses important details.
+
+    When the character passes an Observe skill test they can choose to take the number of degrees of success that they rolled or take a number equal to their Observe skill rank instead.
+lightSleeper:
+  label: Light Sleeper
+  description: |-
+    The character is a particularly light sleeper and seems to be able to sense danger approaching.
+
+    The character always counts as being awake for the purposes of making Observe tests and determining surprise, even if asleep.
+dangerSense:
+  label: Danger Sense
+  description: |-
+    The character has a sixth sense that allows them to anticipate danger.
+
+    The character can always test Perception to avoid surprise, regardless of the circumstances.

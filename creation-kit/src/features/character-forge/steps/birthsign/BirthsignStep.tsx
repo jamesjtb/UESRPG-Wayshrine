@@ -69,25 +69,42 @@ function characteristicLabel(key: string) {
   return readableLabel(key);
 }
 
-function effectText(effect: BirthsignEffect) {
-  if (
-    effect.bonusType === "characteristic" ||
-    effect.bonusType === "replaceRolledCharacteristic"
-  ) {
-    const name = characteristicLabel(effect.bonusTargetKey);
-    return effect.bonusType === "characteristic"
-      ? `${name}: ${effect.bonusValue > 0 ? "+" : ""}${effect.bonusValue}`
-      : `${name} rolled value: ${effect.bonusValue}`;
-  }
+function signedModifier(value: number) {
+  return value >= 0 ? `+${value}` : `${value}`;
+}
+
+function effectPresentation(effect: BirthsignEffect) {
+  if (effect.bonusType === "characteristic")
+    return {
+      label: characteristicLabel(effect.bonusTargetKey),
+      value: signedModifier(effect.bonusValue),
+    };
+  if (effect.bonusType === "replaceRolledCharacteristic")
+    return {
+      label: `${characteristicLabel(effect.bonusTargetKey)} rolled value`,
+      value: effect.bonusValue,
+    };
   if (effect.bonusType === "attribute")
-    return `${readableLabel(effect.bonusTargetKey)}: ${effect.bonusValue > 0 ? "+" : ""}${effect.bonusValue}`;
+    return {
+      label: effect.bonusTargetKey === "spMaximum" ? "SP Maximum" : "Speed",
+      value: signedModifier(effect.bonusValue),
+    };
   if (effect.bonusType === "multiplier")
-    return `Natural healing multiplier: ${effect.bonusValue}`;
+    return {
+      label: "Natural healing multiplier",
+      value: effect.bonusValue,
+    };
   if (effect.bonusType === "extraLuckyNumber")
-    return `Extra lucky numbers: ${effect.count}, retained regardless of Luck`;
+    return {
+      label: "Extra lucky numbers",
+      value: `${effect.count}, retained regardless of Luck`,
+    };
   if (effect.bonusType === "trait")
-    return `Trait: ${readableLabel(effect.bonusTargetKey)} ${effect.bonusParams ? JSON.stringify(effect.bonusParams) : ""}`;
-  return `Power: ${readableLabel(effect.bonusTargetKey)}`;
+    return {
+      label: "Trait",
+      value: `${readableLabel(effect.bonusTargetKey)} ${effect.bonusParams ? JSON.stringify(effect.bonusParams) : ""}`,
+    };
+  return { label: "Power", value: readableLabel(effect.bonusTargetKey) };
 }
 
 function EffectDescription({
@@ -124,14 +141,21 @@ function EffectDescription({
       live = false;
     };
   }, [catalog, kind, key]);
-  if (!detail || !kind) return <span>{effectText(effect)}</span>;
+  if (!detail || !kind) {
+    const presentation = effectPresentation(effect);
+    return (
+      <span>
+        <strong>{presentation.label}:</strong> {presentation.value}
+      </span>
+    );
+  }
   const params =
     effect.bonusType === "trait" && effect.bonusParams
       ? ` ${JSON.stringify(effect.bonusParams)}`
       : "";
   return (
     <span>
-      {kind === "trait" ? "Trait" : "Power"}: {detail.label}
+      <strong>{kind === "trait" ? "Trait:" : "Power:"}</strong> {detail.label}
       {params} — {detail.description}
     </span>
   );
@@ -191,7 +215,7 @@ function Choices({
                     )
                   }
                 />{" "}
-                {characteristicLabel(option.id)} —{" "}
+                <strong>{characteristicLabel(option.id)}</strong> —{" "}
                 {option.effects.map((effect, index) => (
                   <EffectDescription
                     key={index}
@@ -256,16 +280,6 @@ function Package({
         quote.definition.starCursed.description && (
           <Text>{quote.definition.starCursed.description}</Text>
         )}
-      <Text>
-        Purchase cost:{" "}
-        {quote.purchaseCost === undefined
-          ? "Unavailable"
-          : `${quote.purchaseCost} Luck`}
-      </Text>
-      <Text>
-        Luck before purchase: {quote.luckBeforePurchase ?? "Pending"}; final
-        Luck: {quote.finalLuck ?? "Pending"}
-      </Text>
       {quote.eligibilityIssues.map((issue, index) => (
         <Text key={index} role="status">
           {issue.message}
@@ -293,35 +307,43 @@ function Package({
           {Object.entries(pack.characteristicModifiers).map(
             ([key, modifiers]) => (
               <Text key={key}>
-                {characteristicLabel(key)}:{" "}
-                {modifiers.map((modifier) => modifier.value).join(", ")}
+                <strong>{characteristicLabel(key)}:</strong>{" "}
+                {modifiers
+                  .map((modifier) => signedModifier(modifier.value))
+                  .join(", ")}
               </Text>
             ),
           )}
           {Object.entries(pack.rolledReplacements).map(([key, value]) => (
             <Text key={key}>
-              {characteristicLabel(key)} rolled value: {value}
+              <strong>{characteristicLabel(key)} rolled value:</strong> {value}
             </Text>
           ))}
           {pack.spMaximum.map((modifier, index) => (
-            <Text key={`sp${index}`}>SP maximum: {modifier.value}</Text>
+            <Text key={`sp${index}`}>
+              <strong>SP Maximum:</strong> {signedModifier(modifier.value)}
+            </Text>
           ))}
           {pack.speed.map((modifier, index) => (
-            <Text key={`speed${index}`}>Speed: {modifier.value}</Text>
+            <Text key={`speed${index}`}>
+              <strong>Speed:</strong> {signedModifier(modifier.value)}
+            </Text>
           ))}
           {pack.naturalHealingMultiplier !== 1 && (
             <Text>
-              Natural healing multiplier: {pack.naturalHealingMultiplier}
+              <strong>Natural healing multiplier:</strong>{" "}
+              {pack.naturalHealingMultiplier}
             </Text>
           )}
           {pack.extraLuckyNumbers.map((entry) => (
             <Text key={entry.sourceId}>
-              Extra lucky numbers: {entry.count}, retained regardless of Luck
+              <strong>Extra lucky numbers:</strong> {entry.count}, retained
+              regardless of Luck
             </Text>
           ))}
           {pack.traits.map((trait, index) => (
             <Text key={index}>
-              Trait:{" "}
+              <strong>Trait:</strong>{" "}
               {references[`trait:${trait.traitKey}`]?.label ??
                 readableLabel(trait.traitKey)}{" "}
               {trait.params && JSON.stringify(trait.params)} —{" "}
@@ -330,7 +352,7 @@ function Package({
           ))}
           {pack.powers.map((power) => (
             <Text key={power.sourceId}>
-              Power:{" "}
+              <strong>Power:</strong>{" "}
               {references[`power:${power.powerKey}`]?.label ??
                 readableLabel(power.powerKey)}{" "}
               — {references[`power:${power.powerKey}`]?.description}
@@ -546,6 +568,8 @@ export function BirthsignStep(props: Props) {
     if (result && !result.ok) setIssues(result.issues);
   }
   const showChooser = chooser || state.freeChoice;
+  const viewedSelection = showChooser ? candidate : state.selected;
+  const viewedQuote = showChooser ? quote : currentQuote;
   const selectedReplacement =
     state.original &&
     state.selected &&
@@ -673,7 +697,7 @@ export function BirthsignStep(props: Props) {
           disabled={!state.original}
           onClick={() => void restoreOriginal()}
         >
-          Restore original birthsign
+          restore rolled birthsign
         </Button>
       )}
       {!state.freeChoice && !chooser && (
@@ -820,6 +844,11 @@ export function BirthsignStep(props: Props) {
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>
+      {viewedSelection && (
+        <Text ta="right" fw={700}>
+          Burning {viewedQuote?.purchaseCost ?? "—"} Luck
+        </Text>
+      )}
     </Stack>
   );
 }

@@ -11,6 +11,125 @@ import {
 } from "./test/forgeTestHelpers";
 import { fixtureCatalog } from "./test/testCatalog";
 
+it("bolds effect labels and signs only additive values in offered, quoted and selected packages", async () => {
+  const catalog = fixtureCatalog((definitions) => {
+    definitions.power.blessing = {
+      label: "Blessing",
+      description: "A granted power.",
+    };
+    definitions.birthsign.theMage = {
+      label: "theMage",
+      description: "Mage lore",
+      bonuses: [
+        { bonusType: "attribute", bonusTargetKey: "spMaximum", bonusValue: 1 },
+        { bonusType: "attribute", bonusTargetKey: "speed", bonusValue: -2 },
+        { bonusType: "characteristic", bonusTargetKey: "str", bonusValue: 3 },
+        { bonusType: "characteristic", bonusTargetKey: "str", bonusValue: -2 },
+        {
+          bonusType: "replaceRolledCharacteristic",
+          bonusTargetKey: "lck",
+          bonusValue: 50,
+        },
+        {
+          bonusType: "multiplier",
+          bonusTargetKey: "naturalHealing",
+          bonusValue: 2,
+        },
+        {
+          bonusType: "extraLuckyNumber",
+          count: 1,
+          retainedRegardlessOfLuck: true,
+        },
+        {
+          bonusType: "trait",
+          bonusTargetKey: "magicWeakness",
+          bonusParams: { type: "magic", X: 2 },
+        },
+        { bonusType: "power", bonusTargetKey: "blessing" },
+        {
+          bonusType: "choice",
+          lifecycle: { selection: "once" },
+          choiceGroup: {
+            id: "gift",
+            prompt: "Choose a gift",
+            choose: 1,
+            options: [
+              {
+                id: "wp",
+                effects: [
+                  {
+                    bonusType: "characteristic",
+                    bonusTargetKey: "wp",
+                    bonusValue: 1,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+      starCursed: { overwriteBaseBonuses: false, bonuses: [] },
+    };
+  });
+  function expectEffect(scope: HTMLElement, label: string, values: string[]) {
+    const labels = within(scope).getAllByText(`${label}:`, {
+      selector: "strong",
+    });
+    expect(labels.map((element) => element.parentElement?.textContent)).toEqual(
+      values.map((value) => `${label}: ${value}`),
+    );
+  }
+  function expectPackageEffects(scope: HTMLElement) {
+    expectEffect(scope, "SP Maximum", ["+1"]);
+    expectEffect(scope, "Speed", ["-2"]);
+    expectEffect(scope, "Strength", ["+3, -2"]);
+    expectEffect(scope, "Willpower", ["+1"]);
+    expectEffect(scope, "Luck rolled value", ["50"]);
+    expectEffect(scope, "Natural healing multiplier", ["2"]);
+    expectEffect(scope, "Extra lucky numbers", [
+      "1, retained regardless of Luck",
+    ]);
+    expectEffect(scope, "Trait", ['Weakness {"type":"magic","X":2} — ']);
+    expectEffect(scope, "Power", ["Blessing — A granted power."]);
+  }
+  const user = userEvent.setup();
+  renderForge(catalog);
+  await selectRace("Argonian");
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  await fillPointBuy(user);
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  await user.click(
+    screen.getByRole("button", {
+      name: "Burn luck to choose a birthsign instead",
+    }),
+  );
+  await user.click(await screen.findByRole("button", { name: "theMage" }));
+  const offered = await screen.findByLabelText("Available birthsign effects");
+  expectEffect(offered, "SP Maximum", ["+1"]);
+  expectEffect(offered, "Speed", ["-2"]);
+  expectEffect(offered, "Strength", ["+3", "-2"]);
+  expectEffect(offered, "Luck rolled value", ["50"]);
+  expectEffect(offered, "Natural healing multiplier", ["2"]);
+  expectEffect(offered, "Extra lucky numbers", [
+    "1, retained regardless of Luck",
+  ]);
+  await waitFor(() => {
+    expectEffect(offered, "Trait", ['Weakness {"type":"magic","X":2} — ']);
+    expectEffect(offered, "Power", ["Blessing — A granted power."]);
+  });
+  const choice = screen.getByRole("group", { name: "Choose a gift" });
+  expectEffect(choice, "Willpower", ["+1"]);
+  await user.click(within(choice).getByRole("checkbox", { name: /Willpower/ }));
+  const quoted = await screen.findByLabelText("Birthsign effects");
+  await waitFor(() => expectPackageEffects(quoted));
+  await user.click(
+    screen.getByRole("button", { name: "Use this Birthsign (burn 5 luck)" }),
+  );
+  await screen.findByRole("heading", { name: "theMage" });
+  const selected = await screen.findByLabelText("Birthsign effects");
+  await waitFor(() => expectPackageEffects(selected));
+});
+
 it("rolls one complete d5 sequence and preserves it while browsing and navigating", async () => {
   const catalog = fixtureCatalog((definitions) => {
     for (const table of BIRTHSIGN_CHARGE_TABLES)
@@ -83,9 +202,16 @@ it("rolls one complete d5 sequence and preserves it while browsing and navigatin
   await user.click(screen.getByRole("button", { name: "Roll Birthsign" }));
   await screen.findByRole("heading", { name: "Localized theSteed" });
   await screen.findByText("Description for theSteed");
+  const burnSummary = await screen.findByText("Burning 0 Luck");
+  expect(burnSummary.style.fontWeight).toBe("700");
+  expect(burnSummary.style.textAlign).toBe("right");
+  expect(burnSummary.parentElement?.lastElementChild).toBe(burnSummary);
+  expect(burnSummary.querySelector("svg")).toBeNull();
+  expect(screen.queryByText(/Purchase cost:/)).toBeNull();
+  expect(screen.queryByText(/Luck before purchase:/)).toBeNull();
   expect(screen.queryByText(/Original Roll:/)).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Restore original birthsign" }),
+    screen.queryByRole("button", { name: "restore rolled birthsign" }),
   ).toBeNull();
   expect(roll).toHaveBeenCalledTimes(3);
   await user.click(
@@ -100,9 +226,10 @@ it("rolls one complete d5 sequence and preserves it while browsing and navigatin
     screen.queryByRole("heading", { name: "Localized theSteed" }),
   ).toBeNull();
   expect(screen.queryByText("Description for theSteed")).toBeNull();
+  expect(screen.queryByText(/^Burning /)).toBeNull();
   expect(screen.queryByText("Star-Cursed", { exact: true })).toBeNull();
   expect(
-    screen.getByRole("button", { name: "Restore original birthsign" }),
+    screen.getByRole("button", { name: "restore rolled birthsign" }),
   ).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Close chooser" })).toBeNull();
   await user.click(
@@ -114,6 +241,7 @@ it("rolls one complete d5 sequence and preserves it while browsing and navigatin
     name: "Use this Birthsign (burn 5 luck)",
   });
   await waitFor(() => expect(use).toHaveProperty("disabled", false));
+  expect(screen.getByText("Burning 5 Luck")).toBeTruthy();
   expect(
     screen.queryByRole("heading", { name: "Localized theSteed" }),
   ).toBeNull();
@@ -133,7 +261,7 @@ it("rolls one complete d5 sequence and preserves it while browsing and navigatin
   await user.click(screen.getByRole("button", { name: "theLord" }));
   await screen.findByRole("heading", { name: "Inspecting theLord" });
   await user.click(
-    screen.getByRole("button", { name: "Restore original birthsign" }),
+    screen.getByRole("button", { name: "restore rolled birthsign" }),
   );
   await screen.findByRole("heading", { name: "Localized theSteed" });
   expect(
@@ -144,7 +272,7 @@ it("rolls one complete d5 sequence and preserves it while browsing and navigatin
   ).toBeNull();
   expect(screen.queryByText(/Original Roll:/)).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Restore original birthsign" }),
+    screen.queryByRole("button", { name: "restore rolled birthsign" }),
   ).toBeNull();
   await user.click(
     screen.getByRole("button", {
@@ -153,7 +281,7 @@ it("rolls one complete d5 sequence and preserves it while browsing and navigatin
   );
   expect(screen.queryByRole("heading", { name: /Inspecting/ })).toBeNull();
   await user.click(
-    screen.getByRole("button", { name: "Restore original birthsign" }),
+    screen.getByRole("button", { name: "restore rolled birthsign" }),
   );
   expect(roll).toHaveBeenCalledTimes(3);
   await user.click(screen.getByRole("button", { name: "Back" }));
@@ -193,11 +321,14 @@ it("ignores a late quote for a candidate that is no longer being inspected", asy
   await waitFor(() =>
     expect(reads.get).toHaveBeenCalledWith("birthsign", "theMage"),
   );
+  expect(screen.getByText("Burning — Luck")).toBeTruthy();
+  expect(screen.queryByText("Burning 0 Luck")).toBeNull();
   expect(
     screen.queryByRole("button", { name: /Use this Birthsign/ }),
   ).toBeNull();
   await user.click(screen.getByRole("button", { name: "theThief" }));
   await screen.findByText("Lore theThief");
+  await screen.findByText("Burning 5 Luck");
   expect(
     await screen.findByRole("button", {
       name: "Use this Birthsign (burn 5 luck)",
@@ -223,6 +354,7 @@ it("ignores a late quote for a candidate that is no longer being inspected", asy
   expect(
     screen.queryByRole("button", { name: /Use this Birthsign \(burn/ }),
   ).toBeNull();
+  expect(screen.getByText("Burning 0 Luck")).toBeTruthy();
 });
 
 it("labels upgrade and candidate prices from Core without combining innate Luck penalties", async () => {
@@ -260,7 +392,7 @@ it("labels upgrade and candidate prices from Core without combining innate Luck 
     screen.queryByRole("button", { name: /Take Star-Cursed version/ }),
   ).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Restore original birthsign" }),
+    screen.queryByRole("button", { name: "restore rolled birthsign" }),
   ).toBeNull();
   await user.click(freeChoice);
   const upgrade = await screen.findByRole("button", {
@@ -278,14 +410,14 @@ it("labels upgrade and candidate prices from Core without combining innate Luck 
     screen.queryByRole("button", { name: /Take Star-Cursed version/ }),
   ).toBeNull();
   expect(
-    screen.getByRole("button", { name: "Restore original birthsign" }),
+    screen.getByRole("button", { name: "restore rolled birthsign" }),
   ).toBeTruthy();
   expect(
     screen.queryByRole("button", { name: /Use this Birthsign/ }),
   ).toBeNull();
-  await screen.findByText("Purchase cost: 5 Luck");
+  await screen.findByText("Burning 5 Luck");
   expect(screen.getAllByText("Lore theWarrior")).toHaveLength(1);
-  expect(screen.getAllByText("Purchase cost: 5 Luck")).toHaveLength(1);
+  expect(screen.getAllByText("Burning 5 Luck")).toHaveLength(1);
   expect(
     characteristicCell("Luck", "Total").getAttribute("aria-description"),
   ).toMatch(/ - 5 = /);
@@ -314,6 +446,7 @@ it("labels upgrade and candidate prices from Core without combining innate Luck 
   await screen.findByRole("button", {
     name: "Use this Birthsign (burn 10 luck)",
   });
+  expect(screen.getByText("Burning 10 Luck")).toBeTruthy();
   await user.click(screen.getByRole("button", { name: "theRitual" }));
   await user.click(screen.getByRole("combobox", { name: "Variant" }));
   await user.click(screen.getByRole("option", { name: "Star-Cursed" }));
@@ -323,7 +456,8 @@ it("labels upgrade and candidate prices from Core without combining innate Luck 
   await waitFor(() => expect(ritual).toHaveProperty("disabled", false));
   await user.click(ritual);
   await screen.findByRole("heading", { name: "theRitual" });
-  await screen.findByText("Purchase cost: 10 Luck");
+  await screen.findByText("Burning 10 Luck");
+  expect(screen.queryByText(/Purchase cost:|Luck before purchase:/)).toBeNull();
   expect(
     characteristicCell("Luck", "Total").getAttribute("aria-description"),
   ).toMatch(/ - 5 - 10 = /);
@@ -419,6 +553,8 @@ it("keeps choice answers provisional and applies the restricted Thief free-choic
   await user.click(screen.getByRole("combobox", { name: "Variant" }));
   await user.click(screen.getByRole("option", { name: "Star-Cursed" }));
   await screen.findByText(/requires its naturally rolled sign/);
+  expect(screen.getByText("Burning — Luck")).toBeTruthy();
+  expect(screen.queryByText("Burning 0 Luck")).toBeNull();
   expect(
     screen.getByRole("button", { name: "Use this Birthsign" }),
   ).toHaveProperty("disabled", true);
@@ -442,6 +578,7 @@ it("keeps choice answers provisional and applies the restricted Thief free-choic
       screen.getByRole("button", { name: "Use this Birthsign" }),
     ).toHaveProperty("disabled", false),
   );
+  expect(screen.getByText("Burning 0 Luck")).toBeTruthy();
   await user.click(screen.getByRole("button", { name: "Use this Birthsign" }));
   await user.click(
     screen.getByRole("switch", { name: /Use Player-Chosen Birthsigns/ }),
@@ -491,7 +628,7 @@ it("keeps the original selected when Core rejects an unaffordable immediate upgr
     screen.queryByRole("heading", { name: "Choose a Birthsign" }),
   ).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Restore original birthsign" }),
+    screen.queryByRole("button", { name: "restore rolled birthsign" }),
   ).toBeNull();
   expect(screen.queryByText(/Original Roll:/)).toBeNull();
 });
@@ -593,7 +730,7 @@ it("edits Star-Cursed required choices in the main display and restores retained
     ).toMatch(/ \+ 7 - 5 = /),
   );
   await user.click(
-    screen.getByRole("button", { name: "Restore original birthsign" }),
+    screen.getByRole("button", { name: "restore rolled birthsign" }),
   );
   await screen.findByRole("group", { name: "Original gift" });
   expect(screen.getByRole("checkbox", { name: /Luck/ })).toHaveProperty(
@@ -602,7 +739,7 @@ it("edits Star-Cursed required choices in the main display and restores retained
   );
   expect(characteristicCell("Luck", "Total").textContent).toBe(originalLuck);
   expect(
-    screen.queryByRole("button", { name: "Restore original birthsign" }),
+    screen.queryByRole("button", { name: "restore rolled birthsign" }),
   ).toBeNull();
   expect(screen.queryByText(/Original Roll:/)).toBeNull();
 
@@ -619,7 +756,7 @@ it("edits Star-Cursed required choices in the main display and restores retained
   await user.click(purchase);
   await screen.findByRole("heading", { name: "theWarrior" });
   expect(
-    screen.getByRole("button", { name: "Restore original birthsign" }),
+    screen.getByRole("button", { name: "restore rolled birthsign" }),
   ).toBeTruthy();
   await user.click(
     screen.getByRole("button", {
@@ -632,7 +769,7 @@ it("edits Star-Cursed required choices in the main display and restores retained
   expect(provisional).toHaveProperty("checked", false);
   await user.click(provisional);
   await user.click(
-    screen.getByRole("button", { name: "Restore original birthsign" }),
+    screen.getByRole("button", { name: "restore rolled birthsign" }),
   );
   await screen.findByRole("group", { name: "Original gift" });
   expect(screen.getByRole("checkbox", { name: /Luck/ })).toHaveProperty(

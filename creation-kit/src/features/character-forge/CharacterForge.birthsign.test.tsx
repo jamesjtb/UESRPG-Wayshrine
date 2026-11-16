@@ -159,7 +159,12 @@ it("rolls one complete d5 sequence and preserves it while browsing and navigatin
     ),
   );
   await user.click(screen.getByRole("button", { name: "Next" }));
-  await screen.findByRole("heading", { name: "Birthsign" });
+  await screen.findByRole("heading", { name: "Determine Birthsign" });
+  expect(
+    within(screen.getByRole("navigation", { name: "Character creation steps" }))
+      .getByRole("button", { name: "Determine Birthsign" })
+      .getAttribute("aria-current"),
+  ).toBe("step");
   expect(roll).not.toHaveBeenCalled();
   const warrior = await screen.findByRole("radio", { name: "Warrior" });
   await screen.findByText("Localized theLady");

@@ -95,6 +95,7 @@ function ForgeSession({
   const steps = view.snapshot.steps.map((step) => {
     if (step.id === "race") return "Select Race";
     if (step.id === "characteristics") return "Generate Characteristics";
+    if (step.id === "birthsign") return "Determine Birthsign";
     return readableLabel(step.id);
   });
   const active = view.snapshot.steps.findIndex(

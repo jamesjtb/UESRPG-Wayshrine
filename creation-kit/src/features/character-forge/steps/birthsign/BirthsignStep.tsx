@@ -578,7 +578,7 @@ export function BirthsignStep(props: Props) {
   const showOriginal = !state.freeChoice && (chooser || selectedReplacement);
   return (
     <Stack>
-      <Title order={2}>Birthsign</Title>
+      <Title order={2}>Determine Birthsign</Title>
       <ToContinue actions={actions} />
       {summaries.status === "loading" && (
         <LoadingIndicator label="Loading birthsigns" />

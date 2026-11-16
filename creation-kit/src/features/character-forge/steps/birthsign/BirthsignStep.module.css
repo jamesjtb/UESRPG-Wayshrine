@@ -1,0 +1,55 @@
+.charges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mantine-spacing-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.legend {
+  padding: 0;
+  font-weight: 600;
+}
+
+.chargeCard {
+  display: block;
+  min-width: 0;
+  padding: var(--mantine-spacing-md);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.chargeCard:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.chargeCard:has(input:checked) {
+  border-color: var(--mantine-color-blue-6);
+  background: var(--mantine-color-blue-light);
+}
+
+.chargeCard:has(input:focus-visible) {
+  outline: 2px solid var(--mantine-color-blue-6);
+  outline-offset: 2px;
+}
+
+.chargeHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.outcomes {
+  margin: var(--mantine-spacing-xs) 0 0;
+  padding-inline-start: 1.5rem;
+}
+
+@media (max-width: 48em) {
+  .charges {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -4,11 +4,9 @@ import {
   Badge,
   Button,
   Group,
-  Paper,
   Select,
   Stack,
   Switch,
-  Table,
   Text,
   Title,
 } from "@mantine/core";
@@ -32,6 +30,7 @@ import { ToContinue } from "../../components/ToContinue";
 import { useContentSummaries } from "../../hooks/useContentSummaries";
 import { readableLabel } from "../../labels";
 import { characteristicLabels } from "../characteristics/characteristicLabels";
+import classes from "./BirthsignStep.module.css";
 
 type Quote = (
   selection: BirthsignSelection,
@@ -39,12 +38,18 @@ type Quote = (
 ) => Promise<BirthsignQuoteResult> | undefined;
 type Command = Promise<BirthsignSelectionResult | undefined>;
 
+function burnLabel(label: string, cost: number | undefined) {
+  if (cost === undefined || cost === 0) return label;
+  return `${label} (burn ${cost} luck)`;
+}
+
 interface Props {
   catalog: ContentCatalog;
   snapshot: CharacterCreationSnapshot;
   rollFace: () => number;
   onDiceError: (error: unknown) => void;
   submitRoll: (roll: BirthsignRoll) => Command;
+  chooseSelection: (selection: BirthsignSelection) => Command;
   choose: (
     selection: BirthsignSelection,
     answers: readonly ChoiceAnswer<string>[],
@@ -358,6 +363,13 @@ export function BirthsignStep(props: Props) {
     value: BirthsignQuote;
   }>();
   const [retry, setRetry] = useState(0);
+  const [upgradeRetry, setUpgradeRetry] = useState(0);
+  const [upgradeResult, setUpgradeResult] = useState<{
+    key: string;
+    result: BirthsignQuoteResult;
+  }>();
+  const [upgradeErrorAcknowledged, setUpgradeErrorAcknowledged] =
+    useState(false);
   const [issues, setIssues] = useState<readonly { message: string }[]>([]);
   const quoteRef = useRef(props.quote);
   quoteRef.current = props.quote;
@@ -429,6 +441,41 @@ export function BirthsignStep(props: Props) {
   }, [selectedKey]);
   const currentQuote =
     selectedQuote?.key === selectedKey ? selectedQuote.value : undefined;
+  const upgradeSelection =
+    state.original &&
+    state.selected?.variant === "normal" &&
+    state.original.selection.signKey === state.selected.signKey
+      ? { signKey: state.selected.signKey, variant: "starCursed" as const }
+      : undefined;
+  const upgradeKey = JSON.stringify([
+    upgradeSelection,
+    state.freeChoice,
+    state.original,
+    snapshot.characteristicGeneration,
+    snapshot.answers.raceKey,
+    upgradeRetry,
+  ]);
+  useEffect(() => {
+    let live = true;
+    if (!upgradeSelection) return;
+    const pending = quoteRef.current(upgradeSelection, []);
+    if (pending)
+      void pending.then((result) => {
+        if (!live) return;
+        if (!result.ok) {
+          console.error("Birthsign upgrade quote failed.", result.issues);
+          setUpgradeErrorAcknowledged(false);
+        }
+        setUpgradeResult({ key: upgradeKey, result });
+      });
+    return () => {
+      live = false;
+    };
+    // The key captures selection, mode and contextual inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upgradeKey]);
+  const upgrade =
+    upgradeResult?.key === upgradeKey ? upgradeResult.result : undefined;
   const label = (key: string) =>
     readableLabel(
       key,
@@ -486,7 +533,25 @@ export function BirthsignStep(props: Props) {
       setIssues([]);
     } else if (result) setIssues(result.issues);
   }
+  async function select(selection: BirthsignSelection) {
+    const result = await props.chooseSelection(selection);
+    if (result) setIssues(result.ok ? [] : result.issues);
+  }
+  async function restoreOriginal() {
+    setCandidate(undefined);
+    setAnswers([]);
+    setChooser(false);
+    setIssues([]);
+    const result = await props.restore();
+    if (result && !result.ok) setIssues(result.issues);
+  }
   const showChooser = chooser || state.freeChoice;
+  const selectedReplacement =
+    state.original &&
+    state.selected &&
+    (state.selected.signKey !== state.original.selection.signKey ||
+      state.selected.variant !== state.original.selection.variant);
+  const showOriginal = !state.freeChoice && (chooser || selectedReplacement);
   return (
     <Stack>
       <Title order={2}>Birthsign</Title>
@@ -505,64 +570,48 @@ export function BirthsignStep(props: Props) {
           <Button onClick={summaries.retry}>Retry birthsigns</Button>
         </>
       )}
-      {!state.original && !state.freeChoice && (
+      {!state.original && !showChooser && (
         <>
-          <Text>Choose a charge to inspect its signs before rolling.</Text>
-          <Group align="stretch">
+          <fieldset className={classes.charges}>
+            <legend className={classes.legend}>Charge</legend>
             {BIRTHSIGN_CHARGE_TABLES.map((table) => (
-              <Paper key={table.guardian} withBorder p="sm">
-                <Button
-                  variant={charge === table.guardian ? "filled" : "default"}
-                  aria-pressed={charge === table.guardian}
-                  onClick={() => setCharge(table.guardian)}
-                >
-                  {readableLabel(table.guardian)}
-                </Button>
-                <Text size="sm">{table.entries.map(label).join(", ")}</Text>
-              </Paper>
-            ))}
-          </Group>
-          {charge && (
-            <>
-              <Table aria-label={`${readableLabel(charge)} charge roll table`}>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Roll</Table.Th>
-                    <Table.Th>Result</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {BIRTHSIGN_CHARGE_TABLES.find(
-                    (table) => table.guardian === charge,
-                  )?.entries.map((key, index) => (
-                    <Table.Tr key={key}>
-                      <Table.Td>{index + 1}</Table.Td>
-                      <Table.Td>{label(key)}</Table.Td>
-                    </Table.Tr>
+              <label key={table.guardian} className={classes.chargeCard}>
+                <span className={classes.chargeHeading}>
+                  <input
+                    type="radio"
+                    name="birthsign-charge"
+                    aria-label={readableLabel(table.guardian)}
+                    checked={charge === table.guardian}
+                    onChange={() => setCharge(table.guardian)}
+                  />
+                  <strong>{readableLabel(table.guardian)}</strong>
+                </span>
+                <ol className={classes.outcomes}>
+                  {table.entries.map((key) => (
+                    <li key={key}>{label(key)}</li>
                   ))}
-                  <Table.Tr>
-                    <Table.Td>5</Table.Td>
-                    <Table.Td>Reroll; Star-Cursed</Table.Td>
-                  </Table.Tr>
-                </Table.Tbody>
-              </Table>
-              <Button
-                onClick={() => void roll()}
-                disabled={state.load?.status === "loading"}
-              >
-                Roll birthsign
-              </Button>
-            </>
-          )}
+                </ol>
+              </label>
+            ))}
+          </fieldset>
+          <Text fs="italic">
+            On a 5, the result is rerolled for a star-cursed birthsign.
+          </Text>
+          <Button
+            onClick={() => void roll()}
+            disabled={!charge || state.load?.status === "loading"}
+          >
+            Roll Birthsign
+          </Button>
         </>
       )}
-      {state.original && (
+      {state.original && showOriginal && (
         <Text>
-          Roll: {state.original.roll.dice.join(" → ")} (
-          {readableLabel(state.original.roll.charge)})
+          Original Roll: {label(state.original.selection.signKey)} (
+          {state.original.roll.dice.join(" → ")})
         </Text>
       )}
-      {state.selected && (
+      {state.selected && !showChooser && (
         <>
           <Group>
             <Title order={3}>
@@ -578,37 +627,65 @@ export function BirthsignStep(props: Props) {
             onChange={props.chooseBonus}
             catalog={catalog}
           />
-          {state.original &&
-            state.selected.variant === "normal" &&
-            state.original.selection.signKey === state.selected.signKey && (
+          {upgradeSelection && (
+            <>
               <Button
                 variant="light"
-                onClick={() => {
-                  setChooser(true);
-                  changeCandidate({
-                    ...state.selected!,
-                    variant: "starCursed",
-                  });
-                }}
+                disabled={
+                  !upgrade?.ok ||
+                  upgrade.value.purchaseCost === undefined ||
+                  !upgrade.value.eligible ||
+                  !!state.load
+                }
+                onClick={() => void select(upgradeSelection)}
               >
-                Take Star-Cursed version
+                {burnLabel(
+                  "Take Star-Cursed version",
+                  upgrade?.ok ? upgrade.value.purchaseCost : undefined,
+                )}
               </Button>
-            )}
-          {state.original && (
-            <Button variant="default" onClick={() => void props.restore()}>
-              Restore original birthsign
-            </Button>
+              {!upgrade && (
+                <LoadingIndicator label="Loading Star-Cursed price" />
+              )}
+              {upgrade && !upgrade.ok && (
+                <>
+                  <ErrorModal
+                    stackId="birthsign-upgrade-error"
+                    opened={!upgradeErrorAcknowledged}
+                    onClose={() => setUpgradeErrorAcknowledged(true)}
+                    onExitTransitionEnd={props.onErrorExit}
+                  />
+                  <Button
+                    variant="default"
+                    onClick={() => setUpgradeRetry(upgradeRetry + 1)}
+                  >
+                    Retry Star-Cursed price
+                  </Button>
+                </>
+              )}
+            </>
           )}
         </>
       )}
-      {!state.freeChoice && (
-        <Button variant="subtle" onClick={() => setChooser(!chooser)}>
-          {chooser ? "Close chooser" : "Choose a Birthsign instead…"}
+      {showOriginal && (
+        <Button
+          variant="default"
+          disabled={!state.original}
+          onClick={() => void restoreOriginal()}
+        >
+          Restore original birthsign
+        </Button>
+      )}
+      {!state.freeChoice && !chooser && (
+        <Button variant="subtle" onClick={() => setChooser(true)}>
+          Burn luck to choose a birthsign instead
         </Button>
       )}
       {showChooser && (
         <Stack>
-          <Title order={3}>Choose a Birthsign</Title>
+          <Title order={3}>
+            {state.freeChoice ? "Choose a birthsign" : "Choose a Birthsign"}
+          </Title>
           {BIRTHSIGN_CHARGE_TABLES.map((table) => (
             <div key={table.guardian}>
               <Text fw={600}>{readableLabel(table.guardian)}</Text>
@@ -676,6 +753,7 @@ export function BirthsignStep(props: Props) {
                   <Button
                     disabled={
                       !quote.eligible ||
+                      quote.purchaseCost === undefined ||
                       !quote.effectivePackage ||
                       quote.affordability !== "affordable" ||
                       quote.missingInputs.length > 0 ||
@@ -683,7 +761,7 @@ export function BirthsignStep(props: Props) {
                     }
                     onClick={() => void commit()}
                   >
-                    Use this Birthsign
+                    {burnLabel("Use this Birthsign", quote.purchaseCost)}
                   </Button>
                 </>
               )}
@@ -697,12 +775,24 @@ export function BirthsignStep(props: Props) {
       {state.load?.status === "failed" && (
         <Group>
           <Button
+            disabled={
+              !!candidate &&
+              (!quote ||
+                quote.purchaseCost === undefined ||
+                !quote.eligible ||
+                !quote.effectivePackage ||
+                quote.affordability !== "affordable" ||
+                quote.missingInputs.length > 0)
+            }
             onClick={() => {
               if (candidate) void commit();
-              else if (state.original) void props.restore();
+              else if (state.load) void select(state.load.selection);
             }}
           >
-            Retry birthsign selection
+            {burnLabel(
+              "Retry birthsign selection",
+              candidate ? quote?.purchaseCost : 0,
+            )}
           </Button>
           <Button variant="default" onClick={props.cancel}>
             Cancel birthsign selection

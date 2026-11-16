@@ -243,6 +243,10 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     return birthsignCommand(() => session!.creator.submitBirthsignRoll(roll));
   }
 
+  function chooseBirthsign(selection: BirthsignSelection) {
+    return birthsignCommand(() => session!.creator.chooseBirthsign(selection));
+  }
+
   function chooseBirthsignWithAnswers(
     selection: BirthsignSelection,
     answers: readonly ChoiceAnswer<string>[],
@@ -318,6 +322,7 @@ export function useCharacterCreator(catalog: ContentCatalog) {
     next,
     previous,
     submitBirthsignRoll,
+    chooseBirthsign,
     chooseBirthsignWithAnswers,
     chooseBirthsignBonus,
     restoreOriginalBirthsign,

@@ -79,6 +79,7 @@ function ForgeSession({
     setCharacteristicAllocations,
     submitLuckRoll,
     submitBirthsignRoll,
+    chooseBirthsign,
     chooseBirthsignWithAnswers,
     chooseBirthsignBonus,
     restoreOriginalBirthsign,
@@ -201,6 +202,7 @@ function ForgeSession({
                   onDiceError={reportDiceAcquisitionFailure}
                   submitRoll={submitBirthsignRoll}
                   choose={chooseBirthsignWithAnswers}
+                  chooseSelection={chooseBirthsign}
                   chooseBonus={chooseBirthsignBonus}
                   restore={restoreOriginalBirthsign}
                   setFreeChoice={setFreeBirthsignChoice}

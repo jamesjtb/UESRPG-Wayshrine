@@ -31,6 +31,7 @@ describe("useCharacterCreator command boundary", () => {
     expect(Object.keys(result.current).sort()).toEqual([
       "cancelBirthsignSelection",
       "cancelRaceSelection",
+      "chooseBirthsign",
       "chooseBirthsignBonus",
       "chooseBirthsignWithAnswers",
       "chooseRace",
